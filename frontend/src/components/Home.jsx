@@ -4,6 +4,10 @@ import { motion } from 'framer-motion';
 import ScienceIcon from '@mui/icons-material/Science';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import TuneIcon from '@mui/icons-material/Tune';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { Link as ScrollLink } from 'react-scroll';
 
 const FeatureCard = ({ icon, title, description, delay }) => (
@@ -42,7 +46,7 @@ const FeatureCard = ({ icon, title, description, delay }) => (
 
 const Home = () => {
     return (
-        <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+        <Box sx={{ position: 'relative', overflow: 'hidden', pt: 15, pb: 10 }}>
             {/* Background Elements */}
             <Box
                 component={motion.div}
@@ -64,7 +68,7 @@ const Home = () => {
             />
 
             <Grid container spacing={6} alignItems="center">
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={5}>
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -73,7 +77,7 @@ const Home = () => {
                         <Typography variant="overline" color="secondary" fontWeight="bold" letterSpacing={2}>
                             Next-Gen Materials Science
                         </Typography>
-                        <Typography variant="h1" gutterBottom sx={{ background: 'linear-gradient(45deg, #0288d1 30%, #e91e63 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', mb: 2 }}>
+                        <Typography variant="h1" gutterBottom sx={{ background: 'linear-gradient(45deg, #0288d1 30%, #e91e63 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', mb: 2, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
                             Discover Lead-Free Piezoelectrics
                         </Typography>
                         <Typography variant="h5" color="text.secondary" paragraph sx={{ mb: 4, lineHeight: 1.6 }}>
@@ -107,7 +111,7 @@ const Home = () => {
                     </motion.div>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={7}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} sm={6}>
                             <FeatureCard
@@ -117,12 +121,12 @@ const Home = () => {
                                 delay={0.2}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} sx={{ mt: { sm: 4 } }}>
+                        <Grid item xs={12} sm={6}>
                             <FeatureCard
                                 icon={<SpeedIcon sx={{ fontSize: 40 }} />}
                                 title="Instant Results"
                                 description="Get property predictions in milliseconds using advanced ML models."
-                                delay={0.4}
+                                delay={0.3}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -130,7 +134,31 @@ const Home = () => {
                                 icon={<AutoGraphIcon sx={{ fontSize: 40 }} />}
                                 title="Data Insights"
                                 description="Visualize trends and model performance with interactive charts."
+                                delay={0.4}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FeatureCard
+                                icon={<TuneIcon sx={{ fontSize: 40 }} />}
+                                title="Custom Models"
+                                description="Fine-tune algorithms with your own parameters for specific needs."
+                                delay={0.5}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FeatureCard
+                                icon={<PsychologyIcon sx={{ fontSize: 40 }} />}
+                                title="Model Recommendation System"
+                                description="Intelligently selects the optimal model for superior prediction accuracy."
                                 delay={0.6}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FeatureCard
+                                icon={<DescriptionIcon sx={{ fontSize: 40 }} />}
+                                title="Export Reports"
+                                description="Generate comprehensive PDF reports of your findings instantly."
+                                delay={0.7}
                             />
                         </Grid>
                     </Grid>

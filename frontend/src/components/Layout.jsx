@@ -4,6 +4,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { Link as ScrollLink } from 'react-scroll';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
+import Footer from './Footer';
 
 // Modern Light Theme
 const theme = createTheme({
@@ -223,9 +224,10 @@ const Layout = ({ children }) => {
                 </AppBar>
             </HideOnScroll>
 
-            <Box component="main">
+            <Box component="main" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
                 {children}
             </Box>
+            <Footer />
         </ThemeProvider>
     );
 };

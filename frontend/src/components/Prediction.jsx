@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box, TextField, Button, Typography, Paper, Grid,
     Tabs, Tab, Slider, IconButton, Stack, Alert, Switch, Chip
@@ -19,6 +19,20 @@ const Prediction = ({ isTraining, isTrained }) => {
     const [prediction, setPrediction] = useState(null);
     const [error, setError] = useState(null);
     const [showComposition, setShowComposition] = useState(false);
+
+    const [activeModel, setActiveModel] = useState(null);
+
+    useEffect(() => {
+        const fetchActiveModel = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/active-model');
+                setActiveModel(response.data);
+            } catch (err) {
+                console.error("Failed to fetch active model info:", err);
+            }
+        };
+        fetchActiveModel();
+    }, [isTrained]);
 
     const isDisabled = isTraining || !isTrained;
 
@@ -84,6 +98,26 @@ const Prediction = ({ isTraining, isTrained }) => {
                     Enter a chemical formula or build one interactively to predict its properties.
                 </Typography>
             </Box>
+
+            {activeModel && (
+                <Paper sx={{ p: 2, mb: 4, bgcolor: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: 2 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" color="success.dark" gutterBottom>
+                        Active Models
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="body2">
+                                <strong>d<sub>33</sub>:</strong> {activeModel.d33.name} ({activeModel.d33.mode})
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="body2">
+                                <strong>T<sub>c</sub>:</strong> {activeModel.Tc.name} ({activeModel.Tc.mode})
+                            </Typography>
+                        </Grid>
+                    </Grid>
+                </Paper>
+            )}
 
             <Paper sx={{ p: 4, mb: 4, borderRadius: 4, position: 'relative' }}>
                 {isDisabled && (

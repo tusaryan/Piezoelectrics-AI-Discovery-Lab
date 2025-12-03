@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+import json
 import chemparse
 import xgboost as xgb
 import lightgbm as lgb
@@ -76,7 +77,7 @@ def create_feature_matrix(formula_series):
     df_features = pd.DataFrame(feature_data, columns=ALL_ELEMENTS)
     return df_features.fillna(0.0)
 
-def compare_models(X, y, target_name):
+def compare_models(X, y, target_name, manual_config=None):
     """Compares multiple models and returns metrics and plot data."""
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
@@ -87,6 +88,23 @@ def compare_models(X, y, target_name):
         "Gradient Boosting": GradientBoostingRegressor(random_state=42),
         "SVM (SVR)": make_pipeline(StandardScaler(), SVR(C=100, epsilon=0.1))
     }
+
+    # Override with manual config if provided
+    if manual_config and manual_config.get("model_type") in models:
+        model_type = manual_config["model_type"]
+        params = manual_config.get("params", {})
+        
+        if model_type == "Random Forest":
+            models[model_type] = RandomForestRegressor(random_state=42, **params)
+        elif model_type == "XGBoost":
+            models[model_type] = xgb.XGBRegressor(objective='reg:squarederror', n_jobs=-1, random_state=42, **params)
+        elif model_type == "LightGBM":
+            models[model_type] = lgb.LGBMRegressor(verbose=-1, random_state=42, **params)
+        elif model_type == "Gradient Boosting":
+            models[model_type] = GradientBoostingRegressor(random_state=42, **params)
+        elif model_type == "SVM (SVR)":
+            # SVR needs pipeline for scaling, so we reconstruct it
+            models[model_type] = make_pipeline(StandardScaler(), SVR(**params))
     
     results = []
     predictions = {}
@@ -118,12 +136,45 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None):
         search.fit(X, y)
         best_model = search.best_estimator_
     else:
-        # Manual model selection logic (simplified for now, defaulting to XGBoost with params)
-        best_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, **(params or {}))
+        # Manual model selection
+        if model_type == "Random Forest":
+            best_model = RandomForestRegressor(random_state=42, **(params or {}))
+        elif model_type == "XGBoost":
+            best_model = xgb.XGBRegressor(objective='reg:squarederror', n_jobs=-1, random_state=42, **(params or {}))
+        elif model_type == "LightGBM":
+            best_model = lgb.LGBMRegressor(verbose=-1, random_state=42, **(params or {}))
+        elif model_type == "Gradient Boosting":
+            best_model = GradientBoostingRegressor(random_state=42, **(params or {}))
+        elif model_type == "SVM (SVR)":
+            best_model = make_pipeline(StandardScaler(), SVR(**(params or {})))
+        else:
+            # Fallback
+            best_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1)
+
         best_model.fit(X, y)
 
     joblib.dump(best_model, model_path)
     return best_model
+
+def save_active_model_info(d33_model_name, d33_mode, tc_model_name, tc_mode):
+    """Saves active model info to disk."""
+    info = {
+        "d33": {"name": d33_model_name, "mode": d33_mode},
+        "Tc": {"name": tc_model_name, "mode": tc_mode}
+    }
+    with open(os.path.join(MODEL_DIR, "active_model_info.json"), "w") as f:
+        json.dump(info, f)
+
+def load_active_model_info():
+    """Loads active model info from disk."""
+    try:
+        with open(os.path.join(MODEL_DIR, "active_model_info.json"), "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {
+            "d33": {"name": "Unknown", "mode": "Unknown"},
+            "Tc": {"name": "Unknown", "mode": "Unknown"}
+        }
 
 def predict_properties(formula):
     """Predicts d33 and Tc for a given formula."""

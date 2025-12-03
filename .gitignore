@@ -419,3 +419,4 @@ id_rsa
 id_rsa.pub
 *.log
 npm-debug.log*
+*.pkl

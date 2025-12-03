@@ -1,13 +1,16 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import pandas as pd
 import io
 import os
+import json
 from ml_engine import (
     create_feature_matrix, compare_models, train_production_model, 
-    predict_properties, ALL_ELEMENTS, save_insights
+    predict_properties, ALL_ELEMENTS, save_insights, save_active_model_info, load_active_model_info
 )
+from report_generator import generate_report
 
 router = APIRouter()
 
@@ -61,7 +64,10 @@ async def train(
     file: UploadFile = File(...), 
     model_type: str = "Auto",
     n_estimators: int = 100,
-    learning_rate: float = 0.1
+    learning_rate: float = 0.1,
+    max_depth: int = 5,
+    c_param: float = 100.0,
+    epsilon: float = 0.1
 ):
     if training_state["is_training"]:
         raise HTTPException(status_code=400, detail="Training already in progress.")
@@ -77,8 +83,22 @@ async def train(
     if 'Component' not in df.columns:
         raise HTTPException(status_code=400, detail="Dataset must have 'Component' column.")
         
+    # Construct params dict based on model_type
+    params = {}
+    if model_type != "Auto":
+        if model_type in ["Random Forest", "XGBoost", "LightGBM", "Gradient Boosting"]:
+            params["n_estimators"] = n_estimators
+            params["max_depth"] = max_depth
+        
+        if model_type in ["XGBoost", "LightGBM", "Gradient Boosting"]:
+            params["learning_rate"] = learning_rate
+            
+        if model_type == "SVM (SVR)":
+            params["C"] = c_param
+            params["epsilon"] = epsilon
+
     # Trigger training in background
-    background_tasks.add_task(run_training_pipeline, df, model_type, {"n_estimators": n_estimators, "learning_rate": learning_rate})
+    background_tasks.add_task(run_training_pipeline, df, model_type, params)
     
     return {"message": "Training started."}
 
@@ -114,11 +134,13 @@ def run_training_pipeline(df, model_type, params):
         results_d33, predictions_d33 = None, None
         results_tc, predictions_tc = None, None
 
+        manual_config = {"model_type": model_type, "params": params} if model_type != "Auto" else None
+
         if 'd33 (pC/N)' in df.columns:
             df_d33 = df.dropna(subset=['Component', 'd33 (pC/N)'])
             X = create_feature_matrix(df_d33['Component'])
             y = df_d33['d33 (pC/N)']
-            results_d33, predictions_d33 = compare_models(X, y, "d33")
+            results_d33, predictions_d33 = compare_models(X, y, "d33", manual_config)
 
         training_state["progress"] = 80
         training_state["message"] = "Comparing Tc algorithms..."
@@ -127,8 +149,22 @@ def run_training_pipeline(df, model_type, params):
             df_tc = df.dropna(subset=['Component', tc_col])
             X = create_feature_matrix(df_tc['Component'])
             y = df_tc[tc_col]
-            results_tc, predictions_tc = compare_models(X, y, "Tc")
+            results_tc, predictions_tc = compare_models(X, y, "Tc", manual_config)
             
+        # Determine active model info for saving
+        d33_model_name = "XGBoost (Auto)"
+        d33_mode = "Auto"
+        tc_model_name = "XGBoost (Auto)"
+        tc_mode = "Auto"
+
+        if manual_config:
+            d33_model_name = manual_config.get("model_type", "Custom")
+            d33_mode = "Manual"
+            tc_model_name = manual_config.get("model_type", "Custom")
+            tc_mode = "Manual"
+        
+        save_active_model_info(d33_model_name, d33_mode, tc_model_name, tc_mode)
+        
         save_insights(results_d33, predictions_d33, results_tc, predictions_tc)
         
         training_state["progress"] = 100
@@ -139,6 +175,22 @@ def run_training_pipeline(df, model_type, params):
         training_state["message"] = f"Error: {str(e)}"
     finally:
         training_state["is_training"] = False
+
+@router.get("/active-model")
+async def get_active_model():
+    return load_active_model_info()
+
+@router.get("/export-report")
+def export_report():
+    from ml_engine import load_insights
+    insights_data = load_insights()
+    pdf_buffer = generate_report(insights_data)
+    
+    return StreamingResponse(
+        pdf_buffer, 
+        media_type="application/pdf", 
+        headers={"Content-Disposition": "attachment; filename=piezo_ai_report.pdf"}
+    )
 
 @router.get("/insights")
 def get_insights():

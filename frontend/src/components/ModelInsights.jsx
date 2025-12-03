@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, Grid, CircularProgress, Alert } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
 import axios from 'axios';
 
-const ModelInsights = ({ refreshTrigger }) => {
+const ModelInsights = ({ refreshTrigger, isTraining, isTrained }) => {
     const [comparisonD33, setComparisonD33] = useState([]);
     const [comparisonTc, setComparisonTc] = useState([]);
     const [scatterD33, setScatterD33] = useState([]);
@@ -12,6 +12,11 @@ const ModelInsights = ({ refreshTrigger }) => {
 
     useEffect(() => {
         const fetchData = async () => {
+            // If not trained and not training, we might not have data, but let's try fetching anyway
+            // or just skip if we know it's not trained. 
+            // However, on first load, isTrained might be false until status returns.
+            // Let's fetch and handle empty/error.
+
             try {
                 const response = await axios.get('http://localhost:8000/insights');
                 setComparisonD33(response.data.comparison_d33 || []);
@@ -27,6 +32,25 @@ const ModelInsights = ({ refreshTrigger }) => {
 
         fetchData();
     }, [refreshTrigger]);
+
+    if (isTraining) {
+        return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                <CircularProgress size={60} sx={{ mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">Training in progress... Insights will update shortly.</Typography>
+            </Box>
+        );
+    }
+
+    if (!isTrained && !loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                <Alert severity="info" variant="outlined" sx={{ fontSize: '1.2rem', px: 4, py: 2 }}>
+                    Models have not been trained yet. Please go to the Retraining section to generate insights.
+                </Alert>
+            </Box>
+        );
+    }
 
     if (loading) {
         return (

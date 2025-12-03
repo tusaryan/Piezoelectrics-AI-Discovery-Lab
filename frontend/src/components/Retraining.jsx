@@ -6,9 +6,8 @@ import AutoModeIcon from '@mui/icons-material/AutoMode';
 import TuneIcon from '@mui/icons-material/Tune';
 import axios from 'axios';
 
-const Retraining = ({ onTrainingComplete }) => {
+const Retraining = ({ isTraining, progress, statusMessage }) => {
     const [file, setFile] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
     const [mode, setMode] = useState('auto'); // 'auto' or 'manual'
@@ -25,7 +24,6 @@ const Retraining = ({ onTrainingComplete }) => {
             return;
         }
 
-        setLoading(true);
         setMessage(null);
         setError(null);
 
@@ -39,14 +37,9 @@ const Retraining = ({ onTrainingComplete }) => {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            setMessage(response.data.message);
-            if (onTrainingComplete) {
-                onTrainingComplete();
-            }
+            // Don't set message here, wait for progress to complete or use statusMessage
         } catch (err) {
             setError(err.response?.data?.detail || "Training failed.");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -68,6 +61,7 @@ const Retraining = ({ onTrainingComplete }) => {
                                 startIcon={<AutoModeIcon />}
                                 onClick={() => setMode('auto')}
                                 size="large"
+                                disabled={isTraining}
                             >
                                 Intelligent Auto-Tune
                             </Button>
@@ -76,6 +70,7 @@ const Retraining = ({ onTrainingComplete }) => {
                                 startIcon={<TuneIcon />}
                                 onClick={() => setMode('manual')}
                                 size="large"
+                                disabled={isTraining}
                             >
                                 Manual Configuration
                             </Button>
@@ -88,18 +83,19 @@ const Retraining = ({ onTrainingComplete }) => {
                                 p: 4,
                                 mb: 4,
                                 bgcolor: 'background.default',
-                                cursor: 'pointer',
+                                cursor: isTraining ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.3s ease',
                                 '&:hover': {
-                                    bgcolor: 'action.hover',
-                                    borderColor: 'primary.main',
-                                    transform: 'scale(1.02)'
+                                    bgcolor: isTraining ? 'background.default' : 'action.hover',
+                                    borderColor: isTraining ? '#ccc' : 'primary.main',
+                                    transform: isTraining ? 'none' : 'scale(1.02)'
                                 },
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                minHeight: 200
+                                minHeight: 200,
+                                opacity: isTraining ? 0.6 : 1
                             }}
                             component="label"
                         >
@@ -108,6 +104,7 @@ const Retraining = ({ onTrainingComplete }) => {
                                 hidden
                                 accept=".csv"
                                 onChange={handleFileChange}
+                                disabled={isTraining}
                             />
                             <CloudUploadIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                             <Typography variant="h6" color="text.primary" sx={{ wordBreak: 'break-word', px: 2 }}>
@@ -118,24 +115,30 @@ const Retraining = ({ onTrainingComplete }) => {
                             </Typography>
                         </Box>
 
-                        {loading && (
+                        {isTraining && (
                             <Box sx={{ width: '100%', mb: 3 }}>
-                                <LinearProgress />
-                                <Typography variant="caption" color="text.secondary">Training in progress... This may take a few minutes.</Typography>
+                                <LinearProgress variant="determinate" value={progress} />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                    {statusMessage} ({progress}%)
+                                </Typography>
                             </Box>
                         )}
 
-                        {message && <Alert severity="success" sx={{ mb: 3 }}>{message}</Alert>}
+                        {!isTraining && progress === 100 && (
+                            <Alert severity="success" sx={{ mb: 3 }}>Training successfully completed! You can now use the new models.</Alert>
+                        )}
+
+                        {message && <Alert severity="info" sx={{ mb: 3 }}>{message}</Alert>}
                         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
                         <Button
                             variant="contained"
                             size="large"
                             onClick={handleTrain}
-                            disabled={loading || !file}
+                            disabled={isTraining || !file}
                             sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
                         >
-                            {loading ? "Training..." : "Start Retraining"}
+                            {isTraining ? "Training in Progress..." : "Start Retraining"}
                         </Button>
                     </Paper>
                 </Grid>

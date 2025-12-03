@@ -8,6 +8,7 @@ import ModelInsights from './components/ModelInsights';
 import Retraining from './components/Retraining';
 import DatasetViewer from './components/DatasetViewer';
 import ProjectInfo from './components/ProjectInfo';
+import useTrainingStatus from './hooks/useTrainingStatus';
 
 const Section = ({ id, children, bgColor = 'transparent' }) => {
   return (
@@ -36,10 +37,15 @@ const Section = ({ id, children, bgColor = 'transparent' }) => {
 
 function App() {
   const [refreshInsights, setRefreshInsights] = React.useState(0);
+  const { isTraining, progress, statusMessage, isTrained } = useTrainingStatus();
 
-  const handleTrainingComplete = () => {
-    setRefreshInsights(prev => prev + 1);
-  };
+  // Trigger refresh when training completes (isTraining goes from true to false)
+  // We can also just rely on the hook's state, but keeping this for explicit refresh triggers if needed
+  React.useEffect(() => {
+    if (!isTraining && isTrained) {
+      setRefreshInsights(prev => prev + 1);
+    }
+  }, [isTraining, isTrained]);
 
   return (
     <Layout>
@@ -48,15 +54,23 @@ function App() {
       </Section>
 
       <Section id="predict" bgColor="#f0f4f8">
-        <Prediction />
+        <Prediction isTraining={isTraining} isTrained={isTrained} />
       </Section>
 
       <Section id="insights">
-        <ModelInsights refreshTrigger={refreshInsights} />
+        <ModelInsights
+          refreshTrigger={refreshInsights}
+          isTraining={isTraining}
+          isTrained={isTrained}
+        />
       </Section>
 
       <Section id="train" bgColor="#f0f4f8">
-        <Retraining onTrainingComplete={handleTrainingComplete} />
+        <Retraining
+          isTraining={isTraining}
+          progress={progress}
+          statusMessage={statusMessage}
+        />
       </Section>
 
       <Section id="dataset">

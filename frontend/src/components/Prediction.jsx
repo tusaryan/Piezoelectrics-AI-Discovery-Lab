@@ -12,13 +12,15 @@ const ALL_ELEMENTS = ['Ag', 'Al', 'B', 'Ba', 'Bi', 'C', 'Ca', 'Fe', 'Hf', 'Ho', 
     'Li', 'Mn', 'Na', 'Nb', 'O', 'Pr', 'Sb', 'Sc', 'Sr', 'Ta', 'Ti',
     'Zn', 'Zr'];
 
-const Prediction = () => {
+const Prediction = ({ isTraining, isTrained }) => {
     const [tabValue, setTabValue] = useState(0);
     const [formula, setFormula] = useState('');
     const [builderElements, setBuilderElements] = useState([]);
     const [prediction, setPrediction] = useState(null);
     const [error, setError] = useState(null);
     const [showComposition, setShowComposition] = useState(false);
+
+    const isDisabled = isTraining || !isTrained;
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
@@ -83,15 +85,30 @@ const Prediction = () => {
                 </Typography>
             </Box>
 
-            <Paper sx={{ p: 4, mb: 4, borderRadius: 4 }}>
+            <Paper sx={{ p: 4, mb: 4, borderRadius: 4, position: 'relative' }}>
+                {isDisabled && (
+                    <Box sx={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        bgcolor: 'rgba(255,255,255,0.7)', zIndex: 10,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 4, flexDirection: 'column', gap: 2
+                    }}>
+                        <Alert severity="warning" variant="filled" sx={{ width: '80%' }}>
+                            {isTraining
+                                ? "Model is currently retraining. Prediction is disabled until training completes."
+                                : "Model is not trained. Please go to the Retraining section to train the model first."}
+                        </Alert>
+                    </Box>
+                )}
+
                 <Tabs
                     value={tabValue}
                     onChange={handleTabChange}
                     centered
                     sx={{ mb: 4, '& .MuiTab-root': { fontSize: '1.1rem' } }}
                 >
-                    <Tab label="Direct Input" />
-                    <Tab label="Interactive Builder" />
+                    <Tab label="Direct Input" disabled={isDisabled} />
+                    <Tab label="Interactive Builder" disabled={isDisabled} />
                 </Tabs>
 
                 {tabValue === 0 && (
@@ -104,6 +121,7 @@ const Prediction = () => {
                             onChange={(e) => setFormula(e.target.value)}
                             placeholder="e.g., 0.96(K0.5Na0.5)NbO3-0.04Bi0.5Na0.5TiO3"
                             sx={{ mb: 2 }}
+                            disabled={isDisabled}
                         />
                     </Box>
                 )}
@@ -113,7 +131,14 @@ const Prediction = () => {
                         <Typography variant="subtitle1" gutterBottom fontWeight="bold">Select Elements:</Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 4 }}>
                             {ALL_ELEMENTS.map((el) => (
-                                <Button key={el} variant="outlined" size="small" onClick={() => addElement(el)} sx={{ borderRadius: 2 }}>
+                                <Button
+                                    key={el}
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => addElement(el)}
+                                    sx={{ borderRadius: 2 }}
+                                    disabled={isDisabled}
+                                >
                                     {el}
                                 </Button>
                             ))}
@@ -136,17 +161,18 @@ const Prediction = () => {
                                                     step={0.01}
                                                     valueLabelDisplay="auto"
                                                     onChange={(e, val) => updateAmount(index, val)}
+                                                    disabled={isDisabled}
                                                 />
                                             </Grid>
                                             <Grid size={{ xs: 2 }}>
-                                                <IconButton onClick={() => removeElement(index)} color="error">
+                                                <IconButton onClick={() => removeElement(index)} color="error" disabled={isDisabled}>
                                                     <DeleteIcon />
                                                 </IconButton>
                                             </Grid>
                                         </Grid>
                                     ))}
                                 </Paper>
-                                <Button startIcon={<RestartAltIcon />} onClick={resetBuilder} color="warning">
+                                <Button startIcon={<RestartAltIcon />} onClick={resetBuilder} color="warning" disabled={isDisabled}>
                                     Reset Builder
                                 </Button>
                             </>
@@ -162,10 +188,17 @@ const Prediction = () => {
                                 checked={showComposition}
                                 onChange={(e) => setShowComposition(e.target.checked)}
                                 color="primary"
+                                disabled={isDisabled}
                             />
                         </Box>
                     )}
-                    <Button variant="contained" size="large" onClick={handlePredict} sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}>
+                    <Button
+                        variant="contained"
+                        size="large"
+                        onClick={handlePredict}
+                        sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
+                        disabled={isDisabled}
+                    >
                         Predict Properties
                     </Button>
                 </Box>

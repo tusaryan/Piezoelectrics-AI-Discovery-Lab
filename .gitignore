@@ -399,3 +399,23 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+AI-Assisted Discovery of New Lead-Free Piezoelectrics.md
+
+# Security and Environment
+.env
+.env.*
+.DS_Store
+Thumbs.db
+venv/
+.venv/
+.pytest_cache/
+*.egg-info/
+.ipynb_checkpoints
+.idea/
+*.pem
+*.key
+*.cert
+id_rsa
+id_rsa.pub
+*.log
+npm-debug.log*

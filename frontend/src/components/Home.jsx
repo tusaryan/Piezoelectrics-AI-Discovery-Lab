@@ -16,29 +16,35 @@ const FeatureCard = ({ icon, title, description, delay }) => (
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
-        elevation={0}
         sx={{
             p: 4,
             height: '100%',
-            textAlign: 'center',
+            width: '100%', // Force box to fill Grid Column
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'flex-start',
+            textAlign: 'left',
             borderRadius: 4,
             background: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(0,0,0,0.05)',
-            transition: 'transform 0.3s ease',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
+            transition: 'all 0.3s ease',
+            minHeight: '320px', // Enforce large enough height for uniformity
             '&:hover': {
                 transform: 'translateY(-10px)',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
             }
         }}
     >
-        <Box sx={{ color: 'primary.main', mb: 2 }}>
+        <Box sx={{ color: 'primary.main', mb: 3, mt: 0, p: 1.5, bgcolor: 'rgba(2,136,209,0.1)', borderRadius: '50%' }}>
             {icon}
         </Box>
-        <Typography variant="h6" gutterBottom fontWeight="bold">
+        <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ mb: 1, minHeight: '60px', display: 'flex', alignItems: 'center', lineHeight: 1.2 }}>
             {title}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ width: '100%', overflowWrap: 'break-word' }}>
             {description}
         </Typography>
     </Paper>
@@ -112,55 +118,24 @@ const Home = () => {
                 </Grid>
 
                 <Grid item xs={12} md={7}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<ScienceIcon sx={{ fontSize: 40 }} />}
-                                title="Virtual Lab"
-                                description="Test thousands of compositions without physical synthesis."
-                                delay={0.2}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<SpeedIcon sx={{ fontSize: 40 }} />}
-                                title="Instant Results"
-                                description="Get property predictions in milliseconds using advanced ML models."
-                                delay={0.3}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<AutoGraphIcon sx={{ fontSize: 40 }} />}
-                                title="Data Insights"
-                                description="Visualize trends and model performance with interactive charts."
-                                delay={0.4}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<TuneIcon sx={{ fontSize: 40 }} />}
-                                title="Custom Models"
-                                description="Fine-tune algorithms with your own parameters for specific needs."
-                                delay={0.5}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<PsychologyIcon sx={{ fontSize: 40 }} />}
-                                title="Model Recommendation System"
-                                description="Intelligently selects the optimal model for superior prediction accuracy."
-                                delay={0.6}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FeatureCard
-                                icon={<DescriptionIcon sx={{ fontSize: 40 }} />}
-                                title="Export Reports"
-                                description="Generate comprehensive PDF reports of your findings instantly."
-                                delay={0.7}
-                            />
-                        </Grid>
+                    <Grid container spacing={3} alignItems="stretch">
+                        {[
+                            { title: "Virtual Lab", icon: <ScienceIcon sx={{ fontSize: 40 }} />, description: "Test thousands of compositions without physical synthesis.", delay: 0.2 },
+                            { title: "Instant Results", icon: <SpeedIcon sx={{ fontSize: 40 }} />, description: "Get property predictions in milliseconds using advanced ML models.", delay: 0.3 },
+                            { title: "Data Insights", icon: <AutoGraphIcon sx={{ fontSize: 40 }} />, description: "Visualize trends and model performance with interactive charts.", delay: 0.4 },
+                            { title: "Custom Models", icon: <TuneIcon sx={{ fontSize: 40 }} />, description: "Fine-tune algorithms with your own parameters for specific needs.", delay: 0.5 },
+                            { title: "Model Recommendation System", icon: <PsychologyIcon sx={{ fontSize: 40 }} />, description: "Intelligently selects the optimal model for superior prediction accuracy.", delay: 0.6 },
+                            { title: "Export Reports", icon: <DescriptionIcon sx={{ fontSize: 40 }} />, description: "Generate comprehensive PDF reports of your findings instantly.", delay: 0.7 }
+                        ].map((feature, index) => (
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index} sx={{ display: 'flex' }}>
+                                <FeatureCard
+                                    icon={feature.icon}
+                                    title={feature.title}
+                                    description={feature.description}
+                                    delay={feature.delay}
+                                />
+                            </Grid>
+                        ))}
                     </Grid>
                 </Grid>
             </Grid>

@@ -8,22 +8,38 @@ const useTrainingStatus = () => {
     const [isTrained, setIsTrained] = useState(false);
     const [error, setError] = useState(null);
 
+    const [logs, setLogs] = useState([]);
+
     // Use a ref to keep track of the interval so we can clear it if needed
     const intervalRef = useRef(null);
 
     const fetchStatus = async () => {
         try {
             const response = await axios.get('http://localhost:8000/status');
-            const { is_training, progress, message, is_trained } = response.data;
+            const data = response.data;
 
-            setIsTraining(is_training);
-            setProgress(progress);
-            setStatusMessage(message);
-            setIsTrained(is_trained);
-            setError(null);
+            // New TrainingManager state structure
+            const statusStr = data.status || 'idle';
+            const isTrain = statusStr === 'training';
+
+            setIsTraining(isTrain);
+            setProgress(data.progress);
+            setStatusMessage(data.message);
+            setIsTrained(data.is_trained);
+            setLogs(data.logs || []);
+
+            if (statusStr === 'failed' && data.error) {
+                setError(data.error); // { message, suggestion, context }
+            } else if (statusStr === 'failed') {
+                setError({ message: data.message, suggestion: "An unknown error occurred." });
+            } else {
+                setError(null);
+            }
+
         } catch (err) {
             console.error("Failed to fetch training status:", err);
-            setError("Failed to connect to server.");
+            // Don't overwrite error if we just have a transient network glitch, unless it persists?
+            // For now, let's just log it.
         }
     };
 
@@ -41,7 +57,7 @@ const useTrainingStatus = () => {
         };
     }, []);
 
-    return { isTraining, progress, statusMessage, isTrained, error };
+    return { isTraining, progress, statusMessage, isTrained, error, logs };
 };
 
 export default useTrainingStatus;

@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, TextField, Button, Typography, Paper, Grid,
-    Tabs, Tab, Slider, IconButton, Stack, Alert, Switch, Chip
+    Tabs, Tab, Slider, IconButton, Stack, Alert, Switch, Chip, Snackbar, CircularProgress
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { validateFormula, SUPPORTED_ELEMENTS } from '../utils/formulaValidation';
 
-const ALL_ELEMENTS = ['Ag', 'Al', 'B', 'Ba', 'Bi', 'C', 'Ca', 'Fe', 'Hf', 'Ho', 'K',
-    'Li', 'Mn', 'Na', 'Nb', 'O', 'Pr', 'Sb', 'Sc', 'Sr', 'Ta', 'Ti',
-    'Zn', 'Zr'];
+const ALL_ELEMENTS = SUPPORTED_ELEMENTS;
 
 const Prediction = ({ isTraining, isTrained }) => {
     const [tabValue, setTabValue] = useState(0);
@@ -18,7 +17,11 @@ const Prediction = ({ isTraining, isTrained }) => {
     const [builderElements, setBuilderElements] = useState([]);
     const [prediction, setPrediction] = useState(null);
     const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [showComposition, setShowComposition] = useState(false);
+
+    // New State for Snackbar
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
 
     const [activeModel, setActiveModel] = useState(null);
 
@@ -42,6 +45,13 @@ const Prediction = ({ isTraining, isTrained }) => {
         setError(null);
     };
 
+    const handleCloseSnackbar = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setSnackbarOpen(false);
+    };
+
     const handlePredict = async () => {
         setError(null);
         let formulaToPredict = formula;
@@ -50,6 +60,7 @@ const Prediction = ({ isTraining, isTrained }) => {
             // Construct formula from builder
             if (builderElements.length === 0) {
                 setError("Please add at least one element.");
+                setSnackbarOpen(true);
                 return;
             }
             formulaToPredict = builderElements.map(e => `${e.element}${e.amount}`).join('');
@@ -57,14 +68,53 @@ const Prediction = ({ isTraining, isTrained }) => {
 
         if (!formulaToPredict) {
             setError("Please enter a formula.");
+            setSnackbarOpen(true);
             return;
         }
 
+        // Modular Validation Logic
+        const validation = validateFormula(formulaToPredict);
+        if (!validation.isValid) {
+            setError(`${validation.errorTitle}: ${validation.userMessage}`);
+            setSnackbarOpen(true);
+            return;
+        }
+
+        setIsLoading(true);
         try {
             const response = await axios.post('http://localhost:8000/predict', { formula: formulaToPredict });
             setPrediction(response.data);
         } catch (err) {
-            setError(err.response?.data?.detail || "Prediction failed. Ensure models are trained.");
+            console.error("Prediction Error Details:", err);
+
+            let errorMessage = "Prediction failed. Please check server logs.";
+
+            if (err.response) {
+                // Server responded with a status code outside 2xx
+                const data = err.response.data;
+                if (data && typeof data === 'object' && data.detail) {
+                    errorMessage = data.detail;
+                } else if (typeof data === 'string') {
+                    // Check if it's likely an HTML error page (common with 500s)
+                    if (data.trim().startsWith('<!DOCTYPE html>') || data.includes('<html')) {
+                        errorMessage = `Server Error (${err.response.status}): Internal Backend Failure`;
+                    } else {
+                        errorMessage = `Server Error: ${data.slice(0, 100)}`; // Truncate if long text
+                    }
+                } else {
+                    errorMessage = `Server Error (${err.response.status})`;
+                }
+            } else if (err.request) {
+                // Request made but no response
+                errorMessage = "No response from server. Is the backend running?";
+            } else {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
+            setSnackbarOpen(true);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -231,15 +281,18 @@ const Prediction = ({ isTraining, isTrained }) => {
                         size="large"
                         onClick={handlePredict}
                         sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
-                        disabled={isDisabled}
+                        disabled={isDisabled || isLoading}
                     >
-                        Predict Properties
+                        {isLoading ? (
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <CircularProgress size={20} color="inherit" />
+                                <span>Predicting...</span>
+                            </Stack>
+                        ) : "Predict Properties"}
                     </Button>
                 </Box>
 
-                {error && (
-                    <Alert severity="error" sx={{ mt: 3 }}>{error}</Alert>
-                )}
+
             </Paper>
 
             {prediction && (
@@ -273,6 +326,17 @@ const Prediction = ({ isTraining, isTrained }) => {
                     </Grid>
                 </Box>
             )}
+
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%', boxShadow: 3 }}>
+                    {error || "An error occurred during prediction."}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

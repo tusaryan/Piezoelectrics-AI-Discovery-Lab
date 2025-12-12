@@ -37,7 +37,7 @@ const Section = ({ id, children, bgColor = 'transparent' }) => {
 
 function App() {
   const [refreshInsights, setRefreshInsights] = React.useState(0);
-  const { isTraining, progress, statusMessage, isTrained } = useTrainingStatus();
+  const { isTraining, progress, statusMessage, isTrained, logs, error } = useTrainingStatus();
 
   // Trigger refresh when training completes (isTraining goes from true to false)
   // We can also just rely on the hook's state, but keeping this for explicit refresh triggers if needed
@@ -70,6 +70,8 @@ function App() {
           isTraining={isTraining}
           progress={progress}
           statusMessage={statusMessage}
+          trainingLogs={logs}
+          errorState={error}
         />
       </Section>
 

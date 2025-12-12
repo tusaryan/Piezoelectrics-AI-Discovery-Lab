@@ -1,1 +1,1 @@
-{"d33": {"name": "XGBoost (Auto)", "mode": "Auto"}, "Tc": {"name": "XGBoost (Auto)", "mode": "Auto"}}
+{"d33": {"name": "Gradient Boosting", "mode": "Auto (Gradient Boosting)"}, "Tc": {"name": "Random Forest", "mode": "Auto (Random Forest)"}}

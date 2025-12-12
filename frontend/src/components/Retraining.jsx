@@ -1,14 +1,19 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Box, Typography, Button, Paper, Grid, Alert, LinearProgress, Stack,
     FormControl, InputLabel, Select, MenuItem, Slider, Tooltip, IconButton,
-    Card, CardContent, TextField
+    Card, CardContent, TextField, Collapse, Radio, RadioGroup, FormControlLabel, FormLabel, Snackbar, AlertTitle,
+    Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import TuneIcon from '@mui/icons-material/Tune';
 import InfoIcon from '@mui/icons-material/Info';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import axios from 'axios';
 
 const MODEL_INFO = {
@@ -19,183 +24,430 @@ const MODEL_INFO = {
     "SVM (SVR)": "Support Vector Regression. Effective in high-dimensional spaces. Uses kernels to handle non-linear relationships."
 };
 
-const PARAM_INFO = {
-    "n_estimators": "The number of trees in the forest or ensemble. More trees can improve performance but increase training time.",
-    "learning_rate": "Shrinks the contribution of each tree. Lower values require more trees but can lead to better generalization.",
-    "max_depth": "The maximum depth of a tree. Deeper trees can model more complex relations but may overfit.",
-    "C": "Regularization parameter. Controls the trade-off between smooth decision boundary and classifying training points correctly.",
-    "epsilon": "Epsilon in the epsilon-SVR model. Specifies the epsilon-tube within which no penalty is associated in the training loss function."
+const PARAM_GUIDE = {
+    "n_estimators": {
+        desc: "Number of trees in the forest/ensemble.",
+        effect: "Increasing this generally improves performance and robustness but linearly increases training time. \n\nLogic: More trees = more 'votes' to average out errors. Too few may underfit; too many yields diminishing returns."
+    },
+    "learning_rate": {
+        desc: "Step size shrinkage used in update to prevent overfitting.",
+        effect: "Lower values make the model more robust but slower to train (requires more trees). \n\nLogic: Controls how much the model learns from the errors of the previous tree. Small steps = precise convergence."
+    },
+    "max_depth": {
+        desc: "Maximum depth of a tree.",
+        effect: "Higher depth captures more complex patterns but increases risk of overfitting (high variance). \n\nLogic: Deep trees memorize data; shallow trees generalize better but might miss fine details."
+    },
+    "C": {
+        desc: "Regularization parameter for SVM.",
+        effect: "High C = stricter margin (tries to classify all training points correctly, risk of overfitting). \nLow C = softer margin (allows more errors to get a smoother boundary)."
+    },
+    "epsilon": {
+        desc: "Epsilon tube width for SVR.",
+        effect: "Defines a margin of tolerance where no penalty is given to errors. \n\nLogic: Larger epsilon = more tolerance (sparser model). Smaller epsilon = stricter fit."
+    }
 };
 
-const Retraining = ({ isTraining, progress, statusMessage }) => {
-    const [file, setFile] = useState(null);
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
-    const [mode, setMode] = useState('auto'); // 'auto' or 'manual'
+const TrainingConfigPanel = ({ config, setConfig, label }) => {
 
-    // Manual Config State
-    const [selectedModel, setSelectedModel] = useState('Random Forest');
-    const [nEstimators, setNEstimators] = useState(100);
-    const [learningRate, setLearningRate] = useState(0.1);
-    const [maxDepth, setMaxDepth] = useState(5);
-    const [cParam, setCParam] = useState(100);
-    const [epsilon, setEpsilon] = useState(0.1);
-
-    const handleFileChange = (event) => {
-        setFile(event.target.files[0]);
-        setMessage(null);
-        setError(null);
+    const updateConfig = (key, value) => {
+        setConfig(prev => ({ ...prev, [key]: value }));
     };
 
-    const handleTrain = async () => {
-        if (!file) {
-            setError("Please upload a dataset CSV file.");
-            return;
-        }
-
-        setMessage(null);
-        setError(null);
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('mode', mode); // This is actually 'model_type' in backend if manual, but backend expects 'model_type' param separately if not auto.
-
-        // Adjusting to backend expectation:
-        // Backend expects: model_type="Auto" or specific name.
-        if (mode === 'auto') {
-            formData.append('model_type', 'Auto');
-        } else {
-            formData.append('model_type', selectedModel);
-            formData.append('n_estimators', nEstimators);
-            formData.append('learning_rate', learningRate);
-            formData.append('max_depth', maxDepth);
-            formData.append('c_param', cParam);
-            formData.append('epsilon', epsilon);
-        }
-
-        try {
-            await axios.post('http://localhost:8000/train', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-        } catch (err) {
-            setError(err.response?.data?.detail || "Training failed.");
-        }
-    };
-
-    const renderParamSlider = (label, value, setValue, min, max, step, paramKey) => (
-        <Box sx={{ mb: 2 }}>
+    const renderParamSlider = (name, value, key, min, max, step) => (
+        <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography variant="body2" gutterBottom>{label}: {value}</Typography>
-                <Tooltip title={PARAM_INFO[paramKey]} arrow placement="right">
-                    <IconButton size="small" sx={{ ml: 0.5, p: 0.5 }}>
-                        <InfoIcon fontSize="small" color="action" />
+                <Typography id={`slider-${label}-${key}`} gutterBottom variant="body2" sx={{ fontWeight: 500 }}>
+                    {name}: {value}
+                </Typography>
+                <Tooltip
+                    title={<div style={{ whiteSpace: 'pre-line' }}>{PARAM_GUIDE[key]?.desc} <br /><br /> <strong>Effect:</strong> {PARAM_GUIDE[key]?.effect}</div>}
+                    arrow
+                    placement="right"
+                >
+                    <IconButton size="small" sx={{ ml: 1, color: 'primary.main' }}>
+                        <InfoIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
             </Box>
             <Slider
                 value={value}
-                onChange={(e, val) => setValue(val)}
                 min={min}
                 max={max}
                 step={step}
+                onChange={(e, val) => updateConfig(key, val)}
                 valueLabelDisplay="auto"
-                disabled={isTraining}
+                aria-labelledby={`slider-${label}-${key}`}
+                size="small"
+                sx={{ width: '95%' }}
             />
         </Box>
     );
 
-    const renderManualConfig = () => (
-        <Card variant="outlined" sx={{ mb: 4, textAlign: 'left', bgcolor: '#f8f9fa' }}>
-            <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                    Configuration
-                    <Tooltip title="Manually select and tune the model. Comparison graphs will still be generated against other default models." arrow>
-                        <IconButton size="small" sx={{ ml: 1 }}>
-                            <InfoIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+    return (
+        <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel size="small">Model Architecture</InputLabel>
+                <Select
+                    value={config.model}
+                    label="Model Architecture"
+                    size="small"
+                    onChange={(e) => updateConfig('model', e.target.value)}
+                >
+                    {Object.keys(MODEL_INFO).map(model => (
+                        <MenuItem key={model} value={model}>{model}</MenuItem>
+                    ))}
+                </Select>
+                <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary', display: 'block', minHeight: '3em' }}>
+                    {MODEL_INFO[config.model]}
                 </Typography>
+            </FormControl>
 
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                    <InputLabel>Select Model</InputLabel>
-                    <Select
-                        value={selectedModel}
-                        label="Select Model"
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        disabled={isTraining}
-                    >
-                        {Object.keys(MODEL_INFO).map(model => (
-                            <MenuItem key={model} value={model}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                    {model}
-                                    <Tooltip title={MODEL_INFO[model]} arrow placement="right">
-                                        <IconButton size="small" sx={{ ml: 1, p: 0 }} onClick={(e) => e.stopPropagation()}>
-                                            <InfoIcon fontSize="small" color="action" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+            {['Random Forest', 'XGBoost', 'LightGBM', 'Gradient Boosting'].includes(config.model) && (
+                <>
+                    {renderParamSlider("Number of Estimators", config.n_estimators, "n_estimators", 10, 1000, 10)}
+                    {renderParamSlider("Max Tree Depth", config.max_depth, "max_depth", 1, 50, 1)}
+                </>
+            )}
 
-                {['Random Forest', 'XGBoost', 'LightGBM', 'Gradient Boosting'].includes(selectedModel) && (
-                    <>
-                        {renderParamSlider("Number of Estimators", nEstimators, setNEstimators, 10, 1000, 10, "n_estimators")}
-                        {renderParamSlider("Max Depth", maxDepth, setMaxDepth, 1, 20, 1, "max_depth")}
-                    </>
-                )}
+            {['XGBoost', 'LightGBM', 'Gradient Boosting'].includes(config.model) && (
+                <>
+                    {renderParamSlider("Learning Rate", config.learning_rate, "learning_rate", 0.001, 0.5, 0.001)}
+                </>
+            )}
 
-                {['XGBoost', 'LightGBM', 'Gradient Boosting'].includes(selectedModel) && (
-                    renderParamSlider("Learning Rate", learningRate, setLearningRate, 0.001, 1.0, 0.001, "learning_rate")
-                )}
+            {config.model === 'SVM (SVR)' && (
+                <>
+                    {renderParamSlider("C (Regularization)", config.C, "C", 0.1, 1000, 0.1)}
+                    {renderParamSlider("Epsilon", config.epsilon, "epsilon", 0.001, 1, 0.001)}
+                </>
+            )}
+        </Box>
+    );
+};
 
-                {selectedModel === 'SVM (SVR)' && (
-                    <>
-                        {renderParamSlider("C (Regularization)", cParam, setCParam, 0.1, 1000, 0.1, "C")}
-                        {renderParamSlider("Epsilon", epsilon, setEpsilon, 0.001, 1.0, 0.001, "epsilon")}
-                    </>
-                )}
-            </CardContent>
-        </Card>
+const Retraining = ({ isTraining, progress, statusMessage, trainingLogs = [], errorState }) => {
+    const [file, setFile] = useState(null);
+    const [message, setMessage] = useState(null);
+    const [uploadError, setUploadError] = useState(null);
+    const [stopping, setStopping] = useState(false);
+
+    // Error Dialog State
+    const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+
+    const logsContainerRef = useRef(null);
+    const lastErrorRef = useRef(null); // Track the last error to prevent re-opening
+
+    // Watch for backend errors
+    useEffect(() => {
+        if (errorState && JSON.stringify(errorState) !== lastErrorRef.current) {
+            setErrorDialogOpen(true);
+            setStopping(false); // If error occurred, we are no longer "stopping"
+            lastErrorRef.current = JSON.stringify(errorState);
+        }
+    }, [errorState]);
+
+    // Auto-scroll logs (only scroll the container, not the window)
+    // Auto-scroll logs (Smart Scroll)
+    useEffect(() => {
+        const container = logsContainerRef.current;
+        if (container) {
+            // Check if user is scrolled to the bottom (with a small buffer of 50px)
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+            // Only auto-scroll if they were ALREADY at the bottom or if it's the very first log
+            if (isNearBottom || trainingLogs.length < 5) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    }, [trainingLogs]);
+
+    const handleCloseErrorDialog = () => setErrorDialogOpen(false);
+
+    // ... existing state ...
+
+
+
+    const [mode, setMode] = useState('auto'); // 'auto' or 'manual'
+    const [trainingMode, setTrainingMode] = useState('standard');
+    const [isConsoleOpen, setIsConsoleOpen] = useState(true); // Default open when training
+
+    // Auto Config Granular State
+    const [selectionStrategy, setSelectionStrategy] = useState('global'); // 'global', 'independent'
+    const [autoGlobalModel, setAutoGlobalModel] = useState('Auto Select');
+    const [d33Model, setD33Model] = useState('Auto Select');
+    const [tcModel, setTcModel] = useState('Auto Select');
+
+    // Manual Config State - GRANULAR
+    const [manualStrategy, setManualStrategy] = useState('independent'); // 'global' (legacy) or 'independent'
+    const [manualTab, setManualTab] = useState(0);
+
+    const defaultConfig = {
+        model: 'XGBoost',
+        n_estimators: 100,
+        learning_rate: 0.1,
+        max_depth: 5,
+        C: 100,
+        epsilon: 0.1
+    };
+
+    const [d33ManualConfig, setD33ManualConfig] = useState({ ...defaultConfig });
+    const [tcManualConfig, setTcManualConfig] = useState({ ...defaultConfig });
+    const [globalManualConfig, setGlobalManualConfig] = useState({ ...defaultConfig });
+
+    const handleFileChange = (event) => {
+        setFile(event.target.files[0]);
+        setMessage(null);
+        setUploadError(null);
+    };
+
+    const handleTrain = async () => {
+        if (!file) {
+            setUploadError("Please upload a dataset CSV file.");
+            return;
+        }
+
+        setMessage(null);
+        setUploadError(null);
+        setStopping(false);
+        setIsConsoleOpen(true); // Auto open console
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('mode', mode === 'auto' ? 'Auto' : 'Manual_Granular');
+        formData.append('training_mode', trainingMode);
+
+        if (mode === 'auto') {
+            if (selectionStrategy === 'global') {
+                const type = autoGlobalModel === 'Auto Select' ? 'Auto' : autoGlobalModel;
+                formData.append('model_type', type);
+                formData.append('d33_model_type', type);
+                formData.append('tc_model_type', type);
+            } else {
+                formData.append('d33_model_type', d33Model === 'Auto Select' ? 'Auto' : d33Model);
+                formData.append('tc_model_type', tcModel === 'Auto Select' ? 'Auto' : tcModel);
+            }
+            formData.append('auto_tune', 'true');
+        } else {
+            // Manual Mode
+            formData.append('model_type', 'Manual_Granular'); // Signal backend to look at params
+
+            if (manualStrategy === 'global') {
+                // Apply global config to both
+                formData.append('d33_model_type', globalManualConfig.model);
+                formData.append('tc_model_type', globalManualConfig.model);
+                formData.append('d33_params', JSON.stringify(globalManualConfig));
+                formData.append('tc_params', JSON.stringify(globalManualConfig));
+            } else {
+                // Independent
+                formData.append('d33_model_type', d33ManualConfig.model);
+                formData.append('tc_model_type', tcManualConfig.model);
+                formData.append('d33_params', JSON.stringify(d33ManualConfig));
+                formData.append('tc_params', JSON.stringify(tcManualConfig));
+            }
+        }
+
+        try {
+            await axios.post('http://localhost:8000/train', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            setMessage("Training started successfully! You can monitor progress below.");
+        } catch (err) {
+            console.error(err);
+            setUploadError(err.response?.data?.detail || "Failed to initiate training. Ensure server is running.");
+        }
+    };
+
+    const handleStop = async () => {
+        setStopping(true);
+        try {
+            await axios.post('http://localhost:8000/stop-training');
+            setMessage("Stop signal sent. Reverting changes...");
+        } catch (err) {
+            console.error(err);
+            setUploadError("Failed to stop training.");
+            setStopping(false);
+        }
+    };
+
+
+
+    const renderManualSection = () => (
+        <Box sx={{ mb: 4, textAlign: 'left', maxWidth: 800, mx: 'auto', border: '1px solid #e0e0e0', p: 3, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom color="primary">
+                Expert Manual Configuration
+            </Typography>
+
+            <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+                <FormLabel component="legend" sx={{ fontWeight: 'bold', mb: 1 }}>Configuration Strategy</FormLabel>
+                <RadioGroup
+                    row
+                    value={manualStrategy}
+                    onChange={(e) => setManualStrategy(e.target.value)}
+                    sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 2, mb: 2 }}
+                >
+                    <FormControlLabel value="global" control={<Radio />} label="Unified (Apply to All)" />
+                    <FormControlLabel value="independent" control={<Radio />} label="Independent (Fine-Tune Separately)" />
+                </RadioGroup>
+            </FormControl>
+
+            {manualStrategy === 'global' ? (
+                <TrainingConfigPanel
+                    config={globalManualConfig}
+                    setConfig={setGlobalManualConfig}
+                    label="Global"
+                />
+            ) : (
+                <Box>
+                    <Tabs value={manualTab} onChange={(e, v) => setManualTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+                        <Tab label="d33 Configuration" />
+                        <Tab label="Tc Configuration" />
+                    </Tabs>
+
+                    {manualTab === 0 && (
+                        <TrainingConfigPanel
+                            config={d33ManualConfig}
+                            setConfig={setD33ManualConfig}
+                            label="d33"
+                        />
+                    )}
+                    {manualTab === 1 && (
+                        <TrainingConfigPanel
+                            config={tcManualConfig}
+                            setConfig={setTcManualConfig}
+                            label="Tc"
+                        />
+                    )}
+                </Box>
+            )}
+        </Box>
     );
 
     return (
-        <Box sx={{ width: '100%', maxWidth: 1000, mx: 'auto' }}>
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
-                <Typography variant="h3" gutterBottom color="primary">Model Retraining</Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Upload new data to improve model accuracy. Choose between intelligent auto-tuning or manual configuration.
-                </Typography>
-            </Box>
+        <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h4" component="h2" gutterBottom color="primary" sx={{ fontWeight: 'bold' }}>
+                Model Retraining Laboratory
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4, maxWidth: 800, mx: 'auto' }}>
+                Update the AI models with new experimental data. Upload a CSV file containing 'Component', 'd33 (pC/N)', and 'Tc (°C)' columns.
+            </Typography>
 
             <Grid container spacing={4} justifyContent="center">
-                <Grid size={{ xs: 12, md: 8 }}>
-                    <Paper sx={{ p: 4, borderRadius: 4, textAlign: 'center' }}>
+                <Grid item xs={12} md={10}>
+                    <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+
                         <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 4 }}>
                             <Button
                                 variant={mode === 'auto' ? "contained" : "outlined"}
-                                startIcon={<AutoModeIcon />}
                                 onClick={() => setMode('auto')}
-                                size="large"
+                                startIcon={<AutoModeIcon />}
+                                sx={{ borderRadius: 20, px: 4 }}
                                 disabled={isTraining}
                             >
                                 Intelligent Auto-Tune
                             </Button>
                             <Button
                                 variant={mode === 'manual' ? "contained" : "outlined"}
-                                startIcon={<TuneIcon />}
                                 onClick={() => setMode('manual')}
-                                size="large"
+                                startIcon={<TuneIcon />}
+                                sx={{ borderRadius: 20, px: 4 }}
                                 disabled={isTraining}
                             >
                                 Manual Configuration
                             </Button>
                         </Stack>
 
-                        {mode === 'manual' && renderManualConfig()}
+                        {mode === 'auto' && (
+                            <Box sx={{ mb: 4, textAlign: 'left', maxWidth: 800, mx: 'auto', border: '1px solid #e0e0e0', p: 3, borderRadius: 2 }}>
+                                <Typography variant="h6" gutterBottom color="primary">
+                                    Intelligent Auto-Tune Configuration
+                                </Typography>
+
+                                <FormControl component="fieldset" sx={{ mb: 4, width: '100%' }}>
+                                    <FormLabel component="legend" sx={{ fontWeight: 'bold', mb: 1 }}>1. Optimization Intensity</FormLabel>
+                                    <RadioGroup
+                                        row
+                                        value={trainingMode}
+                                        onChange={(e) => setTrainingMode(e.target.value)}
+                                        sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 2 }}
+                                    >
+                                        <FormControlLabel value="standard" control={<Radio />} label="Standard (Fast)" />
+                                        <FormControlLabel value="accuracy" control={<Radio />} label="Maximum Accuracy (Extensive Search)" />
+                                    </RadioGroup>
+                                </FormControl>
+
+                                <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+                                    <FormLabel component="legend" sx={{ fontWeight: 'bold', mb: 1 }}>2. Model Selection Strategy</FormLabel>
+                                    <RadioGroup
+                                        row
+                                        value={selectionStrategy}
+                                        onChange={(e) => setSelectionStrategy(e.target.value)}
+                                        sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 2, mb: 2 }}
+                                    >
+                                        <FormControlLabel value="global" control={<Radio />} label="Global Configuration (Apply to All)" />
+                                        <FormControlLabel value="independent" control={<Radio />} label="Independent (Separately for d33/Tc)" />
+                                    </RadioGroup>
+                                </FormControl>
+
+                                {selectionStrategy === 'global' ? (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Target Model (All Properties)</InputLabel>
+                                        <Select
+                                            value={autoGlobalModel}
+                                            label="Target Model (All Properties)"
+                                            onChange={(e) => setAutoGlobalModel(e.target.value)}
+                                            disabled={isTraining}
+                                        >
+                                            <MenuItem value="Auto Select">Auto Select (AI Recommends Best)</MenuItem>
+                                            {Object.keys(MODEL_INFO).map(model => (
+                                                <MenuItem key={model} value={model}>{model}</MenuItem>
+                                            ))}
+                                        </Select>
+                                        <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                            The system will optimize the selected model (or find the best one) for both d33 and Tc.
+                                        </Typography>
+                                    </FormControl>
+                                ) : (
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>d33 Model</InputLabel>
+                                                <Select
+                                                    value={d33Model}
+                                                    label="d33 Model"
+                                                    onChange={(e) => setD33Model(e.target.value)}
+                                                    disabled={isTraining}
+                                                >
+                                                    <MenuItem value="Auto Select">Auto Select</MenuItem>
+                                                    {Object.keys(MODEL_INFO).map(model => (
+                                                        <MenuItem key={model} value={model}>{model}</MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Tc Model</InputLabel>
+                                                <Select
+                                                    value={tcModel}
+                                                    label="Tc Model"
+                                                    onChange={(e) => setTcModel(e.target.value)}
+                                                    disabled={isTraining}
+                                                >
+                                                    <MenuItem value="Auto Select">Auto Select</MenuItem>
+                                                    {Object.keys(MODEL_INFO).map(model => (
+                                                        <MenuItem key={model} value={model}>{model}</MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </Grid>
+                                )}
+                            </Box>
+                        )}
+
+                        {mode === 'manual' && renderManualSection()}
 
                         <Box
                             sx={{
@@ -236,12 +488,18 @@ const Retraining = ({ isTraining, progress, statusMessage }) => {
                             </Typography>
                         </Box>
 
+                        {/* Progress Section - Shows when training OR whenever relevant status exists */}
                         {isTraining && (
                             <Box sx={{ width: '100%', mb: 3 }}>
-                                <LinearProgress variant="determinate" value={progress} />
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    {statusMessage} ({progress}%)
-                                </Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="body2" color="primary" fontWeight="bold">
+                                        {statusMessage || "Initializing..."}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {progress}%
+                                    </Typography>
+                                </Box>
+                                <LinearProgress variant="determinate" value={progress} sx={{ height: 10, borderRadius: 5 }} />
                             </Box>
                         )}
 
@@ -249,22 +507,113 @@ const Retraining = ({ isTraining, progress, statusMessage }) => {
                             <Alert severity="success" sx={{ mb: 3 }}>Training successfully completed! You can now use the new models.</Alert>
                         )}
 
-                        {message && <Alert severity="info" sx={{ mb: 3 }}>{message}</Alert>}
-                        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+                        {message && !isTraining && progress !== 100 && <Alert severity="info" sx={{ mb: 3 }}>{message}</Alert>}
+                        {uploadError && <Alert severity="error" sx={{ mb: 3 }}>{uploadError}</Alert>}
 
-                        <Button
-                            variant="contained"
-                            size="large"
-                            onClick={handleTrain}
-                            disabled={isTraining || !file}
-                            sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
+                        <Dialog
+                            open={errorDialogOpen}
+                            onClose={handleCloseErrorDialog}
+                            aria-labelledby="alert-dialog-title"
+                            aria-describedby="alert-dialog-description"
                         >
-                            {isTraining ? "Training in Progress..." : "Start Retraining"}
-                        </Button>
+                            <DialogTitle id="alert-dialog-title" color="error">
+                                Training Failed
+                            </DialogTitle>
+                            <DialogContent>
+                                <Box id="alert-dialog-description">
+                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                        What happened:
+                                    </Typography>
+                                    <Typography variant="body2" paragraph sx={{ bgcolor: '#ffebee', p: 1, borderRadius: 1 }}>
+                                        {errorState?.message || "An unexpected error occurred."}
+                                    </Typography>
+
+                                    {errorState?.details && (
+                                        <>
+                                            <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                                                Technical Details:
+                                            </Typography>
+                                            <Typography variant="caption" paragraph sx={{ fontFamily: 'monospace', display: 'block' }}>
+                                                {errorState.details}
+                                            </Typography>
+                                        </>
+                                    )}
+
+                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>
+                                        Suggested Fix:
+                                    </Typography>
+                                    <Alert severity="info">
+                                        {errorState?.suggestion || "Please check the logs below for more information."}
+                                    </Alert>
+                                </Box>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={handleCloseErrorDialog} autoFocus>
+                                    Close
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+
+                        {!isTraining ? (
+                            <Button
+                                variant="contained"
+                                size="large"
+                                onClick={handleTrain}
+                                disabled={!file}
+                                startIcon={<PlayArrowIcon />}
+                                sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
+                            >
+                                Start Retraining
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="contained"
+                                color="error"
+                                size="large"
+                                onClick={handleStop}
+                                disabled={stopping}
+                                startIcon={<StopCircleIcon />}
+                                sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
+                            >
+                                {stopping ? "Stopping..." : "Stop Training"}
+                            </Button>
+                        )}
                     </Paper>
+
+                    {/* Console Output Section */}
+                    <Box sx={{ mt: 4 }}>
+                        <Button
+                            onClick={() => setIsConsoleOpen(!isConsoleOpen)}
+                            endIcon={isConsoleOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            startIcon={<TerminalIcon />}
+                            sx={{ color: 'text.secondary', mb: 1, textTransform: 'none' }}
+                        >
+                            {isConsoleOpen ? "Hide Process Console" : "Show Process Console"}
+                        </Button>
+
+                        <Collapse in={isConsoleOpen}>
+                            <Paper
+                                ref={logsContainerRef}
+                                sx={{ p: 2, bgcolor: '#1e1e1e', color: '#00ff00', borderRadius: 2, fontFamily: 'monospace', height: 350, overflowY: 'auto', textAlign: 'left', border: '1px solid #333' }}
+                            >
+                                <Typography variant="overline" color="text.secondary" sx={{ color: '#888', display: 'block', mb: 1, borderBottom: '1px solid #333' }}>
+                                    Backend Process Log {isTraining ? "(LIVE)" : ""}
+                                </Typography>
+                                <Box sx={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
+                                    {trainingLogs.length > 0 ? (
+                                        trainingLogs.map((log, index) => (
+                                            <div key={index} style={{ marginBottom: '4px', borderBottom: '1px solid #111' }}>{log}</div>
+                                        ))
+                                    ) : (
+                                        <span style={{ color: '#555' }}>Variable initialization... Waiting for process start...</span>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Collapse>
+                    </Box>
                 </Grid>
             </Grid>
-        </Box>
+        </Box >
     );
 };
 

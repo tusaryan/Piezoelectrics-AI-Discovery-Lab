@@ -19,7 +19,6 @@ from sklearn.compose import TransformedTargetRegressor
 try:
     from model_config import PARAM_GRIDS
 except ImportError:
-    # Fallback if config file missing
     PARAM_GRIDS = {}
     print("Warning: model_config.py not found. Using empty grids.")
 
@@ -38,7 +37,6 @@ ALL_ELEMENTS = ['Ag', 'Al', 'B', 'Ba', 'Bi', 'C', 'Ca', 'Fe', 'Hf', 'Ho', 'K',
                 'Li', 'Mn', 'Na', 'Nb', 'O', 'Pr', 'Sb', 'Sc', 'Sr', 'Ta', 'Ti',
                 'Zn', 'Zr']
 
-# Domain Knowledge: Elemental Properties for Feature Engineering
 # (Atomic Mass, Atomic Radius (pm), Electronegativity, Valence Electrons)
 ELEMENT_PROPERTIES = {
     'Ag': [107.87, 144, 1.93, 1],
@@ -68,16 +66,11 @@ ELEMENT_PROPERTIES = {
 }
 ELEMENT_PROP_NAMES = ["Avg_AtomicMass", "Avg_AtomicRadius", "Avg_Electronegativity", "Avg_Valence"]
 
-# Import training manager for interruption checks
 try:
     from training_manager import training_manager
 except ImportError:
-    # If used in standalone script without training_manager
     training_manager = None
 
-# -----------------------------------------------------------------------------
-# Parameter Whitelists for Sanitization
-# -----------------------------------------------------------------------------
 VALID_PARAMS = {
     # Tree-based
     "Random Forest": [
@@ -97,7 +90,6 @@ VALID_PARAMS = {
         "n_estimators", "learning_rate", "max_depth", "num_leaves", "min_child_samples", 
         "subsample", "colsample_bytree", "reg_alpha", "reg_lambda", "n_jobs", "random_state", "verbose"
     ],
-    # Kernel-based (SVR, KRR, GPR)
     "SVM (SVR)": [
         "C", "epsilon", "kernel", "gamma", "degree", "coef0", "shrinking", "tol", "max_iter", "verbose"
     ],
@@ -107,8 +99,7 @@ VALID_PARAMS = {
     "Gaussian Process": [
         "alpha", "n_restarts_optimizer", "normalize_y", "random_state"
     ],
-    # Ensemble
-    "Ensemble (Stacking)": ["cv", "n_jobs", "passthrough"] # Stacking usually doesn't take scalar params in this context
+    "Ensemble (Stacking)": ["cv", "n_jobs", "passthrough"]
 }
 
 def sanitize_params(model_type, raw_params):
@@ -121,13 +112,8 @@ def sanitize_params(model_type, raw_params):
         
     allowed_keys = VALID_PARAMS.get(model_type, [])
     
-    # Special case: Pipeline params for SVR/KRR (e.g. svr__C) need to be cleaned if passed directly to constructor
-    # But usually manual_config passes direct constructor args (e.g. C=1.0)
-    # If we are constructing the estimator directly, we need stripped names.
-    
     clean_params = {}
     for k, v in raw_params.items():
-        # Strip prefixes if present (e.g. 'svr__C' -> 'C')
         if "__" in k:
             k_stripped = k.split("__")[-1]
         else:
@@ -149,9 +135,7 @@ def parse_formula(formula_str, valid_elements=ALL_ELEMENTS):
     if not isinstance(formula_str, str):
         return total_composition
 
-    # Normalization
     clean_str = formula_str.replace(" ", "")
-    # Handle brackets by converting to parentheses for chemparse/parsing compatibility
     clean_str = clean_str.replace("[", "(").replace("]", ")")
     clean_str = re.sub(r'\.(?=[A-Z]|\()', '-', clean_str)
     parts = re.split(r'[\-\+]', clean_str)
@@ -192,8 +176,7 @@ def create_feature_matrix(formula_series):
         composition_dict = parse_formula(str(formula))
         feature_data.append(composition_dict)
         
-        # Calculate Physics Features
-        avg_props = [0.0, 0.0, 0.0, 0.0] # Mass, Radius, EN, Valence
+        avg_props = [0.0, 0.0, 0.0, 0.0]
         total_atoms = 0.0
         
         for el, amt in composition_dict.items():

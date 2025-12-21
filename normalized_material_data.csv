@@ -1,0 +1,176 @@
+Material Name,Family,Formula,d33_pCN,Youngs_Modulus_Gpa,Density_g_cm3,Tc_C,Qm
+PMN-PT (Relaxor),Soft Ceramic,Pb(Mg1/3Nb2/3)0.67Ti0.33O3,100,110,8.11,150 – 160,50 – 80
+PMN-PT,Soft Ceramic,0.62Pb(Mg1/3Nb2/3)O3-0.38PbTiO3,1900,115,8.09,187,100 – 150
+PMN-PT,Soft Ceramic,0.62Pb(Mg1/3Nb2/3)O3-0.38PbTiO3,1200,115,8.09,187,100 – 150
+PT (Lead Titanate),Soft Ceramic,PbTiO3,75,116,7.97,490,150 – 250
+PZT / PMN-PHT (Lead-based),Soft Ceramic,Pb(Mg0.15/3Nb0.3/3)(Hf0.38)(Ti0.47)O3,428.3,72,8.05,~250 – 290,~80 – 120
+PZT,Soft Ceramic,PbZr0.4Ti0.6O3,528,80,7.98,410 – 425,500
+PNN-PHT (Lead-based Relaxor),Soft Ceramic,0.49Pb(Ni1/3Nb2/3)O3–0.51Pb(Hf0.3Ti0.7)O3,957,100,8.25,150,384
+BCST / BT (Barium Titanate based),Lead-Free Ceramic,(BaTi0.88Sn0.12)O3–30(Ba0.7Ca0.3)TiO3,530,105,5.85,~50 – 60,150
+BCZT,Lead-Free Ceramic,Ba(Zr0.2Ti0.8)TO3–50(Ba0.7Ca0.3)TiO3,620,100,5.8,93,70 – 80
+BCST,Lead-Free Ceramic,(Ba0.98Ca0.02)(Ti0.96Sn0.04)O3,510,110,5.95,110 – 115,150
+BCST,Lead-Free Ceramic,(Ba0.97Ca0.03)(Ti0.94Sn0.06)O3,440,108,5.92,~85 – 90,180
+BCZT,Lead-Free Ceramic,(Ba0.93Ca0.07)(Ti0.95Zr0.05)O3,387,105,5.88,108,200
+BNT-BT (or NBT-BT),Lead-Free Ceramic,0.94Na0.5Bi0.5TiO3–0.06BaTiO3,86,105,5.98,325,100 – 150
+BCZT,Lead-Free Ceramic,(Ba0.85Ca0.15)(Zr0.1Ti0.9)O3 (BCZT),486,98,5.76,85,75
+BCZT,Lead-Free Ceramic,(Ba0.85Ca0.15)(Zr0.1Ti0.9)O3,607,98,5.76,85,75
+BNT-BKT-BT (BNT-based),Lead-Free Ceramic,(Bi0.5Na0.5)TiO3 – (Bi0.5K0.5)TiO3 – BaTiO3,169,102,5.95,300,150 – 200
+BNT-BKT,Lead-Free Ceramic,((Bi0.5Na0.5)TiO3) - ((Bi0.5K0.5)TiO3),207,108,5.94,~280 – 300,150
+BNT-BKT (Doped),Lead-Free Ceramic,"(CeO2) - ((Bi0.5(Na,K)0.5)TiO3)",132,100,6.1,280,300 – 400
+BNT-based,Lead-Free Ceramic,(Bi0.5Na0.5)TiO3 – (Bi0.5K0.5)TiO3 – KNbO3,215,104,5.85,310,100
+BNT-based,Lead-Free Ceramic,(Bi0.5Na0.5)TiO3 – (Bi0.5K0.5)TiO3 – BiCrO3,168,104,6.05,300,250
+KNN,Lead-Free Ceramic,(K0.50Na0.50)NbO3,125,104,4.51,420,90 – 120
+KNN-CT,Lead-Free Ceramic,0.96(K0.5Na0.5)NbO3–0.04CaTiO3,222,102,4.49,314,60 – 80
+KNN-CZ,Lead-Free Ceramic,0.96(K0.5Na0.5)NbO3–0.04CaZrO3,314,103,4.48,340,70
+KNN-CZ,Lead-Free Ceramic,0.96(K0.5Na0.5)NbO3–0.04CaZrO3 + 0.03Zr,160,103,4.5,330,80
+KNN-CZ,Lead-Free Ceramic,0.98(K0.5Na0.5)NbO3–0.02CaZrO3 + 0.03ZrO2,130,103,4.52,360,85
+KNN,Lead-Free Ceramic,(K0.5Na0.5)NbO3 (CuO doped),86,104,4.55,420,1500 – 2500
+KNN,Lead-Free Ceramic,(K0.476Na0.524)NbO3 (CuO doped),146,104,4.53,425,500
+KNN-Sb (Modified KNN),Lead-Free Ceramic,K0.5Na0.5Nb0.97Sb0.03O3,218,101,4.58,380,100
+AgNbO$_3$ (Silver Niobate based),Lead-Free Ceramic,(Ag0.75Li0.1Na0.1K0.05)NbO3,47,95,5.6,340,220
+KNN-LT-Ta (Modified KNN),Lead-Free Ceramic,(Na0.525K0.485)0.95Li0.05(Nb0.8Ta0.2)O3,176,100,4.95,250,82
+KNN (Pure),Lead-Free Ceramic,K0.5Na0.5NbO3 (undoped),97,104,4.26,420,90 – 120
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = Mg2+",98,102,4.11,406,200
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = Ca2+",95,102,4.23,398,100
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = Sr2+",95,101,4.33,397,80
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = Ba2+",176,100,4.24,404,60
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = LiF",164,108,4.9,235,150 – 200
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = ZnO",123,106,4.28,420,300 – 400
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = CuO",82,107,—,421,"1,500 – 2,500"
+KNN (Doped),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = GeO2",120,105,4.31,—,250
+KNN-BT,Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = BaTiO3",225,98,—,—,30 – 50
+KNN-BKT,Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = (Bi,K)TiO3",251,100,4.38,376,60
+KNN-LS,Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = LiSbO3",286,96,4.28,385,50
+KNN-BZT,Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = Ba(Zr,Ti)O3",243,95,—,318,40
+KNN (Complex Doping),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = K4CuNb8O23",103,105,4.51,—,"3,000 – 4,000"
+KNN (Complex Doping),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = K1.94Zn1.06Ta5.19O15",126,103,4.53,400,350
+KNN (Complex Doping),Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = MnO2–K5.4Cu1.3Ta10O29",90,104,4.65,404,1200
+KNN-LS-CT,Lead-Free Ceramic,"K0.5Na0.5NbO3, dopant = LiSbO3–CaTiO3",210,98,4.55,330,70
+KNN-BZT,Lead-Free Ceramic,0.95(K0.5Na0.5)NbO3–0.05Ba(Zr0.2Ti0.8)O3,234,94,4.45,318,50
+KNN-Sb (Antimony doped),Lead-Free Ceramic,(K0.5Na0.5)(Nb0.92Sb0.08)O3 + 0.02CuO2,122,99,—,320,1200
+KNN-Sb (Antimony doped),Lead-Free Ceramic,(K0.5Na0.5)(Nb0.92Sb0.08)O3 + 0.02MnO2,213,99,4.53,320,800
+KNN-LT-Ta,Lead-Free Ceramic,(Na0.535K0.485)0.95Li0.05(Nb0.8Ta0.2)O3,250,96,4.41,—,30 – 60
+KNN-LN,Lead-Free Ceramic,0.92(Na0.535K0.48)NbO3–0.08LiNbO3,280,102,4.38,50,50
+KNN-LT-Ta,Lead-Free Ceramic,(Na0.535K0.485)0.95Li0.05(Nb0.8Ta0.2)O3 + Na2O,230,97,4.92,—,40
+KNN-AN,Lead-Free Ceramic,0.95(K0.5Na0.5)NbO3–0.05AgNbO3,186,100,4.65,355,90
+KNN-LT-AS,Lead-Free Ceramic,0.93(K0.5Na0.5)NbO3–0.05LiTaO3–0.02AgSbO3,265,95,4.75,235,45
+KNN-BS-LT,Lead-Free Ceramic,0.93(K0.5Na0.5)NbO3–0.05BiScO3–0.02LiTaO3,210,95,4.8,340,50
+KNN-BS,Lead-Free Ceramic,0.95(K0.5Na0.5)NbO3–0.05BiScO3,253,98,4.7,351,70
+KNN-Li-CZ (or KNN-CZ),Lead-Free Ceramic,0.95(K0.5Na0.5)0.95Li0.05NbO3–0.05CaZrO3,216,96,4.55,330,60
+KNN-LT-CZ,Lead-Free Ceramic,0.90(K0.5Na0.5)NbO3–0.05LiTaO3–0.05CaZrO3,320,95,4.65,195,55
+KNN-LT-Ta,Lead-Free Ceramic,0.93(K0.5Na0.5)0.95Li0.05NbO3–0.05LiSbO3–0.02CaTiO3,210,94,4.68,330,40
+KNN,Soft Ceramic,0.92(K0.5Na0.5)0.08Li(Nb0.85Ta0.1Sb0.05)O3–0.05CaTiO3,263,94,4.85,315,35
+KNN (Doped),Soft Ceramic,0.95(K0.5Na0.5)NbO3–0.05BaTiO3,225,98,4.6,—,50
+KNN (Doped),Soft Ceramic,0.92(K0.5Na0.5)NbO3–0.08BaTiO3,193,96,4.65,314,45
+KNN (Doped),Soft Ceramic,0.92(K0.5Na0.5)0.08Li(Nb0.85Ta0.1Sb0.05)O3–0.05BaZrO3,365,93,4.88,175,30
+KNN (Doped),Soft Ceramic,0.95(K0.5Na0.5)NbO3–0.05Ba(Zr0.2Ti0.8)O3,234,97,4.62,318,50
+KNN (Doped),Soft Ceramic,0.95(K0.5Na0.5)NbO3–0.05SrTiO3,220,102,4.55,—,72
+KNN (Doped),Soft Ceramic,0.95(K0.5Na0.5)NbO3–0.05BiFeO3,173,106,4.72,390,—
+KNN (Doped),Lead-Free Ceramic,0.90(K0.5Na0.5)NbO3–0.05LiTaO3–0.05BiFeO3,200,100,4.9,305,80
+KNN (Doped),Lead-Free Ceramic,0.95(K0.5Na0.5)NbO3–0.05(Bi0.5Na0.5)TiO3,195,101,4.6,375,—
+KNN-BT,Lead-Free Ceramic,0.95(K0.5Na0.5)NbO3–0.05(Bi0.5K0.5)TiO3,251,101,4.59,376,—
+KNN-BKT,Lead-Free Ceramic,(K0.5Na0.5)NbO3,80,104,4.51,—,130
+KNN-LS,Lead-Free Ceramic,(K0.5Na0.5)0.95Li0.05NbO3,235,108,4.45,465,—
+KNN-BZT,Lead-Free Ceramic,(K0.5Na0.5)(Nb0.92Sb0.08)O3,204,101,4.62,300,150
+KNN (Complex Doping),Lead-Free Ceramic,(K0.5Na0.5)(Nb0.85Ta0.15)O3,270,106,4.9,208,455
+KNN (Complex Doping),Lead-Free Ceramic,(Na0.535K0.485)0.95Li0.05(Nb0.8Ta0.2)O3,206,98,4.95,—,140
+KNN (Complex Doping),Lead-Free Ceramic,(K0.5Na0.5)0.95Li0.05(Nb0.92Sb0.08)O3,265,102,4.58,368,40
+KNN-LS-CT,Lead-Free Ceramic,(K0.5Na0.5)0.95Li0.05(Nb0.92Sb0.08)O3,240,102,4.58,—,30 – 60
+KNN-BZT,Lead-Free Ceramic,(K0.5Na0.5)0.92Li0.08(Nb0.85Ta0.1Sb0.05)O3,416,95,4.85,253,35
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.85(BaTiO3)0.15,38,125,7.95,685,150
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.75(BaTiO3)0.25,116,118,7.72,619,150 – 250
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.69(BaTiO3)0.31,128,110,7.58,598,180 – 220
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.67(BaTiO3)0.33,136,105,7.54,605,150 – 235
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.65(BaTiO3)0.35,105,108,7.49,580,100 – 150
+BF-BT,Lead-Free Ceramic,(BiFeO3)0.85(BaTiO3)0.15,25,122,7.95,700,20 – 40
+BF-BT,Lead-Free Ceramic,(BiFeO3)0.75(BaTiO3)0.25,68,115,7.72,574,30 – 50
+BF-BT,Lead-Free Ceramic,(BiFeO3)0.67(BaTiO3)0.33,94,100,7.54,605,20 – 40
+BT,Lead-Free Ceramic,BaTiO3,191,100,6.02,115,100 – 200
+BFO,Lead-Free Ceramic,BiFeO3,35,130,8.34,810,~10 – 30 (Very Leaky)
+KNN,Lead-Free Ceramic,(K0.5Na0.5)NbO3,95,104,4.51,420,90 – 120
+BNT-BKT-BT,Lead-Free Ceramic,"(Na0.5Bi0.5)TiO3, (K0.5Bi0.5)TiO3, BaTiO3",162,102,5.95,290,150 – 200
+PZT,Lead-Free Ceramic,Pb(Zr0.52Ti0.48)O3,223,68,8,365,70 – 100
+BF-BT,Lead-Free Ceramic,(BiFeO3)0.75(BaTiO3)0.25,47,115,7.72,574,—
+BF-BT,Lead-Free Ceramic,(BiFeO3)0.67(BaTiO3)0.33,33,105,7.54,605,—
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.67(BaTiO3)0.25,82,108,7.72,598,—
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.67(BaTiO3)0.31,70,106,7.58,605,—
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.67(BaTiO3)0.33,43,105,7.54,580,—
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.67(BaTiO3)0.35,120,103,7.49,522,—
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.75(BaTiO3)0.25,140,118,7.72,490,—
+Nd-doped BF-BT,Lead-Free Ceramic,Mn:(Bi0.975Nd0.025FeO3)0.75(BaTiO3)0.25,120,116,7.7,379,40 – 70 (Softened)
+Mn-doped BF-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.7(BaTiO3)0.3,190,110,7.61,478,150 – 200
+Nd-doped BF-BT,Lead-Free Ceramic,Mn:(Bi0.98Nd0.02FeO3)0.7(BaTiO3)0.3,50,110,7.6,390,50
+Sc-doped BF-BT,Lead-Free Ceramic,Mn:(Bi0.96Sc0.04FeO3)0.725(BaTiO3)0.275,143,112,7.62,596,100 – 150
+La-doped BF-BT,Lead-Free Ceramic,Mn:(Bi0.98La0.02FeO3)0.71(BaTiO3)0.29,168,108,7.65,400,~40 (Softened)
+BF-BT-BS,Lead-Free Ceramic,(BiFeO3)0.75(BaTiO3)0.25 and BiScO3,145,114,7.68,400,50
+Al-doped BF-BT,Lead-Free Ceramic,(Bi0.99Al0.01FeO3)0.72 (BaTiO3)0.28,151,113,7.6,450,60
+BF-LCMO,Lead-Free Ceramic,Mn:(BiFeO3)0.73(La(Co0.5Mn0.5)O3)0.28,108,109,7.65,523,80
+Co-doped BF-BT,Lead-Free Ceramic,Mn:(Bi0.94Co0.06FeO3)0.71(BaTiO3)0.29,167,108,7.62,488,100 – 140
+BF-BT-BZT,Lead-Free Ceramic,(BiFeO3)0.65(BaTiO3)0.3(Bi(Zn1/3Ti2/3)O3)0.05,139,104,7.45,523,—
+Mn-doped BF-BT-BZT,Lead-Free Ceramic,Mn:(BiFeO3)0.695(BaTiO3)0.3(Bi(Zn2/3Nb1/3)O3)0.005,160,108,7.5,480,—
+BFO-BT,Lead-Free Ceramic,(Bi0.97(Ni1/2Ti1/2)0.03FeO3)0.71(BaTiO3)0.29,156,107,7.58,431,—
+BFO-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.725(Bi0.5K0.5TiO3)0.28,135,110,7.65,708,60
+BFO-BT,Lead-Free Ceramic,Bi1.02F0.96Mg0.02Ti0.02 and (BaTiO3)0.3,198,109,7.6,497,120
+BFO-BT,Lead-Free Ceramic,(BiFeO3)0.75(Bi(Mg2/3Nb1/3)O3)0.25,148,106,7.85,450,25
+BFO-BT,Lead-Free Ceramic,(BiFeO3)0.63(BaTiO3)0.32(Bi(Mg2/3Nb1/3)O3)0.05,20,103,7.6,380,—
+BFO-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.715(BaTiO3)0.275(Bi0.5Na0.5TiO3)0.01,140,111,7.65,560,—
+BFO-BT,Lead-Free Ceramic,Mn:(BiFeO3)0.6(BaTiO3)0.3(Bi(Mg1/2Ti1/2)O3)0.01,94,104,7.55,470,—
+BT (Barium Titanate),Lead-Free Ceramic,Bi1.05FeO3 and (BaTiO3)0.3,180,110,7.65,506,—
+BFO (Bismuth Ferrite),Lead-Free Ceramic,(Bi1.05F0.97Sc0.03) and (BaTiO3)0.3,180,111,7.62,500,—
+KNN,Lead-Free Ceramic,(BiFeO3)0.7(BaTiO3)0.3 and Bi2O3,200,108,7.65,500,40
+BFO-BT (Doped),Lead-Free Ceramic,(BiFeO3)0.7(BaTiO3)0.3 and CuO,165,112,7.61,503,150
+BFO-BT (Doped),Lead-Free Ceramic,(BiFeO3)0.71(BaTiO3)0.29 and MnO2,191,110,7.63,530,200
+BFO-BT-BZT,Lead-Free Ceramic,(BiFeO3)0.60(BaTiO3)0.40(Bi(Zn1/3Ti2/3)O3)0.02,50,102,7.35,350,—
+BFO-BT-LN,Lead-Free Ceramic,0.99((BiFeO3)0.67(BaTiO3)0.33) and 0.01(LiNbO3),146,106,7.51,390,35
+BFO-BT-BZT,Lead-Free Ceramic,(Bi1.05FeO3)0.69(BaTiO3)0.28(Bi(Zn1/3Ti2/3)O3)0.03,195,108,7.55,505,—
+BFO-BT,Lead-Free Ceramic,(BiFeO3)0.67(BaTiO3)0.33,240,105,7.54,456,—
+BFO-BT-BZN,Lead-Free Ceramic,(Bi1.05FeO3)0.64(BaTiO3)0.33(Bi(Zn2/3Nb1/3)O3)0.03,324,106,7.5,466,—
+BFO-BT (Ga-doped BFO),Lead-Free Ceramic,"FeO3, 0.97Ga0.03 and (BaTiO3)0.33",402,105,7.55,454,50 - 60
+PVDF (Polymer),Polymer,C2H2F2,-17,3,1.8,165 – 170,2025-10-30 00:00:00
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,750,65,7.88,386,—
+PIN-PMN-PT (Relaxor),Soft Ceramic,Pb(In0.5Nb0.5)O3- Pb(Mg1/3Nb2/3)O3- PbTiO3,2750,112,8.11,210 – 260,30-60
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,610,65,4.5,386,—
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,225,65,-,386,—
+PMN-PT (Relaxor),Soft Ceramic,Pb(Mg1/3Nb2/3)O3- PbTiO3,521,110,3,130 – 160,—
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,350,65,7.5,386,400
+PMN-PZT,Soft Ceramic,"Pb(Mg1/3Nb2/3)O3, Pb(Zr0.52Ti0.48)O3",500,95,7.6,300,70
+PLN-PZT,Soft Ceramic,"Pb(Li0.5Nb0.5)O3, Pb(Zr0.52Ti0.48)O3",550,90,7.5,350,90
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,513,65,7.5,386,43
+C-S-H (Cement/Silicates),Lead-Free Ceramic,"Ca3Si2O7·3H2O, Ca(OH)2",0,25,2,,
+C-S-H (Cement/Silicates),Lead-Free Ceramic,"Ca3Si2O7·3H2O, Ca(OH)2, SiO2",0,30,2.4,,N/A (Not Piezoelectric)
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,360,65,8,350,
+KNN,Lead-Free Ceramic,(K0.5Na0.5)NbO3,80-160,104,4.51,400,65 – 80
+KNN-LS,Lead-Free Ceramic,(K0.5Na0.5)NbO3- LiSbO3,283,96,4.6,237,90 – 120
+BT,Lead-Free Ceramic,BaTiO3,191,100,6.02,130,~50
+BNT (or NBT),Lead-Free Ceramic,(Bi0.5Na0.5)TiO3,75,100,5.99,<290,100 – 200
+AlN (Aluminum Nitride),Lead-Free Ceramic,AlN,5,330,3.26,>2000,200 – 300
+LN (Lithium Niobate),Lead-Free Ceramic,LiNbO3,6,170,4.64,1150,"1,000 – 3,000"
+BCZT,Lead-Free Ceramic,(Ba0.85Ca0.15)(Zr0.1Ti0.9)O3,>500,98,5.76,102,~500
+ZnO (Zinc Oxide),Lead-Free Ceramic,ZnO,12.4,120,5.61,-,70 – 80
+PZT,Soft Ceramic,Pb(Zr0.52Ti0.48)O3,406,65,8,-,"1,300 – 2,000"
+PZT (Lead Zirconate Titanate),Soft Ceramic,Pb(Zr0.52Ti0.48)O3,593,65,8,-,65 – 80
+PZT (Fe doped),Soft Ceramic,Pb(Zr0.52Ti0.46Fe0.02)O3,290,85,8.01,328,65 – 80
+PZT (Nb doped),Soft Ceramic,Pb(Zr0.52Ti0.47Nb0.01)O3,375,65,8.02,365,75
+PZT (Fe doped),Soft Ceramic,Pb(Zr0.50Ti0.48Fe0.02)O3,225,85,8.01,300,>1000
+PZT (Nb doped),Soft Ceramic,Pb(Zr0.54Ti0.44Nb0.02)O3,590,62,8,190,65
+BT (Barium Titanate),Lead-Free Ceramic,BaTiO3,190,100,1.5,120,300
+BCT (Barium Calcium Titanate),Lead-Free Ceramic,(Ba0.93Ca0.07)(Ti0.99Co0.01)O3,150,102,7,115,800
+KNN,Lead-Free Ceramic,(K0.5Na0.5)NbO3,127,104,5,420,240
+KNN (Cu doped),Lead-Free Ceramic,(K0.5Na0.5)(Nb0.99Cu0.01)O3,86,106,-,420,2280
+KNN-CT,Lead-Free Ceramic,(K0.5Na0.5)NbO3- CaTiO3,90,102,9,314,1300
+KNN-LS,Lead-Free Ceramic,(K0.5Na0.5)NbO3- LiSbO3,260,96,1.8,360,40
+KNN-LT,Lead-Free Ceramic,(K0.5Na0.5)NbO3- LiTO3,230,100,-,400,73
+BNT-BKT (or BNKT),Lead-Free Ceramic,(Bi0.5(Na0.79K0.21))TiO3,135,98,3.7,300,110
+BNT-BKT,Lead-Free Ceramic,(Bi0.5(Na0.88K0.12))TiO3,170,96,2.9,290,150
+BT,Lead-Free Ceramic,BaTiO3,140,100,6.02,130,200
+BNT (Bismuth Sodium Titanate),Lead-Free Ceramic,(Bi0.5Na0.5)TiO3,64,95,5.99,310,35
+BNT-BT,Lead-Free Ceramic,(Bi0.5Na0.5)0.92Ba0.08TiO3,125,99,6,280,110
+BNT-BT (Doped),Lead-Free Ceramic,(Bi0.5Na0.5)0.92Ba0.08TiO3-Nb2O5,149,97,6.01,250,70
+BNT-BT (Doped),Lead-Free Ceramic,(Bi0.5Na0.5)0.94Ba0.06TiO3- CeO2-  La2O3,162,96,6.05,-,216
+BNT-BT (Doped),Lead-Free Ceramic,(Bi0.5Na0.5)0.92Ba0.08TiO3- MnCO3,160,100,6.01,243,850
+BNT-BKT-BT,Lead-Free Ceramic,(Bi0.5Na0.5)TiO3- (Bi0.5K0.5)TiO3- BaTiO3,117,102,5.95,174,150
+BNT-BKT-BT,Lead-Free Ceramic,0.7(Bi0.5Na0.5)TiO3-0.2(Bi0.5K0.5)TiO3-0.1(BaTiO3),150,101,5.96,125,135
+BNT-BT-BZ (BNT-based),Lead-Free Ceramic,(Bi0.5Na0.5)TiO3- Ba(Ti0.5Zr0.5)O3,147,94,5.9,244,90
+BNT-BKT-ST,Lead-Free Ceramic,(Bi0.5(Na0.84K0.16)0.5)TiO3-  SrTiO3,185,98,5.85,292,80
+BNT-BT (Modified),Lead-Free Ceramic,(Bi0.98Ba0.02)(Na0.775K0.15Li0.075)0.5TiO3,205,103,5.88,210,170
+KNN (Ca doped),Lead-Free Ceramic,((K0.5Na0.5)0.96Ca0.04)NbO3,95,102,4.49,400,65

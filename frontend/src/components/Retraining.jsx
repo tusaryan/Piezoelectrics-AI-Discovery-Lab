@@ -21,7 +21,9 @@ const MODEL_INFO = {
     "XGBoost": "Extreme Gradient Boosting. Highly efficient and flexible. Great for structured data and often achieves state-of-the-art results.",
     "LightGBM": "Light Gradient Boosting Machine. Faster training speed and lower memory usage. efficient for large datasets.",
     "Gradient Boosting": "Builds models sequentially, with each new model correcting errors of the previous ones.",
-    "SVM (SVR)": "Support Vector Regression. Effective in high-dimensional spaces. Uses kernels to handle non-linear relationships."
+    "SVM (SVR)": "Support Vector Regression. Effective in high-dimensional spaces. Uses kernels to handle non-linear relationships.",
+    "Gaussian Process": "A probabilistic model that provides uncertainty estimates. Excellent for small datasets but computationally expensive.",
+    "Kernel Ridge": "Combines Ridge Regression with the kernel trick. Similar to SVR but uses mean squared error loss. Good for non-linear regression."
 };
 
 const PARAM_GUIDE = {
@@ -44,6 +46,18 @@ const PARAM_GUIDE = {
     "epsilon": {
         desc: "Epsilon tube width for SVR.",
         effect: "Defines a margin of tolerance where no penalty is given to errors. \n\nLogic: Larger epsilon = more tolerance (sparser model). Smaller epsilon = stricter fit."
+    },
+    "alpha": {
+        desc: "Regularization strength (Noise level for GP, Penalty for KRR).",
+        effect: "Controls the complexity (smoothness) of the model. Higher values = smoother function (less overfitting)."
+    },
+    "gamma": {
+        desc: "Kernel coefficient.",
+        effect: "Defines how far the influence of a single training example reaches. \nHigh Gamma = Close reach (complex, wiggly boundary). \nLow Gamma = Far reach (smooth boundary)."
+    },
+    "n_restarts_optimizer": {
+        desc: "Optimizer restarts for GP.",
+        effect: "Number of times to restart the internal optimizer to find the best kernel parameters. \n\nLogic: Helps avoid local minima but increases training time."
     }
 };
 
@@ -119,6 +133,20 @@ const TrainingConfigPanel = ({ config, setConfig, label }) => {
                 <>
                     {renderParamSlider("C (Regularization)", config.C, "C", 0.1, 1000, 0.1)}
                     {renderParamSlider("Epsilon", config.epsilon, "epsilon", 0.001, 1, 0.001)}
+                </>
+            )}
+
+            {config.model === 'Gaussian Process' && (
+                <>
+                    {renderParamSlider("Optimizer Restarts", config.n_restarts_optimizer || 0, "n_restarts_optimizer", 0, 10, 1)}
+                    {renderParamSlider("Alpha (Noise)", config.alpha || 1e-10, "alpha", 1e-10, 1.0, 0.0001)}
+                </>
+            )}
+
+            {config.model === 'Kernel Ridge' && (
+                <>
+                    {renderParamSlider("Alpha (Regularization)", config.alpha || 1.0, "alpha", 0.0001, 5.0, 0.01)}
+                    {renderParamSlider("Gamma (Kernel)", config.gamma || 0.1, "gamma", 0.001, 5.0, 0.001)}
                 </>
             )}
         </Box>

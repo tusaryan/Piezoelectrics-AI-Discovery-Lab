@@ -37,7 +37,7 @@ ALL_ELEMENTS = ['Ag', 'Al', 'B', 'Ba', 'Bi', 'C', 'Ca', 'Fe', 'Hf', 'Ho', 'K',
                 'Li', 'Mn', 'Na', 'Nb', 'O', 'Pr', 'Sb', 'Sc', 'Sr', 'Ta', 'Ti',
                 'Zn', 'Zr']
 
-# (Atomic Mass, Atomic Radius (pm), Electronegativity, Valence Electrons)
+# (Atomic Mass, Atomic Radius, Electronegativity, Valence Electrons)
 ELEMENT_PROPERTIES = {
     'Ag': [107.87, 144, 1.93, 1],
     'Al': [26.98, 143, 1.61, 3],
@@ -193,8 +193,6 @@ def create_feature_matrix(formula_series):
         
         physics_data.append(avg_props)
     
-    # Elemental Fractions
-    # Handle list input (no .index attribute)
     if isinstance(formula_series, list):
         idx = range(len(formula_series))
     else:
@@ -202,10 +200,8 @@ def create_feature_matrix(formula_series):
         
     df_features = pd.DataFrame(feature_data, columns=ALL_ELEMENTS, index=idx).fillna(0.0)
     
-    # Physics Features
     df_physics = pd.DataFrame(physics_data, columns=ELEMENT_PROP_NAMES, index=idx)
     
-    # Combined Feature Matrix
     return pd.concat([df_features, df_physics], axis=1)
 
 from sklearn.neighbors import NearestNeighbors
@@ -221,12 +217,10 @@ class AdvancedImputer:
         self.knowledge_base_y = None
 
     def fit(self, X_train, y_train):
-        # Store only valid rows (non-NaN targets) as knowledge base
         valid_mask = ~np.isnan(y_train)
         self.knowledge_base_X = X_train[valid_mask].copy()
         self.knowledge_base_y = y_train[valid_mask].copy()
         
-        # Fit NNeightbors on features (composition)
         self.nn_model = NearestNeighbors(n_neighbors=self.n_neighbors, algorithm='auto')
         self.nn_model.fit(self.knowledge_base_X)
         return self
@@ -235,17 +229,13 @@ class AdvancedImputer:
         X_trans = X.copy()
         y_trans = y.copy()
         
-        # Identify missing targets
         missing_mask = np.isnan(y_trans)
         if not np.any(missing_mask):
             return X_trans, y_trans
             
-        # Find neighbors for missing rows
         X_missing = X_trans[missing_mask]
         distances, indices = self.nn_model.kneighbors(X_missing)
         
-        # Weighted average imputation (inverse distance)
-        # Add small epsilon to avoid div by zero
         weights = 1.0 / (distances + 1e-6)
         
         imputed_values = []
@@ -254,7 +244,6 @@ class AdvancedImputer:
             neighbor_weights = weights[i]
             neighbor_values = self.knowledge_base_y.iloc[neighbor_indices].values
             
-            # Weighted mean
             val = np.sum(neighbor_weights * neighbor_values) / np.sum(neighbor_weights)
             imputed_values.append(val)
             
@@ -278,14 +267,11 @@ def clean_dataset(df, target_name, log_callback=None):
     log(f"Initial Shape: {df.shape}")
     log(f"Initial Preview:\n{df.head().to_string()}")
 
-    # 1. Drop empty Components
     df_clean = df.dropna(subset=['Component']).copy()
     dropped_comp = len(df) - len(df_clean)
     if dropped_comp > 0:
         log(f"Dropped {dropped_comp} rows with missing 'Component'.")
 
-    # 2. Clean Target Column
-    # Remove non-numeric characters except decimal point and negative sign
     if target_name == "d33":
         col = 'd33 (pC/N)'
     else:
@@ -297,7 +283,6 @@ def clean_dataset(df, target_name, log_callback=None):
         def clean_value(val):
             if pd.isna(val): return np.nan
             s = str(val)
-            # Remove anything that is not digit, dot, or minus
             s_clean = re.sub(r'[^\d.-]', '', s)
             try:
                 return float(s_clean)
@@ -323,36 +308,12 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
     """Compares multiple models and returns metrics, plot data, and detailed logs."""
     def log(msg):
         if log_callback: log_callback(msg)
-        print(msg) # Print to console as well
-
-    # ... (existing code for data split and imputation) ...
-    # Wait, I need to match the indentation and context perfectly. 
-    # I will rely on the fact that I am replacing the signature and the body up to models definition is skipped in my thought but I need to be careful with replace tool.
-    # The existing code is long. I should target the signature line and then the models definition block separately or allow multiple chunks.
-    
-    # I'll just change the signature first.
-
-
-    # The data passed here (X, y) is already extracted. 
-    # However, for proper cleaning we need the original DF or we clean BEFORE extracting X, y.
-    # The previous flow in api.py extracts X and y before calling this.
-    # We should move the cleaning logic to happen BEFORE X, y extraction in api.py OR 
-    # pass the raw DF here.
-    # BUT, to keep function signature consistent with current flow, let's assume api.py handles the DF cleaning 
-    # using the exposed clean_dataset function, OR we integrate it here.
-    # Given the extensive logging requested, it is better to call clean_dataset in api.py.
-    # But wait, the plan said "Update compare_models: Call clean_dataset first".
-    # Since compare_models receives X (features array) and y (series), it's too late to clean "Component" string here 
-    # as X is already features.
-    # REVISION: I will update api.py to call clean_dataset. 
-    # For now, I will leave compare_models mostly as is but add the log callback if not present 
-    # (it was added in prev step).
+        print(msg)
     
     log(f"--- Starting Comparison for {target_name} ---")
     log(f"Dataset Shape: Features {X.shape}, Target {y.shape}")
     
     # 1. Strict Train/Test Split (80/20) BEFORE any processing on values
-    # If components provided, split them too
     if components is not None:
         X_train_raw, X_test_raw, y_train_raw, y_test_raw, comp_train_raw, comp_test_raw = train_test_split(
             X, y, components, test_size=0.2, random_state=42
@@ -363,25 +324,22 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
 
     log(f"Data Split: Train {X_train_raw.shape[0]}, Test {X_test_raw.shape[0]}")
     
-    # 2. Analyze Missing Values
     train_missing = y_train_raw.isna().sum()
     test_missing = y_test_raw.isna().sum()
     log(f"Missing Targets (NaN): Train: {train_missing}, Test: {test_missing}")
 
-    # 3. Advanced Imputation on TRAIN set
     if train_missing > 0:
         log("Applying Advanced KNN Imputation on Training Set...")
         imputer = AdvancedImputer(n_neighbors=3)
         imputer.fit(X_train_raw, y_train_raw)
         X_train, y_train = imputer.transform(X_train_raw, y_train_raw)
-        comp_train = comp_train_raw # Imputer doesn't drop rows, just fills y
+        comp_train = comp_train_raw 
         log(f"Imputed {train_missing} values in Training Set using Chemical Similarity.")
     else:
         X_train, y_train = X_train_raw, y_train_raw
         comp_train = comp_train_raw
         log("No missing values in Train set. Skipping imputation.")
 
-    # 4. Handle Test Set (Drop missing targets for strict evaluation)
     if test_missing > 0:
         log(f"Dropping {test_missing} rows from Test Set with missing targets (Strict Evaluation).")
         valid_test_mask = ~y_test_raw.isna()
@@ -394,7 +352,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
 
     log(f"Final Processing Data: Train {X_train.shape[0]}, Test {X_test.shape[0]}")
     
-    # 5. Save Debug Artifacts
     if not os.path.exists("debug_data"):
         os.makedirs("debug_data")
         
@@ -411,7 +368,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
     train_df = pd.concat(train_objs, axis=1)
     test_df = pd.concat(test_objs, axis=1)
     
-    # Sort by original index to make comparison with input file easier
     train_df = train_df.sort_index()
     test_df = test_df.sort_index()
     
@@ -427,12 +383,9 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
         "SVM (SVR)": make_pipeline(StandardScaler(), SVR(C=100, epsilon=0.1))
     }
 
-    # Advanced Ensemble Strategy for Maximum Accuracy (Deep Nested Optimization)
     if training_mode == "accuracy":
         log("Activating Maximum Accuracy Mode: Deep Nested Optimization & Target Scaling...")
         
-        # 1. Use Configurable Parameter Grids from model_config.py
-        # Fallback to defaults if key missing
         rf_params = PARAM_GRIDS.get("Random Forest", {'n_estimators': [100]})
         xgb_params = PARAM_GRIDS.get("XGBoost", {'n_estimators': [100]})
         lgbm_params = PARAM_GRIDS.get("LightGBM", {'n_estimators': [100]})
@@ -441,11 +394,8 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
         gpr_params = PARAM_GRIDS.get("Gaussian Process", {'regressor__n_restarts_optimizer': [0]})
         krr_params = PARAM_GRIDS.get("Kernel Ridge", {'regressor__alpha': [1.0]})
         
-        # GPR: Matern Kernel
         gpr_kernel = np.var(y_train) * Matern(length_scale=1.0, nu=2.5) + WhiteKernel(noise_level=1e-5)
         
-        # 2. Re-define models as GridSearchCV objects (Nested Optimization)
-        # Note: We reset models here, but we will apply manual overrides AFTER.
         models = {}
         
         models["Random Forest"] = GridSearchCV(
@@ -468,7 +418,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
             gb_params, cv=3, n_jobs=-1, scoring='neg_root_mean_squared_error'
         )
         
-        # SVR: Scale Features AND Target
         models["SVM (SVR)"] = GridSearchCV(
             TransformedTargetRegressor(
                 regressor=SVR(kernel='rbf'), 
@@ -477,7 +426,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
             svr_params, cv=3, n_jobs=-1, scoring='neg_root_mean_squared_error'
         )
         
-        # GPR: Scale Features AND Target
         models["Gaussian Process"] = GridSearchCV(
             TransformedTargetRegressor(
                 regressor=GaussianProcessRegressor(kernel=gpr_kernel, normalize_y=True), 
@@ -486,7 +434,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
             gpr_params, cv=3, n_jobs=-1, scoring='neg_root_mean_squared_error'
         )
         
-        # KRR: Scale Features AND Target
         models["Kernel Ridge"] = GridSearchCV(
             TransformedTargetRegressor(
                 regressor=KernelRidge(kernel='rbf'), 
@@ -494,21 +441,13 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
             ),
             krr_params, cv=3, n_jobs=-1, scoring='neg_root_mean_squared_error'
         )
-
-    # -------------------------------------------------------------------------
-    # Apply Manual Configuration (Overwriting Auto/GridSearch Logic)
-    # -------------------------------------------------------------------------
-    # -------------------------------------------------------------------------
-    # Apply Manual Configuration (Overwriting Auto/GridSearch Logic)
-    # -------------------------------------------------------------------------
+    # Manual Configuration
     if manual_config and manual_config.get("model_type"):
         model_type = manual_config["model_type"]
         raw_params = manual_config.get("params", {})
         
-        # Robust Sanitization
         params = sanitize_params(model_type, raw_params)
         
-        # Ensure we overwrite the specific model key with the FIXED estimator
         log(f"Manual Configuration Detected: Overwriting {model_type} with fixed parameters: {params}")
         
         if model_type == "Random Forest":
@@ -520,12 +459,9 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
         elif model_type == "Gradient Boosting":
             models[model_type] = GradientBoostingRegressor(random_state=42, **params)
         elif model_type == "SVM (SVR)":
-            # For SVR, assume Standard Scaling is usually needed
             models[model_type] = make_pipeline(StandardScaler(), SVR(**params))
         elif model_type == "Gaussian Process":
             gpr_kernel = np.var(y_train) * Matern(length_scale=1.0, nu=2.5) + WhiteKernel(noise_level=1e-5)
-            # Remove kernel from params if present to avoid collision or handle strictly?
-            # For now assume params don't have kernel
             models[model_type] = make_pipeline(StandardScaler(), GaussianProcessRegressor(kernel=gpr_kernel, normalize_y=True, **params))
         elif model_type == "Kernel Ridge":
             models[model_type] = make_pipeline(StandardScaler(), KernelRidge(**params))
@@ -533,7 +469,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
     results = []
     predictions = {}
     
-    # Store fitted estimators for Stacking
     fitted_estimators = {}
     
     for name, model in models.items():
@@ -550,7 +485,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
         if training_mode == "accuracy":
             fitted_estimators[name] = model.best_estimator_
 
-    # Build and Train Ensemble from Optimized Models
     if training_mode == "accuracy":
         log("Building Stacking Ensemble from Optimized Models...")
         check_interruption()
@@ -565,7 +499,6 @@ def compare_models(X, y, target_name, manual_config=None, log_callback=None, com
             ('krr', fitted_estimators["Kernel Ridge"])
         ]
         
-        # UPGRADE: Gradient Boosting Meta-Learner (Non-linear stacking)
         ensemble = StackingRegressor(
             estimators=stacking_estimators,
             final_estimator=GradientBoostingRegressor(n_estimators=50, subsample=0.5, random_state=42),
@@ -597,17 +530,8 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
     feature_importance = {}
     
     if training_mode == "accuracy":
-        # ... logic ...
-        # (Assuming RandomizedSearchCV usage below)
-        pass # placeholder for search block
+        pass
     
-    # ... logic continues ...
-    # This function is large, I should just wrap the return change and the extraction logic at the end.
-    
-    # Let's target the end of the function where .fit is called.
-
-    
-    # Let's target the end of the function where .fit is called.
     check_interruption() 
     
     if auto_tune:
@@ -615,7 +539,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
         base_model = None
         search_params = {}
         
-        # Extended search space logic
         if training_mode == "accuracy":
             if model_type == "XGBoost":
                 base_model = xgb.XGBRegressor(objective='reg:squarederror', n_jobs=-1, random_state=42)
@@ -668,8 +591,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                     'svr__kernel': ['rbf', 'linear', 'poly'],
                     'svr__gamma': ['scale', 'auto', 0.01, 0.1, 1]
                 }
-             # Define search space based on model type and training mode
-        # Extended search space logic (Massive Search for Accuracy)
         if training_mode == "accuracy":
             
             # 1. Random Forest
@@ -692,7 +613,7 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                 base_model = GradientBoostingRegressor(random_state=42)
                 search_params = PARAM_GRIDS.get("Gradient Boosting", {'n_estimators': [100]})
                 
-            # 5. SVM (SVR) - Target Scaling
+            # 5. SVM (SVR)
             elif model_type == "SVM (SVR)":
                 base_model = TransformedTargetRegressor(
                     regressor=SVR(),
@@ -700,7 +621,7 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                 )
                 search_params = PARAM_GRIDS.get("SVM (SVR)", {'regressor__C': [1.0]})
                 
-            # 6. Gaussian Process - Target Scaling & Matern
+            # 6. Gaussian Process
             elif model_type == "Gaussian Process":
                 kernel = np.var(y) * Matern(length_scale=1.0, nu=2.5) + WhiteKernel(noise_level=1e-5)
                 base_model = TransformedTargetRegressor(
@@ -709,7 +630,7 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                 )
                 search_params = PARAM_GRIDS.get("Gaussian Process", {'regressor__n_restarts_optimizer': [0]})
                 
-            # 7. Kernel Ridge - Target Scaling
+            # 7. Kernel Ridge
             elif model_type == "Kernel Ridge":
                 base_model = TransformedTargetRegressor(
                     regressor=KernelRidge(kernel='rbf'),
@@ -719,8 +640,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
             
             # 8. Ensemble (Stacking)
             elif model_type == "Ensemble (Stacking)":
-                 # 1. Define Base Estimators (Nested GridSearches)
-                 # Note: Inner estimators n_jobs=1 to prevent deadlock with outer Stacking n_jobs
                  rf = GridSearchCV(
                     RandomForestRegressor(random_state=42, n_jobs=1), 
                     PARAM_GRIDS.get("Random Forest", {'n_estimators': [100]}), 
@@ -772,7 +691,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                  search_params = {} 
 
         else:
-            # Standard search space (Fast)
             if model_type == "Random Forest":
                 base_model = RandomForestRegressor(random_state=42, n_jobs=1)
                 search_params = {
@@ -809,7 +727,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                     'svr__kernel': ['rbf', 'linear']
                 }
             elif model_type == "Ensemble (Stacking)":
-                # Standard Stacking (Fast) - Single layer, fixed params
                 estimators = [
                     ('rf', RandomForestRegressor(n_estimators=100, n_jobs=1, random_state=42)),
                     ('xgb', xgb.XGBRegressor(n_estimators=100, n_jobs=1, random_state=42)),
@@ -824,31 +741,24 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
                 search_params = {}
 
         cv_folds = 5 if training_mode == "accuracy" else 3
-        
-        # Bug Fix: Explicit check
+        #fast
         if base_model is not None:
             check_interruption()
             
             if training_mode == "accuracy":
-                 # Exhaustive Search
                  search = GridSearchCV(base_model, search_params, scoring='neg_root_mean_squared_error', cv=cv_folds, verbose=0, n_jobs=-1)
             else:
-                 # Random Search (Fast)
                  search = RandomizedSearchCV(base_model, search_params, n_iter=10, scoring='neg_root_mean_squared_error', cv=cv_folds, verbose=0, random_state=42, n_jobs=-1)
             
             search.fit(X, y)
             best_model = search.best_estimator_
 
         else:
-             # Fallback
              best_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1)
              best_model.fit(X, y)
 
     
     else:
-        # Manual model selection with fixed params
-        
-        # Robust Sanitization
         raw_params = params or {}
         clean_params = sanitize_params(model_type, raw_params)
         
@@ -863,7 +773,6 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
         elif model_type == "SVM (SVR)":
             best_model = make_pipeline(StandardScaler(), SVR(**clean_params))
         else:
-            # Fallback
             best_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1)
 
         check_interruption()
@@ -873,18 +782,12 @@ def train_production_model(X, y, target_name, model_type="Auto", params=None, au
     # Extract Feature Importance
     try:
         if hasattr(best_model, "feature_importances_"):
-            # Tree based
             imps = best_model.feature_importances_
-            # X is a DataFrame so columns are preserved? 
-            # In compare_models X was DataFrame. Here X is processed?
-            # api.py passes X_prod which is from create_feature_matrix so it is DataFrame.
             feats = X.columns
             imp_dict = {f: float(i) for f, i in zip(feats, imps)}
-            #Sort
             feature_importance = dict(sorted(imp_dict.items(), key=lambda item: item[1], reverse=True)[:10])
             
         elif hasattr(best_model, "named_steps") and "svr" in best_model.named_steps:
-             # SVR Pipeline
              svr = best_model.named_steps["svr"]
              if svr.kernel == 'linear' and hasattr(svr, "coef_"):
                  imps = np.abs(svr.coef_[0])
@@ -931,7 +834,6 @@ def finalize_staging_models():
 def predict_properties(formula):
     """Predicts d33 and Tc for a given formula."""
     try:
-        # Load models
         model_d33 = joblib.load(os.path.join(MODEL_DIR, "d33_model.pkl"))
         model_tc = joblib.load(os.path.join(MODEL_DIR, "Tc_model.pkl"))
     except FileNotFoundError:
@@ -939,12 +841,10 @@ def predict_properties(formula):
 
     # Parse and Featurize
     composition = parse_formula(formula)
-    # create_feature_matrix expects a list/series of formulas
     X = create_feature_matrix([formula])
     
     # Predict
     try:
-        # Ensure X is valid (feature matrix generation might fail for invalid formula)
         if hasattr(X, 'empty') and X.empty:
              return None, None, composition
              
@@ -971,16 +871,12 @@ def save_insights(results_d33=None, predictions_d33=None, results_tc=None, predi
         "feature_importance_tc": feature_importance_tc or {}
     }
     
-    # Format scatter data for d33 (Legacy Frontend Support)
     if predictions_d33:
-        # Try to find the best model if possible, otherwise first
-        # For legacy frontend 'scatter_d33' usually expected just one set of points
         first_model = list(predictions_d33.keys())[0]
         y_test = predictions_d33[first_model]['y_test']
         y_pred = predictions_d33[first_model]['y_pred']
         insights["scatter_d33"] = [{"x": float(act), "y": float(pred)} for act, pred in zip(y_test, y_pred)]
 
-    # Format scatter data for Tc (Legacy Frontend Support)
     if predictions_tc:
         first_model = list(predictions_tc.keys())[0]
         y_test = predictions_tc[first_model]['y_test']

@@ -60,3 +60,5 @@ Final Report 5th sem AI Assisted Piezoelectric Discovery.txt
 NEXT_SESSION_PROMPT.md
 SETUP_GUIDE-old.md
 \n# AI Models & Vector DBs\ndata/chroma/\ndata/models/*.joblib\ndata/models/*.pkl\ndata/models/*.csv
+*.pkl
+/data

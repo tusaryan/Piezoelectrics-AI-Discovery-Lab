@@ -1,0 +1,18 @@
+{
+  "name": "piezo-ai",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AI-Accelerated Discovery of Lead-Free Piezoelectric Materials",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

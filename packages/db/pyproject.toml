@@ -1,0 +1,14 @@
+[project]
+name = "db"
+version = "2.0.0"
+description = "Piezo.AI v2 Database Package"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.0.30",
+    "alembic>=1.13.0",
+    "asyncpg>=0.29.0"
+]
+
+[tool.setuptools.packages.find]
+include = ["models*"]
+

@@ -1,0 +1,20 @@
+[project]
+name = "ml-core"
+version = "2.0.0"
+description = "Piezo.AI v2 Core ML Library"
+requires-python = ">=3.12"
+dependencies = [
+    "scikit-learn>=1.5.0",
+    "xgboost>=2.0.0",
+    "lightgbm>=4.0.0",
+    "optuna>=3.6.0",
+    "chemparse>=0.1.2",
+    "pymatgen>=2024.1.0",
+    "mendeleev>=0.15.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "shap>=0.46.0",
+    "pymoo>=0.6.0",
+    "reportlab>=4.1.0",
+    "matplotlib>=3.8.0"
+]

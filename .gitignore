@@ -1,0 +1,62 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# Turborepo & pnpm
+.turbo/
+.pnpm-store/
+pnpm-debug.log
+
+# Next.js
+.next/
+out/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# User Specified Exclusions
+old-codebase/
+resources/project_status_report-1.md
+resources/project_status_report-2.md
+AI Piezoelectric Project Expansion Ideas - 6th sem.txt
+Final Report 5th sem AI Assisted Piezoelectric Discovery.txt
+NEXT_SESSION_PROMPT.md
+SETUP_GUIDE-old.md
+\n# AI Models & Vector DBs\ndata/chroma/\ndata/models/*.joblib\ndata/models/*.pkl\ndata/models/*.csv

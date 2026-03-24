@@ -1,0 +1,9 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd ../.. && source apps/api/.venv/bin/activate && uvicorn apps.api.app.main:app --reload --host 0.0.0.0 --port 8000",
+    "start": "cd ../.. && source apps/api/.venv/bin/activate && uvicorn apps.api.app.main:app --host 0.0.0.0 --port 8000"
+  }
+}

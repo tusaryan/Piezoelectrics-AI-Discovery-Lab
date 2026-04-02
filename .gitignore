@@ -30,8 +30,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -59,6 +57,17 @@ AI Piezoelectric Project Expansion Ideas - 6th sem.txt
 Final Report 5th sem AI Assisted Piezoelectric Discovery.txt
 NEXT_SESSION_PROMPT.md
 SETUP_GUIDE-old.md
-\n# AI Models & Vector DBs\ndata/chroma/\ndata/models/*.joblib\ndata/models/*.pkl\ndata/models/*.csv
+# AI Models & Vector DBs
+data/chroma/
+data/models/*.joblib
+data/models/*.pkl
+data/models/*.csv
+*.pkl
+/data
+
+# Backend generated models
+backend/saved_models/
+
+*.csv
 *.pkl
 /data

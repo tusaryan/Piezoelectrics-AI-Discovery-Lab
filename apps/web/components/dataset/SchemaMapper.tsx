@@ -27,6 +27,21 @@ const EXPECTED_SCHEMA: SchemaColumn[] = [
   { internalField: "dielectric_const", label: "Dielectric Constant", required: false },
   { internalField: "dielectric_loss", label: "Dielectric Loss", required: false },
   { internalField: "mech_quality_factor", label: "Mech. Quality Factor", required: false },
+  // Hardness
+  { internalField: "vickers_hardness", label: "Vickers Hardness (Hv)", required: false },
+  { internalField: "mohs_hardness", label: "Mohs Hardness", required: false },
+  // Composite
+  { internalField: "matrix_type", label: "Matrix Type", required: false },
+  { internalField: "filler_wt_pct", label: "Filler Wt. %", required: false },
+  { internalField: "filler_vol_pct", label: "Filler Vol. %", required: false },
+  { internalField: "particle_morphology", label: "Particle Morphology", required: false },
+  { internalField: "particle_size_nm", label: "Particle Size (nm)", required: false },
+  { internalField: "surface_treatment", label: "Surface Treatment", required: false },
+  { internalField: "fabrication_method", label: "Fabrication Method", required: false },
+  { internalField: "beta_phase_pct", label: "Beta Phase %", required: false },
+  { internalField: "composite_d33", label: "Composite d₃₃", required: false },
+  { internalField: "remnant_polarization", label: "Remnant Polarization", required: false },
+  { internalField: "coercive_field", label: "Coercive Field", required: false },
 ];
 
 interface SchemaMapperProps {

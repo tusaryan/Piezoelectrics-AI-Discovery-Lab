@@ -23,6 +23,21 @@ COLUMN_ALIASES: Dict[str, List[str]] = {
     "dielectric_const": ["dielectric_const", "dielectric_constant", "epsilon", "εr", "permittivity", "dielectric constant"],
     "dielectric_loss": ["dielectric_loss", "tan_delta", "tanδ", "loss_tangent", "dielectric loss"],
     "mech_quality_factor": ["mech_quality_factor", "qm", "q_m", "mechanical_quality", "mechanical quality factor"],
+    # HARDNESS
+    "vickers_hardness": ["vickers_hardness", "vickers", "hardness_hv", "hv", "hardness"],
+    "mohs_hardness": ["mohs_hardness", "mohs"],
+    # COMPOSITE
+    "matrix_type": ["matrix_type", "matrix", "base_polymer", "polymer_matrix"],
+    "filler_wt_pct": ["filler_wt_pct", "wt_pct", "weight_percent", "filler_wt"],
+    "filler_vol_pct": ["filler_vol_pct", "vol_pct", "volume_percent", "filler_vol"],
+    "particle_morphology": ["particle_morphology", "morphology", "shape", "particle_shape"],
+    "particle_size_nm": ["particle_size_nm", "particle_size", "size_nm", "filler_size"],
+    "surface_treatment": ["surface_treatment", "treatment", "coating"],
+    "fabrication_method": ["fabrication_method", "fabrication", "processing_method", "synthesis"],
+    "beta_phase_pct": ["beta_phase_pct", "beta_phase", "beta_fraction"],
+    "composite_d33": ["composite_d33", "d33_comp", "comp_d33"],
+    "remnant_polarization": ["remnant_polarization", "pr", "p_r"],
+    "coercive_field": ["coercive_field", "ec", "e_c"],
 }
 
 # Internal fields that the schema supports

@@ -118,16 +118,44 @@ class DatasetService:
                 if not dataset:
                     return
 
-                # ...# Insert to DB
+                # Insert to DB
                 for idx, row in clean_df.iterrows():
                     mat = Material(
                         dataset_id=dataset_id,
                         formula=str(row['formula']),
-                        sintering_temp=row.get('sintering_temp'),
-                        d33=row.get('d33') if 'd33' in row else None,
-                        tc=row.get('tc') if 'tc' in row else None,
+                        # CORE
+                        d33=row.get('d33') if pd.notna(row.get('d33')) else None,
+                        tc=row.get('tc') if pd.notna(row.get('tc')) else None,
                         is_imputed=bool(row.get('is_imputed', False)),
-                        is_tc_ai_generated=bool(row.get('is_tc_ai_generated', False))
+                        is_tc_ai_generated=bool(row.get('is_tc_ai_generated', False)),
+                        # EXTENDED KNN BULK
+                        family_name=row.get('family_name') if pd.notna(row.get('family_name')) else None,
+                        sintering_temp=row.get('sintering_temp') if pd.notna(row.get('sintering_temp')) else None,
+                        field_strength=row.get('field_strength') if pd.notna(row.get('field_strength')) else None,
+                        poling_temp=row.get('poling_temp') if pd.notna(row.get('poling_temp')) else None,
+                        poling_time=row.get('poling_time') if pd.notna(row.get('poling_time')) else None,
+                        density=row.get('density') if pd.notna(row.get('density')) else None,
+                        density_theoretical_pct=row.get('density_theoretical_pct') if pd.notna(row.get('density_theoretical_pct')) else None,
+                        planar_coupling=row.get('planar_coupling') if pd.notna(row.get('planar_coupling')) else None,
+                        dielectric_const=row.get('dielectric_const') if pd.notna(row.get('dielectric_const')) else None,
+                        dielectric_loss=row.get('dielectric_loss') if pd.notna(row.get('dielectric_loss')) else None,
+                        mech_quality_factor=row.get('mech_quality_factor') if pd.notna(row.get('mech_quality_factor')) else None,
+                        # HARDNESS
+                        vickers_hardness=row.get('vickers_hardness') if pd.notna(row.get('vickers_hardness')) else None,
+                        mohs_hardness=row.get('mohs_hardness') if pd.notna(row.get('mohs_hardness')) else None,
+                        # COMPOSITE
+                        is_composite=bool(pd.notna(row.get('matrix_type')) or bool(row.get('is_composite', False))),
+                        matrix_type=row.get('matrix_type') if pd.notna(row.get('matrix_type')) else None,
+                        filler_wt_pct=row.get('filler_wt_pct') if pd.notna(row.get('filler_wt_pct')) else None,
+                        filler_vol_pct=row.get('filler_vol_pct') if pd.notna(row.get('filler_vol_pct')) else None,
+                        particle_morphology=row.get('particle_morphology') if pd.notna(row.get('particle_morphology')) else None,
+                        particle_size_nm=row.get('particle_size_nm') if pd.notna(row.get('particle_size_nm')) else None,
+                        surface_treatment=row.get('surface_treatment') if pd.notna(row.get('surface_treatment')) else None,
+                        fabrication_method=row.get('fabrication_method') if pd.notna(row.get('fabrication_method')) else None,
+                        beta_phase_pct=row.get('beta_phase_pct') if pd.notna(row.get('beta_phase_pct')) else None,
+                        composite_d33=row.get('composite_d33') if pd.notna(row.get('composite_d33')) else None,
+                        remnant_polarization=row.get('remnant_polarization') if pd.notna(row.get('remnant_polarization')) else None,
+                        coercive_field=row.get('coercive_field') if pd.notna(row.get('coercive_field')) else None,
                     )
                     db.add(mat)
                 

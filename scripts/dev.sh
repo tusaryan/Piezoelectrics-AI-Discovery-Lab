@@ -105,13 +105,14 @@ cmd_setup() {
     pip install -e packages/db
     success "Python dependencies installed"
     
-    # 4. Create DB
-    log "[Step 4/5] Preparing Database..."
+    # 4. Setup Database Environment & Create DB
+    log "[Step 4/5] Preparing Database Environment..."
+    setup_db_environment
     cmd_db_create
     
     # 5. Run migrations
     log "[Step 5/5] Applying Database Migrations..."
-    cmd_db_migrate
+    cmd_db_migrate "--from-setup"
     
     success "Setup complete! Run 'bash scripts/dev.sh start' to launch."
 }
@@ -135,67 +136,154 @@ cmd_clean() {
     log "Clean complete. Run 'bash scripts/dev.sh setup' to reinstall."
 }
 
+setup_db_environment() {
+    get_db_vars
+    echo ""
+    echo -e "${CYAN}--- Database Configuration ---${NC}"
+    echo "How would you like to run the PostgreSQL database?"
+    echo "  1) Docker Container (Default - Recommended)"
+    echo "  2) Local Installation (Use existing postgres service)"
+    
+    # Read with 10 sec timeout, default to 1
+    read -t 10 -p "Select option [1/2] (Auto-defaults to 1 in 10s): " db_option || true
+    echo ""
+    
+    db_option="${db_option:-1}"
+    
+    if [[ "$db_option" == "2" ]]; then
+        log "Using Local PostgreSQL Installation."
+    else
+        log "Using Docker PostgreSQL."
+        if ! command -v docker &> /dev/null; then
+            err "Docker is not installed. Falling back to Local assumption."
+        elif ! docker info &> /dev/null; then
+            err "Docker daemon is not running! Please start Docker Desktop/daemon."
+            exit 1
+        else
+            log "Checking Docker database container state..."
+            
+            if ! docker compose -f docker/docker-compose.dev.yml up -d db 2>/dev/null && ! docker-compose -f docker/docker-compose.dev.yml up -d db 2>/dev/null; then
+                warn "Failed to start Docker container normally. Attempting hard reset of the container..."
+                docker compose -f docker/docker-compose.dev.yml down -v db 2>/dev/null || true
+                docker compose -f docker/docker-compose.dev.yml up -d db || { err "Failed to recover Docker container. Ensure ports are open and image is not corrupted."; exit 1; }
+            fi
+            
+            # Explicitly unpause and start if they were left in a limbo state
+            docker compose -f docker/docker-compose.dev.yml unpause db 2>/dev/null || true
+            docker compose -f docker/docker-compose.dev.yml start db 2>/dev/null || true
+            
+            log "Waiting for Docker Database to be ready..."
+            for i in {1..30}; do
+                if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; then
+                    success "Docker Database is ready!"
+                    break
+                fi
+                sleep 1
+                if [ $i -eq 30 ]; then
+                    warn "Timed out waiting for Docker DB. It might still be starting."
+                fi
+            done
+        fi
+    fi
+}
+
 cmd_db_create() {
     get_db_vars
-    log "Creating database '$DB_NAME' on $DB_HOST:$DB_PORT..."
-    
     export PGPASSWORD="$DB_PASS"
     
-    # Check if DB exists
-    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
-        success "Database '$DB_NAME' already exists"
-    else
-        createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" 2>/dev/null || \
-        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "CREATE DATABASE $DB_NAME;" 2>/dev/null || \
-        { err "Failed to create database. Make sure PostgreSQL is running and user '$DB_USER' exists."; exit 1; }
-        success "Database '$DB_NAME' created"
-    fi
+    log "Checking if database '$DB_NAME' exists on $DB_HOST:$DB_PORT..."
     
+    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+        success "Database '$DB_NAME' is present."
+    else
+        log "Database '$DB_NAME' not found. Creating..."
+        createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" 2>/dev/null || \
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "CREATE DATABASE \"$DB_NAME\";" 2>/dev/null || \
+        { err "Failed to create database. Is PostgreSQL running?"; exit 1; }
+        success "Database '$DB_NAME' created successfully."
+    fi
     unset PGPASSWORD
 }
 
 cmd_db_reset() {
+    local force=$1
     get_db_vars
-    warn "This will DROP and RECREATE the '$DB_NAME' database. All data will be lost!"
-    read -p "Are you sure? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log "Aborted."
-        return
+    
+    if [[ "$force" != "--force" ]]; then
+        warn "This will DROP and RECREATE the '$DB_NAME' database. All data will be lost!"
+        read -p "Are you sure? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log "Aborted."
+            return
+        fi
     fi
     
     export PGPASSWORD="$DB_PASS"
     
     log "Dropping database '$DB_NAME'..."
     dropdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" --if-exists "$DB_NAME" 2>/dev/null || \
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || \
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "DROP DATABASE IF EXISTS \"$DB_NAME\";" 2>/dev/null || \
     { err "Failed to drop database."; exit 1; }
     
     unset PGPASSWORD
     
     cmd_db_create
-    cmd_db_migrate
     
-    success "Database reset complete."
+    log "Running migrations on fresh database..."
+    if [ -f "apps/api/.venv/bin/activate" ]; then
+        source apps/api/.venv/bin/activate
+    fi
+    SYNC_URL=$(echo "$DB_URL" | sed 's|postgresql+asyncpg://|postgresql://|' | sed 's|postgresql+psycopg://|postgresql://|')
+    DATABASE_URL="$SYNC_URL" alembic -c packages/db/alembic.ini upgrade head || {
+        err "CRITICAL: Migrations failed even after a fresh reset. There is a fundamental code or schema error."
+        exit 1
+    }
+    success "Database hard reset complete."
 }
 
 cmd_db_migrate() {
     get_db_vars
-    log "Running Alembic migrations..."
+    log "Applying database migrations..."
     
-    # Activate venv if exists
     if [ -f "apps/api/.venv/bin/activate" ]; then
         source apps/api/.venv/bin/activate
     fi
     
-    # Convert async URL to sync for Alembic
+    # Ensure DB is created if user calls `bash scripts/dev.sh db:migrate` standalone
+    export PGPASSWORD="$DB_PASS"
+    if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+        log "Database does not exist yet. Creating before migration..."
+        cmd_db_create
+    fi
+    unset PGPASSWORD
+    
     SYNC_URL=$(echo "$DB_URL" | sed 's|postgresql+asyncpg://|postgresql://|' | sed 's|postgresql+psycopg://|postgresql://|')
     
-    DATABASE_URL="$SYNC_URL" alembic -c packages/db/alembic.ini upgrade head 2>/dev/null || \
-    DATABASE_URL="$SYNC_URL" python -m alembic -c packages/db/alembic.ini upgrade head || \
-    { err "Alembic migration failed. Check your DATABASE_URL and that alembic is installed."; exit 1; }
+    # Try migrating
+    if DATABASE_URL="$SYNC_URL" alembic -c packages/db/alembic.ini upgrade head 2>/tmp/piezo_alembic.log; then
+        success "Database migrations applied successfully. Database is initialized and ready."
+        rm -f /tmp/piezo_alembic.log
+        return 0
+    fi
     
-    success "Migrations applied"
+    # If we reached here, migration failed.
+    err "Migration failed! The database might be corrupted, incompatible, or not initialized properly."
+    log "Error Details:"
+    cat /tmp/piezo_alembic.log || true
+    echo ""
+    
+    warn "Would you like to perform a HARD RESET? This will COMPLETELY DELETE the existing '$DB_NAME' database, recreate it, and rerun migrations. ALL DATA WILL BE LOST!"
+    read -p "Type 'yes' to Hard Reset, or any other key to Abort: " reset_choice
+    echo ""
+    
+    if [[ "$reset_choice" == "yes" ]]; then
+        log "User initiated Hard Reset. Proceeding..."
+        cmd_db_reset "--force"
+    else
+        err "Migration aborted by user. Please fix the database state manually or drop it to reset."
+        exit 1
+    fi
 }
 
 cmd_db_seed() {
@@ -221,6 +309,43 @@ print('[seed] Upload these via the web UI Dataset page.')
 cmd_start() {
     log "Starting Piezo.AI v2 development servers..."
     
+    log "Checking if database is running securely before starting..."
+    get_db_vars
+    if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; then
+        warn "PostgreSQL does not seem to be running/responding on $DB_HOST:$DB_PORT."
+        if command -v docker &> /dev/null && docker info &> /dev/null; then
+             log "Docker is available. Attempting to revive container if it is paused or exited..."
+             docker compose -f docker/docker-compose.dev.yml unpause db 2>/dev/null || true
+             docker compose -f docker/docker-compose.dev.yml start db 2>/dev/null || true
+             docker compose -f docker/docker-compose.dev.yml up -d db 2>/dev/null || true
+             sleep 3
+        fi
+    else
+        success "Database is active and ready."
+    fi
+
+    # Port Collision Checks
+    check_port() {
+        local port=$1
+        local service=$2
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+            warn "Port $port ($service) is already in use by another process."
+            read -p "Would you like to automatically stop the conflicting process to continue? (y/N): " kill_choice
+            echo ""
+            if [[ "$kill_choice" =~ ^[Yy]$ ]]; then
+                log "Killing process on port $port..."
+                kill -9 $(lsof -Pi :$port -sTCP:LISTEN -t) 2>/dev/null || true
+                success "Freed port $port."
+            else
+                err "Cannot start $service. Please free port $port manually and try again."
+                exit 1
+            fi
+        fi
+    }
+
+    check_port 8000 "Backend"
+    check_port 3000 "Frontend"
+
     # Backend
     if [ -f "apps/api/.venv/bin/activate" ]; then
         source apps/api/.venv/bin/activate
@@ -231,16 +356,50 @@ cmd_start() {
     BACKEND_PID=$!
     
     # Frontend
+    log "Verifying frontend dependencies..."
+    if [ ! -d "node_modules" ] || [ ! -d "apps/web/node_modules" ]; then
+        warn "Missing node_modules detected. Running pnpm install automatically to recover dependencies..."
+        if command -v pnpm &> /dev/null; then
+            pnpm install || { err "pnpm install failed"; exit 1; }
+        else
+            warn "pnpm not found natively. Attempting npm install -g pnpm to fix..."
+            npm install -g pnpm 2>/dev/null || true
+            pnpm install || { err "pnpm installation failed"; exit 1; }
+        fi
+        success "Dependencies forcefully recovered successfully!"
+    fi
+
     log "Starting frontend on port 3000..."
-    cd apps/web && npm run dev &
+    cd apps/web && pnpm run dev &
     FRONTEND_PID=$!
     cd "$ROOT_DIR"
     
     success "Backend PID: $BACKEND_PID | Frontend PID: $FRONTEND_PID"
-    log "Press Ctrl+C to stop both servers"
+    log "Press Ctrl+C to gracefully stop the servers and clean ports"
     
-    trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit" INT TERM
+    trap "log 'Caught interrupt signal! Initiating clean shutdown...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; cmd_stop bypass; exit" INT TERM
     wait
+}
+
+cmd_stop() {
+    log "Gracefully shutting down Piezo.AI v2 environment..."
+
+    # Kill Background Server PIDs explicitly via lsof if they are still holding ports
+    log "Cleaning up stranded local processes on ports 8000 & 3000..."
+    if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+        kill -9 $(lsof -Pi :8000 -sTCP:LISTEN -t) 2>/dev/null || true
+    fi
+    if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+        kill -9 $(lsof -Pi :3000 -sTCP:LISTEN -t) 2>/dev/null || true
+    fi
+
+    # Docker cleanup
+    if command -v docker &> /dev/null && docker info &> /dev/null; then
+        log "Halting Docker database container to save resources..."
+        docker compose -f docker/docker-compose.dev.yml stop db 2>/dev/null || docker-compose -f docker/docker-compose.dev.yml stop db 2>/dev/null || true
+    fi
+    
+    success "Environment cleanly shut down."
 }
 
 # ------- Main -------
@@ -253,6 +412,7 @@ case "${1:-}" in
     db:migrate) cmd_db_migrate ;;
     db:seed)    cmd_db_seed ;;
     start)      cmd_start ;;
+    stop)       cmd_stop ;;
     *)
         echo "Piezo.AI v2 Development Tool"
         echo ""
@@ -267,5 +427,6 @@ case "${1:-}" in
         echo "  db:migrate  Run Alembic migrations only"
         echo "  db:seed     Show info about sample datasets"
         echo "  start       Start backend + frontend dev servers"
+        echo "  stop        Gracefully shut down all servers, free ports, and sleep Docker"
         ;;
 esac

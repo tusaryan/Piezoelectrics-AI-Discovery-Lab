@@ -1,258 +1,206 @@
-# 🧪 AI-Assisted Discovery of New Lead-Free Piezoelectrics
+# 🧪 Piezo.AI — AI-Driven Discovery of Lead-Free Piezoelectrics
 
 ![Project Status](https://img.shields.io/badge/Status-Active_Development-green)
-![Tech Stack](https://img.shields.io/badge/Stack-FastAPI_React_Docker-blue)
+![Tech Stack](https://img.shields.io/badge/Stack-Next.js_FastAPI_PostgreSQL-blue)
 ![Domain](https://img.shields.io/badge/Domain-Materials_Informatics-purple)
+![Python](https://img.shields.io/badge/Python-3.10+-yellow)
+![Node](https://img.shields.io/badge/Node.js-18+-339933)
 
-## 📖 Executive Summary
+## 📖 Overview
 
-This project captures a complete **Materials Informatics Workflow**, designed to solve one of the most pressing challenges in materials science: finding eco-friendly alternatives to toxic lead-based electronics.
+**Piezo.AI** is a full-stack Materials Informatics platform that uses machine learning to accelerate the discovery of high-performance, lead-free piezoelectric materials. It replaces months of traditional trial-and-error experimentation with millisecond predictions.
 
-By engineering a full-stack **"Virtual Laboratory"**, this application accelerates the discovery of lead-free piezoelectric ceramics. It replaces **_months of costly, trial-and-error synthesis_** with instant, machine-learning-driven predictions, enabling researchers to screen thousands of complex chemical compositions in seconds.
-
-**Key Impact:**
-
-- **Acceleration:** Reduces material screening time from **weeks to milliseconds**.
-- **Precision:** Achieves high predictive accuracy ($R^2 \approx 0.85$) for critical properties like Piezoelectric Coefficient ($d_{33}$) and Curie Temperature ($T_c$).
-- **Usability:** Democritizes advanced ML models for non-computational experimentalists via an intuitive GUI.
-
----
+<div align="center">
+  <img src="resources/interface-previews/Sample-1.png" width="90%" alt="Piezo.AI Interface Preview" />
+  <br/><br/>
+  <img src="resources/interface-previews/Sample-4.png" width="90%" alt="Piezo.AI Feature Discovery" />
+  <br/><br/>
+  <p><em>Early Interface Framework Preview. See <a href="docs/COMPREHENSIVE_GUIDE.md">Comprehensive Guide</a> for the full gallery.</em></p>
+</div>
 
 ## 🌍 The Problem: The "Lead Dilemma"
 
-**Lead Zirconate Titanate (PZT)** powers nearly all modern piezoelectric devices (ultrasound, sensors, actuators).
-
-However, PZT creates a significant global challenge:
-
-- **Toxicity:** PZT contains >60% lead by weight, a neurotoxin that poses severe health risks.
-- **Environmental Impact:** E-waste containing PZT leaches lead into soil and groundwater, causing long-term contamination.
-- **Regulatory Pressure:** Global directives like **RoHS** are restricting the use of hazardous substances, creating an urgent need for eco-friendly alternatives.
-
-Finding a replacement is an **optimization nightmare**:
-
-1.  The search space for chemical solid solutions is effectively infinite.
-2.  Complex stoichiometry (e.g., doping, substitution) makes traditional modeling difficult.
-3.  Experimental synthesis is slow, expensive, and hazardous.
+**Lead Zirconate Titanate (PZT)** powers nearly all modern piezoelectric devices (ultrasound, sensors, actuators). However, PZT creates a significant global challenge containing >60% lead by weight, an environmental neurotoxin. Finding eco-friendly alternatives is an optimization nightmare due to the practically infinite chemical search space and slow experimental synthesis.
 
 ## 💡 The Solution
 
-A comprehensive **Data-Driven Pipeline** that ingests raw chemical formulas and outputs validated property predictions. This project implements a **Data-Driven Workflow** to bypass traditional limitations:
+This project implements a **Data-Driven Workflow** to bypass traditional limitations. We developed a robust chemical parser to convert complex chemical formulas into numerical features, applying adaptive ensemble learning algorithms to accurately predict functional properties of KNN-based piezoelectric materials.
+### Synopsis Objectives (6th Semester)
 
-1.  **Data Collection:** Aggregated data on lead-free ceramics (specifically KNN-based) from scientific literature.
-2.  **Feature Engineering:** Developed a robust chemical parser to convert complex chemical formulas (including solid solutions and dopants) into numerical features.
-3.  **Predictive Modeling:** Trained and compared multiple ensemble learning algorithms (XGBoost, Random Forest, LightGBM) to accurately predict material properties.
-4.  **Web Application:** Wrapped the ML engine in a modern Full-Stack application, allowing researchers to easily test new compositions and retrain models with new data.
-5.  **Deploy:** A production-grade web application serves these models to researchers globally.
+| # | Objective | Status |
+|---|-----------|--------|
+| 1 | **Domain Expansion** — Augment KNN dataset with PVDF-KNN composite data | ✅ Backend ready |
+| 2 | **Mechanical Property Prediction** — ML models for hardness (Vickers/Mohs) | ✅ Backend ready |
+| 3 | **Model Transparency** — SHAP explainability | 🔜 Future work |
+| 4 | **Structural Analysis AI** — Pre-trained models for crystal structures | 🔜 Future work |
 
 ---
 
-## 🚀 Key Technical Features
+## 🚀 Features
 
-### 1. 🧬 Advanced Stoichiometry Engineering
+### Core Platform
+- **Advanced Stoichiometry Engineering** — Robust chemical parsing engine handling nested structures, automatically mapping formulas to 28+ fundamental atomic descriptors.
+- **Adaptive Machine Learning Pipeline** — Dual Training Mode: Auto-Intelligent (runs Grid Search across Random Forest, XGBoost, LightGBM, SVR) vs. Expert Manual tuning with stacking regressors and strict parameter sanitization.
+- **Real-Time Training Terminal** — Live log streaming via SSE to the browser terminal.
+- **Instant & Batch Prediction** — Predict d33 and Tc from formulas in milliseconds, or upload CSV files for bulk analytics.
+- **Automated Research Reporting** — Generating publication-ready dynamic visualizations (scatter plots, perfect fit lines) leveraging advanced Flowable logic to export seamless PDF reports.
+- **Interactive Custom UI** — Figma-inspired layout utilizing a customized, draggable grid system. Researchers can freely drag, reorder, collapse, or specifically hide unrelated component cards to maintain absolute focus on relevant data streams.
 
-Unique to this project is a robust **Chemical Parsing Engine** capable of handling real-world, "messy" scientific notation.
+### Extended Capabilities
+- **PVDF Composite Prediction** — Predict properties of flexible ceramic-polymer composites with configurable filler %, morphology, and interfacial processing methods.
+- **Hardness Prediction & Use-Case Mapping** — Vickers/Mohs hardness estimation with automatic industrial application classification.
+- **Interactive Dataset Management** — Upload, view, and manage training datasets seamlessly via the web UI.
+- **Model Registry** — Track all trained models with performance metrics, allowing one-click activation of top performers.
 
-- **Nested Formula Support:** Recursively resolves complex solid solutions like `0.96(K0.48Na0.52)NbO3-0.04(Bi0.5Ag0.5)ZrO3`.
-- **Normalization:** Automatically balances stoichiometry and handles bracket variations (e.g., `[]` vs `()`) ensuring consistent feature generation regardless of user input style.
-- **Feature Vectors:** Maps cleaned formulas to 28+ atomic descriptors (electronegativity, ionic radius, valence electron concentration) based on domain knowledge.
-- **Dual-Target Prediction:** Simultaneously predicts:
-  - **$d_{33}$:** Piezoelectric charge coefficient (pC/N).
-  - **$T_c$:** Curie Temperature (°C).
+## 🔬 Scientific Validation Methodology
 
-### 2. 🧠 Adaptive Machine Learning Pipeline
+To ensure valid scientific outputs, the models follow a rigorous protocol:
+1. **Data Cleaning:** Removal of non-stoichiometric entries and duplicate formulas.
+2. **Stratified Split:** 80/20 Train-Test split to preserve the distribution of the target properties.
+3. **Metric Evaluation:** Models are stringently evaluated on $R^2$ (variance explained) and RMSE.
+4. **Target Scaling:** Handled non-normal distributions in target variables (like $T_c$ and $d_{33}$) via `TransformedTargetRegressor`.
 
-The backend features a sophisticated, self-correcting ML engine (`ml_engine.py`):
-
-- **Auto-Tune vs. Expert Control:**
-  - **Auto-Mode:** Automatically runs Grid Search (CV=5) across Random Forest, XGBoost, LightGBM, SVR, and Gradient Boosting to find the optimal architecture.
-  - **Manual Fine-Tuning:** Allows domain experts to override specific hyperparameters (e.g., `n_estimators`, `gamma`) for targeted experimentation.
-- **Ensemble Stacking:** Implements a `StackingRegressor` that combines weak learners to minimize variance and improve generalization on small datasets.
-- **Strict Parameter Sanitization:** A custom whitelist layer ensures model stability, preventing crashes when determining valid hyperparameters for different algorithms dynamically.
-
-### 3. 📄 Automated Research Reporting
-
-Bridging the gap between code and publication, the **PDF Reporting Engine** (`report_generator.py`) automates data storytelling:
-
-- **Dynamic Visualization:** Generates publication-ready vector graphics (Scatter plots with "Perfect Fit" lines, RMSE comparison bar charts).
-- **Contextual Insights:** Programmatically generates text summarizing "Best Performing Models" and "Model Certainty" based on training metrics.
-- **Smart Layouts:** Uses advanced `Flowable` logic to prevent charts and titles from splitting across pages, ensuring professional formatting.
-
-### 4. ⚡ Real-Time Interactive UI
-
-Built with **React 18** and **Vite**, the frontend prioritizes responsiveness and scientific accuracy:
-
-- **Formula Builder:** A specialized form component validating charge neutrality and chemical validity in real-time.
-- **Live Training Feedback:** Web-socket style polling provides granular progress updates ("Preprocessing", "Benchmarking", "Optimizing") to the user.
-- **Interactive Insights:** `Recharts`-powered graphs allow users to hover and inspect individual data points (e.g., outlier detection).
+### Future Exploration & Expansions
+- **Democratizing Deep Learning** — Utilizing Graph Neural Network (GNN) transfer learning (via pre-trained universal foundation models like CHGNet and ALIGNN) functioning as advanced geometric feature extractors on smaller datasets. 
+- **Shattering the Black Box (Interpretability)** — Implementing SHAP (Shapley Additive Explanations) for deep feature attribution in tree-based models, and integrating Symbolic Regression (PySR/SISSO) to explicitly derive novel, physically interpretable mathematical equations for piezoelectric behaviors.
+- **Multi-Objective Optimization (MOO)** — Applying NSGA-II or Multi-Objective Bayesian Optimization (MOBO) algorithms to establish dynamic 3D Pareto Fronts spanning $d_{33}$, $T_c$, and Mechanical Hardness.
+- **Simulated Autonomous Discovery** — Engineering closed-loop Active Learning networks to mathematically navigate the exploitation-exploration trade-off, efficiently steering experimental researchers directly toward optimal regions of the chemical search space.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer         | Technology                  | Usage                                                                               |
-| :------------ | :-------------------------- | :---------------------------------------------------------------------------------- |
-| **Frontend**  | **React.js, Vite**          | Component-based UI, fast HMR                                                        |
-|               | **Material UI (MUI)**       | Enterprise-grade component library                                                  |
-|               | **Recharts**                | Interactive data visualization                                                      |
-|               | **Framer Motion**           | Physics-based animations                                                            |
-|               | **Axios**                   | For seamless API communication.                                                     |
-| **Backend**   | **FastAPI**                 | High-performance, async Python web server                                           |
-| **ML / Data** | **scikit-learn**            | Pipeline construction, preprocessing, SVR, RF                                       |
-|               | **XGBoost / LightGBM**      | Gradient boosting implementations                                                   |
-|               | **pandas / numpy**          | Vectorized data manipulation                                                        |
-|               | **chemparse**               | Stoichiometry parsing basis                                                         |
-| **Reporting** | **ReportLab**               | Programmatic PDF generation                                                         |
-|               | **Matplotlib, Seaborn**     | Scientific plotting                                                                 |
-| **DevOps**    | **Docker & Docker Compose** | Containerizes both services for easy, consistent deployment across any environment. |
+| Layer | Technology | Usage |
+| :--- | :--- | :--- |
+| **Frontend** | **Next.js 14** | React framework with App Router |
+| | **Shadcn/UI** | Modern, customizable component library |
+| | **TypeScript** | Type-safe frontend code |
+| **Backend** | **FastAPI** | High-performance async Python web framework |
+| | **PostgreSQL** | Relational database (datasets, jobs, model artifacts) |
+| | **Alembic** | Database migrations |
+| **ML / Data** | **scikit-learn** | Pipeline construction and preprocessing |
+| | **XGBoost / LightGBM** | Advanced gradient boosting implementations |
+| | **Joblib** | Model serialization |
+| **Infrastructure**| **Docker** | Optional containerized setup |
+| | **pnpm** | Extremely fast and strict dependency management |
 
 ---
 
 ## 💻 Local Development Setup
 
-### 1. Prerequisites
+### Prerequisites
 
-Before you begin, ensure you have the following installed:
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Python** | 3.10+ | Backend & ML |
+| **Node.js** | 18+ | Frontend |
+| **PostgreSQL** | 14+ | Database |
+| **pnpm** | 8+ | **Strictly Required** for dependencies |
 
-- **[Git](https://git-scm.com/downloads):** For cloning the repository.
-- **[Docker Desktop](https://www.docker.com/products/docker-desktop):** (Recommended) For running the application in containers.
-- **[Python 3.9+](https://www.python.org/downloads/):** (For local backend development)
-- **[Node.js v16+](https://nodejs.org/):** (For local frontend development)
+### Quick Setup
 
-### Installation
+```bash
+# 1. Clone the repository
+git clone https://github.com/ARYANKUMAR1/Piezoelectrics-AI-Discovery-Lab.git
+cd Piezoelectrics-AI-Discovery-Lab
 
-#### 1. **Clone the Repository**
+# 2. Run the setup script (use `setup:all` for a fresh start with cleanup)
+bash scripts/dev.sh setup
 
-    ```bash
-    git clone https://github.com/tusaryan/Piezoelectrics-AI-Discovery-Lab.git
-    cd Piezoelectrics-AI-Discovery-Lab
-    ```
+# 3. Start development servers (must run from project root!)
+bash scripts/dev.sh start
+```
 
-#### 2. Quick Start (With Docker)
+### Manual Setup (Step-by-Step)
 
-This single command builds the full application (Frontend + Backend + DB) containers and sets up the network.
-`bash
-    docker-compose up --build
-    `
+> **⚠️ Important:** All commands below must be run from the **project root** directory (`Piezoelectrics-AI-Discovery-Lab/`) unless stated otherwise.
 
-- **App:** `http://localhost:3000`
-- **API Docs:** `http://localhost:8000/docs`
+#### 1. Environment Variables
+```bash
+# 📂 Run from: project root
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials if different from defaults
+```
 
-#### 3. Manual Setup (Dev Mode)
+#### 2. Backend Setup (Python + venv)
+```bash
+# 📂 Run from: project root
+python3 -m venv apps/api/.venv
+source apps/api/.venv/bin/activate  # macOS/Linux
+# apps\api\.venv\Scripts\activate   # Windows
 
-##### 3.1. Backend Setup (FastAPI)
+# 📂 Run from: project root (with venv activated)
+pip install -e apps/api
+pip install -e packages/ml-core
+pip install -e packages/db
+```
 
-**Prerequisites:** Python 3.9+ installed.
+#### 3. Node.js Setup (using nvm)
+```bash
+# 📂 Run from: project root
+# Install nvm (if not installed)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 
-**macOS / Linux:**
+# Install and use Node 18+
+nvm install 18
+nvm use 18
 
-1.  Navigate to the backend directory:
-    ```bash
-    cd backend
-    ```
-2.  Create and activate a virtual environment:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-3.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  Start the server:
-    ```bash
-    uvicorn main:app --reload --port 8000
-    ```
+# 🛑 Install pnpm (STRICTLY REQUIRED, npm/yarn are blocked)
+npm install -g pnpm
 
-**Windows:**
+# Install dependencies
+pnpm install
+```
 
-1.  Open PowerShell or Command Prompt and navigate to the backend directory:
-    ```powershell
-    cd backend
-    ```
-2.  Create and activate a virtual environment:
-    ```powershell
-    python -m venv venv
-    .\venv\Scripts\activate
-    ```
-3.  Install dependencies:
-    ```powershell
-    pip install -r requirements.txt
-    ```
-4.  Start the server:
-    ```powershell
-    uvicorn main:app --reload --port 8000
-    ```
+#### 4. Database Setup
+```bash
+# 📂 Run from: project root
 
-_The API will be available at `http://localhost:8000`._
+# Option A: Local PostgreSQL
+createdb piezo_ai  # or use pgAdmin
 
-##### 3.2. Frontend Setup (React)
+# Option B: Docker PostgreSQL
+docker compose -f docker/docker-compose.dev.yml up -d
 
-**Prerequisites:** Node.js (v16+) and npm installed.
+# Run migrations
+bash scripts/dev.sh db:migrate
+```
 
-**All Platforms (macOS, Windows, Linux):**
+#### 5. Start Development
+```bash
+# 📂 Terminal 1 — Backend (from project root)
+source apps/api/.venv/bin/activate
+uvicorn apps.api.app.main:app --reload --port 8000
 
-1.  Open a new terminal window and navigate to the frontend directory:
-    ```bash
-    cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Start the development server:
+# 📂 Terminal 2 — Frontend (from apps/web/)
+cd apps/web
+npm run dev
+```
 
-    ```bash
-    npm run dev
-    ```
+| Service | URL |
+|---------|-----|
+| Web App | http://localhost:3000 |
+| API Docs | http://localhost:8000/docs |
+| Health Check | http://localhost:8000/api/v1/health |
 
-    _The app will be available at `http://localhost:5173` (or the port shown in the terminal)._
+## 📑 Extended Documentation & UI Gallery
 
-4.  **Access the Application**
-    - **Web App:** Open [http://localhost:3000](http://localhost:3000) in your browser.
-    - **API Documentation:** Open [http://localhost:8000/docs](http://localhost:8000/docs) to see the Swagger UI.
+> To keep this main README incredibly concise, highly technical, and strictly focused on scientific objectives, the heavy structural guidelines and full UI visual showcases have been safely extracted to the **[Comprehensive Guide & Appendix](docs/COMPREHENSIVE_GUIDE.md)**!
 
----
-
-## 🔬 Scientific Validation Methodology
-
-To ensure valid scientific outputs, the model follows a rigorous validation protocol:
-
-1.  **Data Cleaning:** Removal of non-stoichiometric entries and duplicate formulas.
-2.  **Stratified Split:** 80/20 Train-Test split to preserve distribution of target properties.
-3.  **Metric Evaluation:** Models are scored on **$R^2$** (variance explained) and **RMSE** (average error features).
-4.  **Target Scaling:** Implementation of `TransformedTargetRegressor` to handle non-normal distributions in target variables ($T_c$, $d_{33}$).
-
-_Example Visualization generated by the app:_
-
-### Legacy UI Samples (For Illustration Only)
-
-> **Note**: The screenshots below are from an older version of the application to illustrate the UI. The model accuracy shown in these images is lower due to older data in comparison to what is described above in the documentation.
-
-![Sample 1](resources/Sample1.png)
-![Sample 2](resources/Sample2.png)
-![Sample 3](resources/Sample3.png)
-![Sample 4](resources/Sample4.png)
-
-> The system automatically plots predicted values against experimental values to visually confirm the model's accuracy on unseen data.
-
----
-
-## 🔮 Future Roadmap
-
-1.  **Inverse Design (Generative AI & Genetic Algorithms):**
-    - Implementing Variational Autoencoders (VAEs) to _generate_ novel formulas with desired properties.
-    - Use a Genetic Algorithm (GA) to _generate_ new, hypothetical compositions and evolve them to maximize $d_{33}$ and $T_c$.
-2.  **Structure-Property Mapping (Deep Learning Integration):**
-    - Integrating Crystal Graph Convolutional Networks (CGCNN) and Graph Neural Networks (GNNs) to learn directly from crystal lattice files (CIFs) and better capture crystal structure relationships.
-3.  **Active Learning:**
-    - A "Human-in-the-loop" system that suggests the next best experiment to perform to maximally improve model confidence.
-4.  **Microstructure Analysis:**
-    - Integrate Computer Vision (CNNs) to analyze SEM (Scanning Electron Microscope) images and correlate microstructure with piezoelectric performance.
-5.  **Expanded Property Prediction:**
-    - Add models for Dielectric Loss ($\tan \delta$), Planar Coupling ($k_p$), and Density ($\rho$).
+Inside you will find:
+- **Full Project Architecture Directory Arrays**
+- **Complete Dataset Configuration Guides & Validation Csv Guidelines**
+- **Deep-Dive into the Resilient `dev.sh` Script Core Methodologies**
+- **The Detailed Interface Visual Gallery Showcase (12+ Screenshots)**
 
 ---
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
+
+## 🤝 Acknowledgments
+
+- **Dr. Sumeet Kumar Sharma** — Project Mentor, PEC Chandigarh
+- Based on KNN-based ceramics research methodologies
+- Inspired by recent advancements in ML-assisted materials discovery

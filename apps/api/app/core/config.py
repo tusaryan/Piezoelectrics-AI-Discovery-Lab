@@ -1,65 +1,66 @@
-from typing import Optional
+"""
+Piezo.AI — Application Configuration
+======================================
+Centralized settings loaded from .env file.
+"""
+
+import json
+from pathlib import Path
+from typing import List
+
 from pydantic_settings import BaseSettings
 
-import os
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent
-env_path = ROOT_DIR / ".env"
 
 class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    # Application
+    APP_VERSION: str = "2.1.0"
+    APP_NAME: str = "Piezo.AI"
+    DEBUG: bool = False
+
     # Database
-    database_url: str = "postgresql+asyncpg://piezo:piezo@localhost:5432/piezo_ai"
-    
-    # ML
-    model_artifacts_path: str = str(ROOT_DIR / "data/models")
-    
+    DATABASE_URL: str = "postgresql+asyncpg://piezo:piezo@localhost:5432/piezo_ai"
+
     # API
-    api_secret_key: str = "dev-secret-key"
-    
-    # Feature Flags
-    enable_composite_module: bool = True
-    enable_hardness_module: bool = True
-    enable_gnn_module: bool = False
-    enable_agent_module: bool = False
-    
-    # Agent — Model Agnostic LLM
-    llm_provider: str = "openai"  # openai|anthropic|google|ollama
-    llm_model: str = "gpt-4o"     # model name per provider
-    llm_api_key: Optional[str] = None
-    llm_base_url: Optional[str] = None  # For ollama: http://localhost:11434
-    llm_temperature: float = 0.1
-    llm_max_tokens: int = 4096
-    
-    # Agent — RAG
-    chroma_persist_path: str = str(ROOT_DIR / "data/chroma")
-    
-    # Agent — Voice (optional)
-    enable_voice: bool = False
-    voice_provider: str = "openai"  # openai|google
-    openai_realtime_api_key: Optional[str] = None
-    google_live_api_key: Optional[str] = None
+    CORS_ORIGINS: str = '["http://localhost:3000"]'
+    API_SECRET_KEY: str = "change-me-to-random-256-bit-secret"
+
+    # ML Paths
+    MODEL_ARTIFACTS_PATH: str = "./resources/trained-models"
+    TRAINING_ARTIFACTS_PATH: str = "./resources/training-artifacts"
+
+    # Feature flags
+    ENABLE_COMPOSITE_MODULE: bool = True
+    ENABLE_HARDNESS_MODULE: bool = True
+    ENABLE_GNN_MODULE: bool = False
+    ENABLE_AGENT_MODULE: bool = False
+
+    # LLM Configuration (optional — for AI insights)
+    LLM_PROVIDER: str = ""
+    LLM_MODEL: str = ""
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = ""
+    LLM_TEMPERATURE: float = 0.1
+    LLM_MAX_TOKENS: int = 4096
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS_ORIGINS JSON string into list."""
+        try:
+            return json.loads(self.CORS_ORIGINS)
+        except (json.JSONDecodeError, TypeError):
+            return ["http://localhost:3000"]
 
     class Config:
-        env_file = str(env_path)
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        # Look for .env in project root (two levels up from app/core/)
         extra = "ignore"
 
-    def model_post_init(self, __context) -> None:
-        # Resolve relative paths against ROOT_DIR
-        if not os.path.isabs(self.model_artifacts_path):
-            object.__setattr__(self, 'model_artifacts_path', str(ROOT_DIR / self.model_artifacts_path))
-        if not os.path.isabs(self.chroma_persist_path):
-            object.__setattr__(self, 'chroma_persist_path', str(ROOT_DIR / self.chroma_persist_path))
 
-        # Fallback: if the paths are not writable (e.g. /data on macOS), use project-local data/
-        for attr, subdir in [('model_artifacts_path', 'data/models'), ('chroma_persist_path', 'data/chroma')]:
-            path = getattr(self, attr)
-            parent = os.path.dirname(path) if os.path.dirname(path) != path else path
-            try:
-                os.makedirs(path, exist_ok=True)
-            except OSError:
-                fallback = str(ROOT_DIR / subdir)
-                os.makedirs(fallback, exist_ok=True)
-                object.__setattr__(self, attr, fallback)
+# Find the project root .env file
+_project_root = Path(__file__).resolve().parents[3]  # apps/api/app/core/ → project root
+_env_path = _project_root / ".env"
 
-settings = Settings()
+settings = Settings(_env_file=str(_env_path) if _env_path.exists() else ".env")

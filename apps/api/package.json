@@ -1,9 +1,9 @@
 {
-  "name": "api",
-  "version": "1.0.0",
+  "name": "@piezo-ai/api",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
-    "dev": "cd ../.. && source apps/api/.venv/bin/activate && uvicorn apps.api.app.main:app --reload --host 0.0.0.0 --port 8000",
-    "start": "cd ../.. && source apps/api/.venv/bin/activate && uvicorn apps.api.app.main:app --host 0.0.0.0 --port 8000"
+    "dev": "echo 'API managed by dev.sh — use: cd apps/api && uvicorn app.main:app --reload --port 8000'",
+    "clean": "find . -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null; true"
   }
 }

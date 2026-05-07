@@ -1,206 +1,174 @@
-# 🧪 Piezo.AI — AI-Driven Discovery of Lead-Free Piezoelectrics
+# Piezo.AI v2.1.0
 
-![Project Status](https://img.shields.io/badge/Status-Active_Development-green)
-![Tech Stack](https://img.shields.io/badge/Stack-Next.js_FastAPI_PostgreSQL-blue)
-![Domain](https://img.shields.io/badge/Domain-Materials_Informatics-purple)
-![Python](https://img.shields.io/badge/Python-3.10+-yellow)
-![Node](https://img.shields.io/badge/Node.js-18+-339933)
+> AI-driven discovery platform for lead-free piezoelectric materials
 
-## 📖 Overview
+## Prerequisites
 
-**Piezo.AI** is a full-stack Materials Informatics platform that uses machine learning to accelerate the discovery of high-performance, lead-free piezoelectric materials. It replaces months of traditional trial-and-error experimentation with millisecond predictions.
+| Tool | Required Version | Why |
+|------|-----------------|-----|
+| **Python** | **3.13.x** (3.11–3.13 accepted) | `mendeleev` requires `<3.14`. Python 3.14 will **NOT** work |
+| **Node.js** | **20.x** (LTS) | Next.js 15 requires Node 20+ |
+| **pnpm** | 10+ | Monorepo workspace package manager |
+| **Docker Desktop** | Latest | PostgreSQL container |
 
-<div align="center">
-  <img src="resources/interface-previews/Sample-1.png" width="90%" alt="Piezo.AI Interface Preview" />
-  <br/><br/>
-  <img src="resources/interface-previews/Sample-4.png" width="90%" alt="Piezo.AI Feature Discovery" />
-  <br/><br/>
-  <p><em>Early Interface Framework Preview. See <a href="docs/COMPREHENSIVE_GUIDE.md">Comprehensive Guide</a> for the full gallery.</em></p>
-</div>
+### Setting up the correct versions
 
-## 🌍 The Problem: The "Lead Dilemma"
-
-**Lead Zirconate Titanate (PZT)** powers nearly all modern piezoelectric devices (ultrasound, sensors, actuators). However, PZT creates a significant global challenge containing >60% lead by weight, an environmental neurotoxin. Finding eco-friendly alternatives is an optimization nightmare due to the practically infinite chemical search space and slow experimental synthesis.
-
-## 💡 The Solution
-
-This project implements a **Data-Driven Workflow** to bypass traditional limitations. We developed a robust chemical parser to convert complex chemical formulas into numerical features, applying adaptive ensemble learning algorithms to accurately predict functional properties of KNN-based piezoelectric materials.
-### Synopsis Objectives (6th Semester)
-
-| # | Objective | Status |
-|---|-----------|--------|
-| 1 | **Domain Expansion** — Augment KNN dataset with PVDF-KNN composite data | ✅ Backend ready |
-| 2 | **Mechanical Property Prediction** — ML models for hardness (Vickers/Mohs) | ✅ Backend ready |
-| 3 | **Model Transparency** — SHAP explainability | 🔜 Future work |
-| 4 | **Structural Analysis AI** — Pre-trained models for crystal structures | 🔜 Future work |
-
----
-
-## 🚀 Features
-
-### Core Platform
-- **Advanced Stoichiometry Engineering** — Robust chemical parsing engine handling nested structures, automatically mapping formulas to 28+ fundamental atomic descriptors.
-- **Adaptive Machine Learning Pipeline** — Dual Training Mode: Auto-Intelligent (runs Grid Search across Random Forest, XGBoost, LightGBM, SVR) vs. Expert Manual tuning with stacking regressors and strict parameter sanitization.
-- **Real-Time Training Terminal** — Live log streaming via SSE to the browser terminal.
-- **Instant & Batch Prediction** — Predict d33 and Tc from formulas in milliseconds, or upload CSV files for bulk analytics.
-- **Automated Research Reporting** — Generating publication-ready dynamic visualizations (scatter plots, perfect fit lines) leveraging advanced Flowable logic to export seamless PDF reports.
-- **Interactive Custom UI** — Figma-inspired layout utilizing a customized, draggable grid system. Researchers can freely drag, reorder, collapse, or specifically hide unrelated component cards to maintain absolute focus on relevant data streams.
-
-### Extended Capabilities
-- **PVDF Composite Prediction** — Predict properties of flexible ceramic-polymer composites with configurable filler %, morphology, and interfacial processing methods.
-- **Hardness Prediction & Use-Case Mapping** — Vickers/Mohs hardness estimation with automatic industrial application classification.
-- **Interactive Dataset Management** — Upload, view, and manage training datasets seamlessly via the web UI.
-- **Model Registry** — Track all trained models with performance metrics, allowing one-click activation of top performers.
-
-## 🔬 Scientific Validation Methodology
-
-To ensure valid scientific outputs, the models follow a rigorous protocol:
-1. **Data Cleaning:** Removal of non-stoichiometric entries and duplicate formulas.
-2. **Stratified Split:** 80/20 Train-Test split to preserve the distribution of the target properties.
-3. **Metric Evaluation:** Models are stringently evaluated on $R^2$ (variance explained) and RMSE.
-4. **Target Scaling:** Handled non-normal distributions in target variables (like $T_c$ and $d_{33}$) via `TransformedTargetRegressor`.
-
-### Future Exploration & Expansions
-- **Democratizing Deep Learning** — Utilizing Graph Neural Network (GNN) transfer learning (via pre-trained universal foundation models like CHGNet and ALIGNN) functioning as advanced geometric feature extractors on smaller datasets. 
-- **Shattering the Black Box (Interpretability)** — Implementing SHAP (Shapley Additive Explanations) for deep feature attribution in tree-based models, and integrating Symbolic Regression (PySR/SISSO) to explicitly derive novel, physically interpretable mathematical equations for piezoelectric behaviors.
-- **Multi-Objective Optimization (MOO)** — Applying NSGA-II or Multi-Objective Bayesian Optimization (MOBO) algorithms to establish dynamic 3D Pareto Fronts spanning $d_{33}$, $T_c$, and Mechanical Hardness.
-- **Simulated Autonomous Discovery** — Engineering closed-loop Active Learning networks to mathematically navigate the exploitation-exploration trade-off, efficiently steering experimental researchers directly toward optimal regions of the chemical search space.
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | Usage |
-| :--- | :--- | :--- |
-| **Frontend** | **Next.js 14** | React framework with App Router |
-| | **Shadcn/UI** | Modern, customizable component library |
-| | **TypeScript** | Type-safe frontend code |
-| **Backend** | **FastAPI** | High-performance async Python web framework |
-| | **PostgreSQL** | Relational database (datasets, jobs, model artifacts) |
-| | **Alembic** | Database migrations |
-| **ML / Data** | **scikit-learn** | Pipeline construction and preprocessing |
-| | **XGBoost / LightGBM** | Advanced gradient boosting implementations |
-| | **Joblib** | Model serialization |
-| **Infrastructure**| **Docker** | Optional containerized setup |
-| | **pnpm** | Extremely fast and strict dependency management |
-
----
-
-## 💻 Local Development Setup
-
-### Prerequisites
-
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Python** | 3.10+ | Backend & ML |
-| **Node.js** | 18+ | Frontend |
-| **PostgreSQL** | 14+ | Database |
-| **pnpm** | 8+ | **Strictly Required** for dependencies |
-
-### Quick Setup
+**Python 3.13** — choose one method:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/ARYANKUMAR1/Piezoelectrics-AI-Discovery-Lab.git
-cd Piezoelectrics-AI-Discovery-Lab
+# Option A: Homebrew (macOS)
+brew install python@3.13
+python3.13 --version   # verify: 3.13.x
 
-# 2. Run the setup script (use `setup:all` for a fresh start with cleanup)
+# Option B: pyenv (cross-platform — recommended)
+pyenv install 3.13
+pyenv local 3.13       # reads .python-version → auto-selects 3.13
+python --version       # verify: 3.13.x (pyenv shim activates it)
+```
+
+> **How auto-detection works:** The `.python-version` file (containing `3.13`) tells pyenv which Python to use in this directory. When you run `python` or `python3`, pyenv's shim intercepts the command and routes it to Python 3.13. The `dev.sh setup` script also auto-detects `python3.13` → `python3.12` → `python3.11` from PATH/Homebrew, so it works even without pyenv.
+>
+> The `.venv/` virtual environment inherits whatever Python version created it. If you use `python3.13 -m venv .venv`, all `pip install` commands inside the venv use 3.13 — nothing is installed globally.
+
+**Node.js 20** (via nvm):
+
+```bash
+# Install Node 20 if not already installed
+nvm install 20
+
+# Switch to Node 20 in this project
+nvm use      # reads .nvmrc → auto-selects Node 20
+
+# Verify
+node --version   # Should show v20.x.x
+
+# Install pnpm (one-time global)
+npm install -g pnpm
+```
+
+> **How auto-detection works:** The `.nvmrc` file (containing `20`) tells nvm which Node to use. Running `nvm use` in the project root automatically switches to Node 20.
+
+## Quick Start
+
+```bash
+# 1. Set correct Node version
+nvm use
+
+# 2. Full setup (installs everything + starts DB)
 bash scripts/dev.sh setup
 
-# 3. Start development servers (must run from project root!)
+# 3. Start development servers
 bash scripts/dev.sh start
 ```
 
-### Manual Setup (Step-by-Step)
+This will:
+1. Create a Python virtual environment (`.venv/`) using Python 3.13
+2. Install all Python packages in the venv (not globally)
+3. Install frontend dependencies via pnpm
+4. Start PostgreSQL via Docker
+5. Run database migrations
+6. Start FastAPI backend on `http://localhost:8000`
+7. Start Next.js frontend on `http://localhost:3000`
 
-> **⚠️ Important:** All commands below must be run from the **project root** directory (`Piezoelectrics-AI-Discovery-Lab/`) unless stated otherwise.
+## Development Commands
 
-#### 1. Environment Variables
 ```bash
-# 📂 Run from: project root
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials if different from defaults
+bash scripts/dev.sh <command>
 ```
 
-#### 2. Backend Setup (Python + venv)
-```bash
-# 📂 Run from: project root
-python3 -m venv apps/api/.venv
-source apps/api/.venv/bin/activate  # macOS/Linux
-# apps\api\.venv\Scripts\activate   # Windows
+| Command | Description |
+|---------|-------------|
+| `setup` | Incremental setup (keeps existing deps if compatible) |
+| `setup:all` | Full clean + fresh install (wipes .venv, node_modules) |
+| `clean` | Remove node_modules, .next, __pycache__, .venv |
+| `db:create` | Create the PostgreSQL database |
+| `db:reset` | Drop and recreate DB + run migrations (**destroys data**) |
+| `db:migrate` | Run Alembic migrations only |
+| `start` | Start backend + frontend dev servers |
+| `stop` | Gracefully shut down all servers + free ports |
 
-# 📂 Run from: project root (with venv activated)
-pip install -e apps/api
-pip install -e packages/ml-core
+## Manual Setup (if dev.sh doesn't work)
+
+```bash
+# 1. Set versions
+nvm use 20
+# Python 3.13 is auto-detected by dev.sh, or manually:
+
+# 2. Create virtual environment with Python 3.13
+python3.13 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install Python packages (in venv — nothing global)
 pip install -e packages/db
-```
+pip install -e packages/ml-core
+pip install -e apps/api
 
-#### 3. Node.js Setup (using nvm)
-```bash
-# 📂 Run from: project root
-# Install nvm (if not installed)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# 4. Start PostgreSQL
+docker compose -f docker/docker-compose.yml up -d
 
-# Install and use Node 18+
-nvm install 18
-nvm use 18
+# 5. Start backend
+cd apps/api && uvicorn app.main:app --reload --port 8000
 
-# 🛑 Install pnpm (STRICTLY REQUIRED, npm/yarn are blocked)
-npm install -g pnpm
-
-# Install dependencies
+# 6. Start frontend (new terminal)
+cd /path/to/project
+nvm use
 pnpm install
+pnpm dev:web
 ```
 
-#### 4. Database Setup
-```bash
-# 📂 Run from: project root
+## Project Structure
 
-# Option A: Local PostgreSQL
-createdb piezo_ai  # or use pgAdmin
-
-# Option B: Docker PostgreSQL
-docker compose -f docker/docker-compose.dev.yml up -d
-
-# Run migrations
-bash scripts/dev.sh db:migrate
+```
+├── apps/
+│   ├── api/          # FastAPI backend (DUMB PIPE — no ML logic)
+│   └── web/          # Next.js 15 + React 19 frontend
+├── packages/
+│   ├── ml-core/      # ALL ML logic (registry, parsers, training, prediction)
+│   └── db/           # SQLAlchemy models + Alembic migrations
+├── resources/
+│   ├── main-datasets/          # Source datasets
+│   ├── sample-and-test-dataset/ # Test datasets
+│   ├── training-artifacts/     # Parsed datasets per training run
+│   └── trained-models/         # Saved .joblib models
+├── scripts/          # dev.sh
+├── docker/           # Docker Compose for PostgreSQL
+└── Project/          # Implementation plans & session tracker
 ```
 
-#### 5. Start Development
-```bash
-# 📂 Terminal 1 — Backend (from project root)
-source apps/api/.venv/bin/activate
-uvicorn apps.api.app.main:app --reload --port 8000
+## Architecture
 
-# 📂 Terminal 2 — Frontend (from apps/web/)
-cd apps/web
-npm run dev
-```
+- **FastAPI** is a dumb pipe — all ML logic lives in `packages/ml-core/`
+- **Central Element Registry** — single source of truth for 33 supported elements
+- **3 Themes** — Dark (default), Light, Night (warm amber)
+- **7 Sections** — Dashboard, Dataset, Train, Predict, Optimization Lab, Interpretability, Settings
+- **Virtual environment** — all Python deps installed in `.venv/`, nothing pollutes your system
 
-| Service | URL |
-|---------|-----|
-| Web App | http://localhost:3000 |
-| API Docs | http://localhost:8000/docs |
-| Health Check | http://localhost:8000/api/v1/health |
+## Tech Stack
 
-## 📑 Extended Documentation & UI Gallery
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, React 19, TailwindCSS 4, Framer Motion |
+| Backend | FastAPI, Uvicorn, SQLAlchemy (async) |
+| Database | PostgreSQL 16 |
+| ML | scikit-learn, XGBoost, LightGBM, SHAP, Optuna |
+| Chemistry | chemparse, pymatgen, mendeleev |
+| Python | 3.13 (venv-isolated) |
+| Node.js | 20 LTS (via nvm) |
 
-> To keep this main README incredibly concise, highly technical, and strictly focused on scientific objectives, the heavy structural guidelines and full UI visual showcases have been safely extracted to the **[Comprehensive Guide & Appendix](docs/COMPREHENSIVE_GUIDE.md)**!
+## Troubleshooting
 
-Inside you will find:
-- **Full Project Architecture Directory Arrays**
-- **Complete Dataset Configuration Guides & Validation Csv Guidelines**
-- **Deep-Dive into the Resilient `dev.sh` Script Core Methodologies**
-- **The Detailed Interface Visual Gallery Showcase (12+ Screenshots)**
+**`mendeleev` / `pymatgen` install fails:**
+→ You're using Python 3.14. Switch to 3.13: `python3.13 -m venv .venv`
 
----
+**`pnpm: command not found`:**
+→ `npm install -g pnpm`
 
-## 📜 License
+**Port 8000/3000 already in use:**
+→ `bash scripts/dev.sh stop` or manually: `lsof -ti:8000 | xargs kill -9`
 
-This project is licensed under the MIT License.
+**Docker permission denied:**
+→ Make sure Docker Desktop is running
 
-## 🤝 Acknowledgments
+## License
 
-- **Dr. Sumeet Kumar Sharma** — Project Mentor, PEC Chandigarh
-- Based on KNN-based ceramics research methodologies
-- Inspired by recent advancements in ML-assisted materials discovery
+This project is part of academic research.

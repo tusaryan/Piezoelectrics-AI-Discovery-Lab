@@ -1,0 +1,42 @@
+# Piezo.AI v2.1.0 — Python Dependencies Lock
+# Generated for Python 3.13.x
+# Install: pip install -r requirements.txt
+# Or use: pip install -e packages/db -e packages/ml-core -e apps/api
+#
+# This file exists for reference and CI reproducibility.
+# For development, use `bash scripts/dev.sh setup` which installs via pyproject.toml.
+
+# ── Database (packages/db) ──
+sqlalchemy[asyncio]>=2.0.0
+asyncpg>=0.30.0
+alembic>=1.15.0
+
+# ── API (apps/api) ──
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+python-multipart>=0.0.20
+websockets>=14.0
+python-dotenv>=1.0.0
+
+# ── ML Core (packages/ml-core) ──
+scikit-learn>=1.6.0
+xgboost>=2.1.0
+lightgbm>=4.6.0
+optuna>=4.2.0
+numpy>=2.0.0
+pandas>=2.2.0
+joblib>=1.4.0
+chemparse>=0.3.0
+pymatgen>=2025.1.0
+mendeleev>=0.9.0
+shap>=0.46.0
+matplotlib>=3.10.0
+reportlab>=4.3.0
+
+# ── Dev Tools ──
+httpx>=0.28.0
+pytest>=8.0.0
+pytest-asyncio>=0.25.0
+pytest-cov>=6.0.0

@@ -1,0 +1,1 @@
+"""Piezo.AI — settings module."""

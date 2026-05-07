@@ -1,199 +1,161 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  BarChart3, Database, BrainCircuit, LineChart, 
-  Layers, Diamond, Scale, Sparkles, Activity,
-  Settings, ChevronLeft, ChevronRight, X 
+import {
+  BarChart3,
+  Database,
+  BrainCircuit,
+  Zap,
+  FlaskConical,
+  Eye,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Github,
+  Linkedin,
 } from "lucide-react";
-import { features } from "@/lib/features";
-import { cn } from "@/lib/utils";
+import { useUIStore } from "@/lib/store/uiStore";
+import { useIsWideDesktop, useIsSM } from "@/lib/hooks/useMediaQuery";
+import { useEffect } from "react";
+import { APP_CONFIG } from "@/lib/constants";
 
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  isMobile: boolean;
-}
+/**
+ * Navigation items — maps to the 7 sections defined in §2 of architecture spec.
+ */
+const NAV_ITEMS = [
+  { label: "Dashboard", route: "/dashboard", icon: BarChart3 },
+  { label: "Dataset", route: "/dataset", icon: Database },
+  { label: "Train", route: "/train", icon: BrainCircuit },
+  { label: "Predict", route: "/predict", icon: Zap },
+  { label: "Optimization Lab", route: "/optimization-lab", icon: FlaskConical },
+  { label: "Interpretability", route: "/interpret", icon: Eye },
+  { label: "Settings", route: "/settings", icon: Settings },
+] as const;
 
-export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
+  const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useUIStore();
+  const isWideDesktop = useIsWideDesktop();
+  const isSM = useIsSM();
 
-  const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3, show: true },
-    { name: "Dataset", href: "/dataset", icon: Database, show: true },
-    { name: "Train", href: "/train", icon: BrainCircuit, show: true },
-    { name: "Predict", href: "/predict", icon: LineChart, show: true },
-    { name: "Composite", href: "/composite", icon: Layers, show: features.composite },
-    { name: "Inverse Design", href: "/inverse", icon: Scale, show: true },
-    { name: "Interpretability", href: "/interpret", icon: Sparkles, show: true },
-    { name: "Active Learning", href: "/active-learning", icon: Activity, show: true },
-    { name: "Hardness", href: "/hardness", icon: Diamond, show: true },
-    { name: "Settings", href: "/settings", icon: Settings, show: true },
-  ];
-
-  const handleNavClick = () => {
-    if (isMobile) {
-      setIsOpen(false);
+  // Auto-collapse sidebar on narrower screens
+  useEffect(() => {
+    if (!isWideDesktop && !isSM) {
+      setSidebarCollapsed(true);
+    } else if (isWideDesktop) {
+      setSidebarCollapsed(false);
     }
+  }, [isWideDesktop, isSM, setSidebarCollapsed]);
+
+  const isActive = (route: string) => {
+    if (route === "/dashboard") return pathname === "/" || pathname === "/dashboard";
+    return pathname.startsWith(route);
   };
 
-  // Mobile: overlay drawer
-  if (isMobile) {
-    return (
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-              onClick={() => setIsOpen(false)}
-            />
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: -280 }}
-              animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="fixed top-0 left-0 bottom-0 w-[280px] flex flex-col border-r border-border bg-card z-50 shadow-2xl"
-            >
-              <div className="flex items-center justify-between p-4 h-16 border-b border-border">
-                <div className="font-bold text-xl text-primary flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground text-xs leading-none">P</span>
-                  </div>
-                  Piezo.AI
-                </div>
-                <button 
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+  const sidebarClasses = [
+    "app-sidebar",
+    sidebarCollapsed ? "collapsed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-              <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                {navItems.filter(item => item.show).map((item) => {
-                  const isActive = pathname.startsWith(item.href);
-                  return (
-                    <Link key={item.name} href={item.href} onClick={handleNavClick}>
-                      <div
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
-                          isActive 
-                            ? "bg-primary/10 text-primary font-medium" 
-                            : "text-secondary-foreground hover:bg-secondary hover:text-foreground"
-                        )}
-                      >
-                        {isActive && (
-                          <motion.div 
-                            layoutId="active-nav-indicator-mobile"
-                            className="absolute left-0 w-1 h-full bg-primary rounded-r-full"
-                            initial={false}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                          />
-                        )}
-                        <item.icon size={20} className={cn(
-                          "flex-shrink-0 transition-colors",
-                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                        )} />
-                        <span className="truncate text-sm">{item.name}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  // Desktop: collapsible sidebar
   return (
-    <motion.div
+    <motion.aside
+      className={sidebarClasses}
       initial={false}
-      animate={{ width: isOpen ? 256 : 72 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="relative flex flex-col h-full border-r border-border bg-card z-20 flex-shrink-0 hide-scrollbar"
+      animate={{
+        width: sidebarCollapsed ? 72 : 260,
+      }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
     >
-      <div className="flex items-center justify-between p-4 h-16 border-b border-border">
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.1 }}
-            className="font-bold text-xl text-primary flex items-center gap-2"
-          >
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs leading-none">P</span>
-            </div>
-            Piezo.AI
-          </motion.div>
-        )}
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            "p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors",
-            !isOpen && "mx-auto"
+      {/* Brand — pinned top */}
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-logo" aria-label={APP_CONFIG.name}>
+          {APP_CONFIG.logoText}
+        </div>
+        <AnimatePresence mode="wait">
+          {!sidebarCollapsed && (
+            <motion.div
+              className="sidebar-brand-text"
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <span className="sidebar-brand-name">{APP_CONFIG.name}</span>
+              <span className="sidebar-brand-version">{APP_CONFIG.version}</span>
+            </motion.div>
           )}
-        >
-          {isOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
+        </AnimatePresence>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {navItems.filter(item => item.show).map((item) => {
-          const isActive = pathname.startsWith(item.href);
+      {/* Navigation — scrollable area */}
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.route);
+
           return (
-            <Link key={item.name} href={item.href} title={!isOpen ? item.name : undefined}>
-              <div
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
-                  isActive 
-                    ? "bg-primary/10 text-primary font-medium" 
-                    : "text-secondary-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                {isActive && (
-                  <motion.div 
-                    layoutId="active-nav-indicator"
-                    className="absolute left-0 w-1 h-full bg-primary rounded-r-full"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                
-                <item.icon 
-                  size={20} 
-                  className={cn(
-                    "flex-shrink-0 transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                    !isOpen && "mx-auto"
-                  )} 
-                />
-                
-                {isOpen && (
-                  <motion.span 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="truncate text-sm"
-                  >
-                    {item.name}
-                  </motion.span>
-                )}
-              </div>
+            <Link
+              key={item.route}
+              href={item.route}
+              className={`sidebar-nav-item ${active ? "active" : ""}`}
+              title={sidebarCollapsed ? item.label : undefined}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon className="nav-icon" size={20} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="nav-label">{item.label}</span>
             </Link>
           );
         })}
       </nav>
-    </motion.div>
+
+      {/* Footer — pinned bottom: version + social links */}
+      <div className="sidebar-footer">
+        <div className={`sidebar-footer-content ${sidebarCollapsed ? "collapsed-footer" : ""}`}>
+          <div className={`sidebar-footer-links ${sidebarCollapsed ? "stacked" : ""}`}>
+            <a
+              href={APP_CONFIG.developer.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-footer-link"
+              title="Developer GitHub"
+              aria-label="Developer GitHub"
+            >
+              <Github size={16} />
+            </a>
+            <a
+              href={APP_CONFIG.developer.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-footer-link"
+              title="Developer LinkedIn"
+              aria-label="Developer LinkedIn"
+            >
+              <Linkedin size={16} />
+            </a>
+          </div>
+          <span className="sidebar-footer-version">{APP_CONFIG.version}</span>
+        </div>
+      </div>
+
+      {/* Collapse toggle — pinned bottom */}
+      <button
+        className="sidebar-toggle"
+        onClick={toggleSidebar}
+        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {sidebarCollapsed ? (
+          <ChevronRight size={16} />
+        ) : (
+          <>
+            <ChevronLeft size={16} />
+            <span className="toggle-label">Collapse</span>
+          </>
+        )}
+      </button>
+    </motion.aside>
   );
 }

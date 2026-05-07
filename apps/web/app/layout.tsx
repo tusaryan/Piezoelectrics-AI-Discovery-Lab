@@ -1,22 +1,34 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import ThemeProvider from "@/components/layout/ThemeProvider";
+import AppShell from "@/components/layout/AppShell";
 import "./globals.css";
-import { ThemeProvider } from "@/components/layout/ThemeProvider";
-import { AppShell } from "@/components/layout/AppShell";
 
 const inter = Inter({
-  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains",
 });
 
 export const metadata: Metadata = {
-  title: "Piezo.AI v2",
-  description: "AI-Accelerated Discovery of Lead-Free Piezoelectric Composites",
+  title: "Piezo.AI — AI-Driven Piezoelectric Material Discovery",
+  description:
+    "AI-powered platform for predicting and optimizing lead-free piezoelectric materials. Train ML models, predict d33/tc/hardness, and discover novel compositions.",
+  keywords: [
+    "piezoelectric",
+    "machine learning",
+    "materials science",
+    "KNN",
+    "d33",
+    "Curie temperature",
+    "lead-free",
+  ],
 };
 
 export default function RootLayout({
@@ -25,14 +37,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased min-h-screen">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>

@@ -1,44 +1,34 @@
 "use client";
 
-import * as React from "react";
-import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
-import { useState, useEffect } from "react";
-import { features } from "@/lib/features";
-import { FloatingAgent } from "@/components/agent/FloatingAgent";
+import { type ReactNode } from "react";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+import BottomNav from "./BottomNav";
+import { useUIStore } from "@/lib/store/uiStore";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+/**
+ * AppShell — Main layout composition.
+ *
+ * Sidebar is position:fixed, so header/main use margin-left.
+ * The `data-sidebar-collapsed` attribute drives the margin CSS.
+ * Mobile (<768px): sidebar hidden via CSS, margins zeroed.
+ */
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
-      if (e.matches) setSidebarOpen(false);
-      else setSidebarOpen(true);
-    };
-    handler(mq);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+interface AppShellProps {
+  children: ReactNode;
+}
+
+export default function AppShell({ children }: AppShellProps) {
+  const { sidebarCollapsed } = useUIStore();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isMobile} />
-      
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} />
-        
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
-            {children}
-          </div>
-        </main>
-      </div>
-
-      {/* Floating AI Assistant (feature-gated) */}
-      {features.agent && <FloatingAgent />}
+    <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed}>
+      <Sidebar />
+      <Header />
+      <main className="app-main">
+        {children}
+      </main>
+      <BottomNav />
     </div>
   );
 }

@@ -1,9 +1,29 @@
 "use client";
 
-import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { ComponentProps } from "react";
+import { type ReactNode } from "react";
 
-export function ThemeProvider({ children, ...props }: ComponentProps<typeof NextThemesProvider>) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+/**
+ * ThemeProvider — wraps the app with next-themes for dark/light/night switching.
+ *
+ * Uses `data-theme` attribute on <html> to drive CSS variable switching.
+ * 3 themes: dark (default), light, night (warm amber for eye protection).
+ */
+
+interface ThemeProviderProps {
+  children: ReactNode;
+}
+
+export default function ThemeProvider({ children }: ThemeProviderProps) {
+  return (
+    <NextThemesProvider
+      attribute="data-theme"
+      defaultTheme="dark"
+      themes={["dark", "light", "night"]}
+      storageKey="piezo-theme"
+      disableTransitionOnChange={false}
+    >
+      {children}
+    </NextThemesProvider>
+  );
 }

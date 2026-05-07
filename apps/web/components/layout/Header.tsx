@@ -1,81 +1,149 @@
 "use client";
 
-import * as React from "react";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
-import { Moon, Sun, Menu } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Moon,
+  Sun,
+  Lamp,
+  Github,
+  Linkedin,
+} from "lucide-react";
+import { useIsSM } from "@/lib/hooks/useMediaQuery";
+import { APP_CONFIG } from "@/lib/constants";
 
-interface HeaderProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: (isOpen: boolean) => void;
-  isMobile: boolean;
-}
+/**
+ * Route → page title mapping for the header.
+ */
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/dataset": "Dataset",
+  "/train": "Model Studio",
+  "/predict": "Predict",
+  "/optimization-lab": "Optimization Lab",
+  "/interpret": "Interpretability",
+  "/settings": "Settings",
+};
 
-export function Header({ sidebarOpen, setSidebarOpen, isMobile }: HeaderProps) {
+/** Theme cycle order and their display icons */
+const THEME_CYCLE = ["dark", "light", "night"] as const;
+
+const THEME_ICONS: Record<string, typeof Moon> = {
+  dark: Moon,
+  light: Sun,
+  night: Lamp,
+};
+
+const THEME_LABELS: Record<string, string> = {
+  dark: "Dark",
+  light: "Light",
+  night: "Night",
+};
+
+export default function Header() {
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const isSM = useIsSM();
+  const [mounted, setMounted] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
 
-  React.useEffect(() => setMounted(true), []);
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // System status check — polls /health endpoint
+  const checkHealth = useCallback(async () => {
+    try {
+      const res = await fetch(APP_CONFIG.api.healthEndpoint, {
+        signal: AbortSignal.timeout(3000),
+      });
+      setIsOnline(res.ok);
+    } catch {
+      setIsOnline(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [checkHealth]);
+
+  // Cycle theme: dark → light → night → dark
+  const cycleTheme = () => {
+    const current = theme || "dark";
+    const currentIndex = THEME_CYCLE.indexOf(current as (typeof THEME_CYCLE)[number]);
+    const nextIndex = (currentIndex + 1) % THEME_CYCLE.length;
+    setTheme(THEME_CYCLE[nextIndex]);
+  };
+
+  // Get page title from route
+  const pageTitle = PAGE_TITLES[pathname] || APP_CONFIG.name;
+
+  // Current theme info
+  const currentTheme = (mounted ? theme : "dark") || "dark";
+  const ThemeIcon = THEME_ICONS[currentTheme] || Moon;
+  const themeLabel = THEME_LABELS[currentTheme] || "Dark";
 
   return (
-    <header className="sticky top-0 z-10 w-full h-16 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
-      <div className="flex items-center gap-4">
-        {isMobile && (
-          <button
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu size={20} />
-          </button>
+    <header className="app-header">
+      <div className="header-left">
+        {/* Piezo.AI logo — shown on mobile since sidebar is hidden */}
+        {isSM && (
+          <div className="header-brand">
+            <div className="header-brand-logo">{APP_CONFIG.logoText}</div>
+          </div>
         )}
-        
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-sm font-medium text-muted-foreground hidden sm:inline-block">
-            System Online
-          </span>
-        </div>
+        <h2 className="header-page-title">{pageTitle}</h2>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="header-right">
+        {/* Developer links + version — shown on mobile since sidebar is hidden */}
+        {isSM && (
+          <div className="header-meta">
+            <a
+              href={APP_CONFIG.developer.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-meta-link"
+              title="Developer GitHub"
+              aria-label="Developer GitHub"
+            >
+              <Github size={15} />
+            </a>
+            <a
+              href={APP_CONFIG.developer.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-meta-link"
+              title="Developer LinkedIn"
+              aria-label="Developer LinkedIn"
+            >
+              <Linkedin size={15} />
+            </a>
+            <span className="header-meta-version">{APP_CONFIG.version}</span>
+          </div>
+        )}
+
+        {/* System status indicator */}
+        <div className="status-indicator" title={isOnline ? "System online" : "System offline"}>
+          <span className={`status-dot ${isOnline ? "online" : "offline"}`} />
+          <span className="status-label">{isOnline ? "Online" : "Offline"}</span>
+        </div>
+
+        {/* Theme toggle */}
         {mounted && (
           <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="relative p-2 rounded-full overflow-hidden hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            className="header-btn"
+            onClick={cycleTheme}
+            aria-label={`Current theme: ${themeLabel}. Click to switch.`}
+            title={`Theme: ${themeLabel}`}
           >
-            <span className="sr-only">Toggle theme</span>
-            <div className="relative w-5 h-5">
-              <motion.div
-                initial={false}
-                animate={{
-                  scale: theme === 'dark' ? 1 : 0,
-                  opacity: theme === 'dark' ? 1 : 0,
-                  rotate: theme === 'dark' ? 0 : 90,
-                }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0"
-              >
-                <Moon size={20} />
-              </motion.div>
-              <motion.div
-                initial={false}
-                animate={{
-                  scale: theme === 'light' ? 1 : 0,
-                  opacity: theme === 'light' ? 1 : 0,
-                  rotate: theme === 'light' ? 0 : -90,
-                }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0"
-              >
-                <Sun size={20} />
-              </motion.div>
-            </div>
+            <ThemeIcon size={18} />
           </button>
         )}
-        
-        <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-primary font-medium text-sm">US</span>
-        </div>
       </div>
     </header>
   );

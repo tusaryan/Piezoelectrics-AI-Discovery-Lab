@@ -9,16 +9,26 @@ S3: Full registry with 27+ physics properties per element,
 """
 
 from piezo_ml.registry.element_registry import (
+    ELEMENT_REGISTRY,
+    PROPERTY_KEYS,
     SUPPORTED_ELEMENTS,
     PENDING_ELEMENTS,
+    bootstrap_pending_elements,
+    get_element_count,
+    get_element_properties,
     is_element_supported,
     get_unsupported_elements,
     get_supported_elements_list,
 )
 
 __all__ = [
+    "ELEMENT_REGISTRY",
+    "PROPERTY_KEYS",
     "SUPPORTED_ELEMENTS",
     "PENDING_ELEMENTS",
+    "bootstrap_pending_elements",
+    "get_element_count",
+    "get_element_properties",
     "is_element_supported",
     "get_unsupported_elements",
     "get_supported_elements_list",

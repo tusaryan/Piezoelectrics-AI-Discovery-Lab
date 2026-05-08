@@ -87,6 +87,30 @@ bash scripts/dev.sh <command>
 | `start` | Start backend + frontend dev servers |
 | `stop` | Gracefully shut down all servers + free ports |
 
+## Alembic Migration Guide
+
+Run migrations from `packages/db`:
+
+```bash
+cd packages/db
+alembic upgrade head
+```
+
+If you prefer explicit config path from repo root:
+
+```bash
+alembic -c packages/db/alembic.ini upgrade head
+```
+
+If you are already inside `packages/db`, use:
+
+```bash
+alembic -c alembic.ini upgrade head
+```
+
+Common pitfall:
+- `alembic -c packages/db/alembic.ini upgrade head` fails when run *inside* `packages/db` because that path becomes `packages/db/packages/db/alembic.ini`.
+
 ## Manual Setup (if dev.sh doesn't work)
 
 ```bash

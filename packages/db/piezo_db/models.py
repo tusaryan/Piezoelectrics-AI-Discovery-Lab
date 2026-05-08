@@ -104,6 +104,12 @@ class Material(Base):
     # Valid: pending|success|error|unsupported_elements
     parse_warnings = Column(Text, nullable=True)
 
+    # Source vs parsed snapshots (for comparison + revalidation workflows)
+    # - source_row: user-visible values as saved (before normalization)
+    # - parsed_row: normalized/validated values produced by preprocessing/validator
+    source_row = Column(JSONB, nullable=True)
+    parsed_row = Column(JSONB, nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

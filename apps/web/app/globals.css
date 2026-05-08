@@ -13,6 +13,10 @@
 
 @import "tailwindcss";
 
+/* S2: Dataset section styles */
+@import "../app/dataset/dataset.css";
+@import "../app/dataset/dataset-table.css";
+
 /* ---------- Theme: Dark (default) — Deep navy ---------- */
 :root,
 [data-theme="dark"] {

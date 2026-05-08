@@ -1,0 +1,29 @@
+formula,d33,tc,vickers_hardness,qm,kp,relative_density_pct,sintering_temp_c,sintering_method,ceramic_type,fabrication_method,matrix_type,filler_wt_pct,particle_morphology,particle_size_nm,surface_treatment,source_doi,source_notes
+K0.5Na0.5NbO3,151.0,420,480.0,350,0.42,97.5,1100,conventional,hard,hot_press,none,0,none,,none,,Pure KNN bulk ceramic
+Na0.52K0.48NbO3,145.0,415,465.0,320,0.40,96.8,1080,hot_press,hard,hot_press,none,0,none,,none,,Modified KNN composition
+K0.48Na0.52Nb0.95Sb0.05O3,230.0,360,420.0,180,0.48,98.2,1120,sps,hard,sps,none,0,none,,none,10.1016/example001,Sb-doped KNN
+BaTiO3,190.0,120,420.0,200,0.35,95.0,1250,conventional,soft,conventional,none,0,none,,none,,Classic BTO
+Ba0.85Ca0.15Zr0.1Ti0.9O3,620.0,93,350.0,120,0.55,97.1,1400,two_step,soft,two_step,none,0,none,,none,10.1016/example002,BCZT lead-free champion
+LiNbO3,6.0,1210,720.0,10000,0.02,99.5,,conventional,hard,conventional,none,0,none,,none,,LiNbO3 high Tc low d33
+Bi0.5Na0.5TiO3,55.0,280,510.0,450,0.22,96.0,1100,conventional,hard,conventional,none,0,none,,none,,BNT base compound
+Bi0.5Na0.5TiO3-BaTiO3,168.0,255,380.0,130,0.38,97.3,1150,hot_press,hard,hot_press,none,0,none,,none,,BNT-BT morphotropic
+PbZr0.52Ti0.48O3,593.0,386,520.0,75,0.62,98.9,1200,conventional,soft,conventional,none,0,none,,none,,PZT reference
+K0.5Na0.5NbO3,28.0,105,45.0,,,,,,composite,solvent_cast,pvdf,5.0,spherical,80,untreated,,KNN/PVDF 5wt%
+K0.5Na0.5NbO3,42.0,112,38.0,,,,,,composite,solvent_cast,pvdf,10.0,spherical,80,untreated,,KNN/PVDF 10wt%
+K0.5Na0.5NbO3,58.0,118,32.0,,,,,,composite,solvent_cast,pvdf,15.0,spherical,80,silane,,KNN/PVDF 15wt% silane
+K0.5Na0.5NbO3,52.0,115,28.0,,,,,,composite,hot_press,pvdf,20.0,spherical,80,silane,,KNN/PVDF 20wt% hot pressed
+K0.5Na0.5NbO3,65.0,125,35.0,,,,,,composite,electrospinning,pvdf,10.0,rod,200,silane,,KNN rods in PVDF
+K0.5Na0.5NbO3,78.0,130,30.0,,,,,,composite,electrospinning,pvdf,15.0,rod,200,plasma,,KNN rods plasma
+BaTiO3,85.0,105,52.0,,,,,,composite,solvent_cast,pvdf_trfe,10.0,spherical,100,dopamine,,BTO in P(VDF-TrFE)
+BaTiO3,142.0,118,44.0,,,,,,composite,hot_press,pvdf_trfe,30.0,spherical,100,dopamine,,BTO 30wt% dopamine
+BaTiO3,165.0,122,39.0,,,,,,composite,hot_press,p_vdf_trfe,40.0,spherical,100,silane,,BTO 40wt% silane
+PbZr0.52Ti0.48O3,210.0,315,58.0,,,,,,composite,solvent_cast,epoxy,30.0,rod,500,silane,,PZT rods in epoxy
+PbZr0.52Ti0.48O3,350.0,360,42.0,,,,,,composite,hot_press,epoxy,60.0,rod,500,silane,,PZT 60wt% epoxy
+Bi0.5Na0.5TiO3,72.0,290,68.0,,,,,,composite,3d_print,silicone,25.0,spherical,150,fluorinated,,BNT in silicone 3D printed
+Bi0.5Na0.5TiO3,94.0,305,58.0,,,,,,composite,3d_print,silicone,40.0,spherical,150,plasma,,BNT 40wt% silicone
+K0.5Na0.5NbO3,45.0,110,40.0,,,,,,composite,tape_casting,pvdf_hfp,12.0,platelet,300,kh550,,KNN platelets in PVDF-HFP
+Ba0.85Ca0.15Zr0.1Ti0.9O3,120.0,88,55.0,,,,,,composite,solvent_cast,pdms,15.0,cube,50,acid,,BCZT cubes in PDMS
+,42.5,180,320.0,,,,,,,,none,0,none,,none,,EDGE CASE: Missing formula
+K0.5Na0.5NbO3,-10.0,420,480.0,,,,,,,hot_press,none,0,none,,none,,EDGE CASE: Negative d33
+InvalidFormula123,100.0,200,300.0,,,,,,,conventional,none,0,none,,none,,EDGE CASE: Invalid formula
+K0.5Na0.5Nb0.5Xx0.5O3,100.0,200,300.0,,,,,,,conventional,none,0,none,,none,,EDGE CASE: Unsupported element Xx

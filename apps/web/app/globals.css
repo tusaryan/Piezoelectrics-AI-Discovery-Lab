@@ -17,6 +17,9 @@
 @import "../app/dataset/dataset.css";
 @import "../app/dataset/dataset-table.css";
 
+/* S4: Training section styles */
+@import "../app/train/train.css";
+
 /* ---------- Theme: Dark (default) — Deep navy ---------- */
 :root,
 [data-theme="dark"] {

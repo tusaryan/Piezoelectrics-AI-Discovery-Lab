@@ -1,1 +1,1 @@
-"""Piezo.AI — training module."""
+"""Training module — configure and run ML training pipelines."""

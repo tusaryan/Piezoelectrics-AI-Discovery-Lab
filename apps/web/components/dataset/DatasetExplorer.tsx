@@ -324,7 +324,7 @@ export default function DatasetExplorer() {
       headers.join(","),
       ...materials.map((m) =>
         headers.map((h) => {
-          const v = (m as Record<string, unknown>)[h];
+          const v = (m as unknown as Record<string, unknown>)[h];
           if (v == null) return "";
           const s = String(v);
           return s.includes(",") ? `"${s}"` : s;

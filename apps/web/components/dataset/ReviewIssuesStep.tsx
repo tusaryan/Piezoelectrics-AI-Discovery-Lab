@@ -204,7 +204,7 @@ export default function ReviewIssuesStep() {
   const targetColumnsPresent = useMemo(() => {
     const present = new Set<string>();
     ["d33", "tc", "vickers_hardness"].forEach((k) => {
-      if (materials.some((m) => (m as Record<string, unknown>)[k] != null)) present.add(k);
+      if (materials.some((m) => (m as unknown as Record<string, unknown>)[k] != null)) present.add(k);
     });
     return present;
   }, [materials]);

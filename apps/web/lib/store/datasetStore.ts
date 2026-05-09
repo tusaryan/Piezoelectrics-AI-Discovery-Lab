@@ -341,7 +341,7 @@ export const useDatasetStore = create<DatasetState & DatasetActions>(
           return v ?? null;
         };
 
-        const originalValue = normalize((originalRow as Record<string, unknown>)[field]);
+        const originalValue = normalize((originalRow as unknown as Record<string, unknown>)[field]);
         const nextValue = normalize(value);
 
         const nextEdited = new Map(s.editedCells);

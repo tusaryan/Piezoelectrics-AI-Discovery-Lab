@@ -134,8 +134,23 @@ class FeatureEngineer:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         rows: list[dict[str, Any]] = []
         compositions: list[dict[str, Any]] = []
+        skipped_uids: list[tuple[int, str]] = []  # (uid, reason)
+
         for _, row in frame.iterrows():
-            engineered = self.engineer_row(uid=int(row[uid_col]), formula=str(row[formula_col]))
+            uid = int(row[uid_col])
+            formula_raw = str(row[formula_col])
+
+            # Skip empty/null formulas
+            if not formula_raw or formula_raw.lower() in ("nan", "none", ""):
+                skipped_uids.append((uid, "empty formula"))
+                continue
+
+            try:
+                engineered = self.engineer_row(uid=uid, formula=formula_raw)
+            except ValueError as e:
+                skipped_uids.append((uid, str(e)))
+                continue
+
             base = {"uid": engineered.uid, "formula": engineered.normalized_formula}
             base.update({f"frac_{k}": v for k, v in engineered.element_fractions.items()})
             base.update(engineered.weighted_features)
@@ -149,6 +164,9 @@ class FeatureEngineer:
             }
             comp.update(engineered.element_amounts)
             compositions.append(comp)
+
+        # Store skipped info for callers to access
+        self._last_skipped_uids = skipped_uids
 
         vectors_df = pd.DataFrame(rows).fillna(0.0)
         parsed_df = pd.DataFrame(compositions).fillna(0.0)

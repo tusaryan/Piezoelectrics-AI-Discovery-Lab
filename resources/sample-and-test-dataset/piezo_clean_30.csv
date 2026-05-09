@@ -1,0 +1,31 @@
+formula,d33,tc,vickers_hardness,qm,kp,relative_density_pct,sintering_temp_c,sintering_method,ceramic_type,fabrication_method,matrix_type,filler_wt_pct,particle_morphology,particle_size_nm,surface_treatment,source_doi,source_notes
+K0.5Na0.5NbO3,151.0,420,480,350.0,0.42,97.5,1100.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test001,Pure KNN bulk
+Na0.52K0.48NbO3,145.0,415,465,320.0,0.4,96.8,1080.0,hot_press,hard,hot_press,none,0,none,,none,https://doi.org/10.1016/test002,Modified KNN
+K0.48Na0.52Nb0.95Sb0.05O3,230.0,360,420,180.0,0.48,98.2,1120.0,sps,hard,sps,none,0,none,,none,https://doi.org/10.1016/test003,Sb-doped KNN
+BaTiO3,190.0,120,420,200.0,0.35,95.0,1250.0,conventional,soft,conventional,none,0,none,,none,https://doi.org/10.1016/test004,Classic BTO
+Ba0.85Ca0.15Zr0.1Ti0.9O3,620.0,93,350,120.0,0.55,97.1,1400.0,two_step,soft,two_step,none,0,none,,none,https://doi.org/10.1016/test005,BCZT champion
+LiNbO3,6.0,1210,720,10000.0,0.02,99.5,1250.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test006,LiNbO3
+Bi0.5Na0.5TiO3,55.0,280,510,450.0,0.22,96.0,1100.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test007,BNT base
+Bi0.5Na0.5TiO3-BaTiO3,168.0,255,380,130.0,0.38,97.3,1150.0,hot_press,hard,hot_press,none,0,none,,none,https://doi.org/10.1016/test008,BNT-BT
+PbZr0.52Ti0.48O3,593.0,386,520,75.0,0.62,98.9,1200.0,conventional,soft,conventional,none,0,none,,none,https://doi.org/10.1016/test009,PZT reference
+Li0.06Na0.5K0.44NbO3,210.0,405,450,180.0,0.45,97.0,1100.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test010,Li-doped KNN
+K0.44Na0.52Li0.04Nb0.86Ta0.1Sb0.04O3,416.0,253,395,100.0,0.52,98.5,1120.0,sps,hard,sps,none,0,none,,none,https://doi.org/10.1016/test011,KNN-LiTaSb
+Na0.5K0.5Nb0.965Sb0.035O3,265.0,458,400,250.0,0.46,98.0,1100.0,sps,hard,sps,none,0,none,,none,https://doi.org/10.1016/test012,KNN-Sb
+Ba0.9Ca0.1Ti0.9Zr0.1O3,580.0,98,340,115.0,0.53,97.5,1380.0,two_step,soft,two_step,none,0,none,,none,https://doi.org/10.1016/test013,BCZT variant
+K0.46Na0.54Nb0.96Sb0.04O3,418.0,244,385,160.0,0.5,98.0,1110.0,sps,hard,sps,none,0,none,,none,https://doi.org/10.1016/test014,KNN-Sb MPB
+K0.45Na0.55Nb0.93Sb0.07O3,408.0,247,370,150.0,0.49,97.8,1115.0,sps,hard,sps,none,0,none,,none,https://doi.org/10.1016/test015,KNN-Sb high
+KNbO3,66.4,435,490,400.0,0.3,96.0,1050.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test016,KNbO3 base
+Na0.5Bi0.5TiO3,73.0,320,530,500.0,0.2,95.5,1120.0,conventional,hard,conventional,none,0,none,,none,https://doi.org/10.1016/test017,NBT base
+Ba0.7Ca0.3TiO3,310.0,105,360,130.0,0.42,96.8,1350.0,conventional,soft,conventional,none,0,none,,none,https://doi.org/10.1016/test018,BCT
+Ba0.85Ca0.15Ti0.9Zr0.1O3,590.0,90,345,118.0,0.54,97.3,1390.0,two_step,soft,two_step,none,0,none,,none,https://doi.org/10.1016/test019,BCZT optimized
+Ba0.8Ca0.2Ti0.85Zr0.15O3,520.0,85,330,110.0,0.51,96.9,1370.0,two_step,soft,two_step,none,0,none,,none,https://doi.org/10.1016/test020,BCZT high Zr
+K0.5Na0.5NbO3,28.0,105,45,,,,,,composite,solvent_cast,pvdf,5,spherical,80.0,untreated,https://doi.org/10.1016/test021,KNN/PVDF 5wt%
+K0.5Na0.5NbO3,42.0,112,38,,,,,,composite,solvent_cast,pvdf,10,spherical,80.0,untreated,https://doi.org/10.1016/test022,KNN/PVDF 10wt%
+K0.5Na0.5NbO3,58.0,118,32,,,,,,composite,solvent_cast,pvdf,15,spherical,80.0,silane,https://doi.org/10.1016/test023,KNN/PVDF 15wt%
+K0.5Na0.5NbO3,52.0,115,28,,,,,,composite,hot_press,pvdf,20,spherical,80.0,silane,https://doi.org/10.1016/test024,KNN/PVDF 20wt%
+K0.5Na0.5NbO3,65.0,125,35,,,,,,composite,electrospinning,pvdf,10,rod,200.0,silane,https://doi.org/10.1016/test025,KNN rods PVDF
+BaTiO3,78.0,108,52,,,,,,composite,solvent_cast,p_vdf_trfe,10,spherical,100.0,dopamine,https://doi.org/10.1016/test026,BTO P(VDF-TrFE)
+BaTiO3,65.0,115,44,,,,,,composite,hot_press,p_vdf_trfe,30,spherical,100.0,dopamine,https://doi.org/10.1016/test027,BTO 30wt%
+PbZr0.52Ti0.48O3,70.0,315,58,,,,,,composite,solvent_cast,pvdf,30,rod,500.0,silane,https://doi.org/10.1016/test028,PZT rods PVDF
+Bi0.5Na0.5TiO3,45.0,290,68,,,,,,composite,solvent_cast,pvdf_hfp,25,spherical,150.0,acid,https://doi.org/10.1016/test029,BNT PVDF-HFP
+Ba0.85Ca0.15Zr0.1Ti0.9O3,50.0,88,55,,,,,,composite,solvent_cast,pvdf,15,cube,50.0,peg,https://doi.org/10.1016/test030,BCZT cubes PVDF

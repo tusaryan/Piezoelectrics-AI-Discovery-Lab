@@ -75,10 +75,11 @@ class TrainingService:
 
     async def validate_dataset(
         self, db: AsyncSession, dataset_id: str, selected_fields: list[str],
+        targets: list[str] | None = None,
     ) -> dict:
         """Pre-training validation — detect sentinel values and missing data."""
         df = await self._load_dataset_df(db, dataset_id, selected_fields)
-        issues = detect_sentinel_issues(df, selected_fields)
+        issues = detect_sentinel_issues(df, selected_fields, targets=targets)
         defaults = get_default_strategies(issues)
         return {
             "dataset_id": str(dataset_id),

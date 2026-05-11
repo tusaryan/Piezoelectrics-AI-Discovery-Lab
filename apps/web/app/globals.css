@@ -890,3 +890,39 @@ a:hover {
   h2 { font-size: 1.125rem; }
   h3 { font-size: 1rem; }
 }
+
+/* ---------- Navigation Loader ---------- */
+.nav-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.nav-loader-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 30%,
+    var(--primary-hover) 60%,
+    transparent 100%
+  );
+  animation: nav-progress 0.4s ease-out forwards,
+             nav-shimmer 1.2s ease-in-out infinite;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+@keyframes nav-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes nav-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

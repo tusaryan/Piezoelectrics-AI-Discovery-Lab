@@ -4,9 +4,10 @@
  * Piezo.AI — Dataset List
  * =========================
  * Multi-dataset manager: view, rename, copy, delete (single + bulk).
+ * Actions (rename, copy, delete) are behind a three-dot kebab menu.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Database,
   Upload,
@@ -22,6 +23,7 @@ import {
   X,
   CheckSquare,
   Square,
+  MoreVertical,
 } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
 import {
@@ -45,6 +47,115 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+/* ---------- Kebab Menu ---------- */
+
+interface KebabMenuProps {
+  dsId: string;
+  dsName: string;
+  onRename: (id: string, name: string) => void;
+  onCopy: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  copyingId: string | null;
+  deletingId: string | null;
+}
+
+function KebabMenu({ dsId, dsName, onRename, onCopy, onDelete, copyingId, deletingId }: KebabMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const handleCopy = async () => {
+    onCopy(dsId, dsName);
+    setCopied(true);
+    setTimeout(() => { setCopied(false); setOpen(false); }, 800);
+  };
+
+  const handleDelete = () => {
+    onDelete(dsId);
+    setTimeout(() => { setOpen(false); setConfirmDelete(false); }, 300);
+  };
+
+  return (
+    <div className="kebab-wrapper" ref={menuRef}>
+      <button
+        className="kebab-trigger"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); setConfirmDelete(false); }}
+        aria-label="More actions"
+      >
+        <MoreVertical size={16} />
+      </button>
+
+      {open && (
+        <div className="kebab-popover">
+          {/* Rename */}
+          <button
+            className="kebab-item"
+            onClick={() => { onRename(dsId, dsName); setOpen(false); }}
+          >
+            <Pencil size={14} /> Rename
+          </button>
+
+          {/* Copy */}
+          <button
+            className="kebab-item"
+            onClick={handleCopy}
+            disabled={copyingId === dsId}
+          >
+            {copied ? (
+              <><Check size={14} className="kebab-check" /> Copied!</>
+            ) : copyingId === dsId ? (
+              <><Loader2 size={14} className="spin" /> Copying...</>
+            ) : (
+              <><Copy size={14} /> Copy</>
+            )}
+          </button>
+
+          {/* Delete */}
+          {confirmDelete ? (
+            <div className="kebab-confirm">
+              <span className="kebab-confirm-text">Delete?</span>
+              <button
+                className="kebab-item kebab-danger"
+                onClick={handleDelete}
+                disabled={deletingId === dsId}
+              >
+                {deletingId === dsId ? <Loader2 size={12} className="spin" /> : "Yes"}
+              </button>
+              <button
+                className="kebab-item"
+                onClick={() => setConfirmDelete(false)}
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              className="kebab-item kebab-danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Component ---------- */
 
 export default function DatasetList() {
@@ -60,7 +171,6 @@ export default function DatasetList() {
   } = useDatasetStore();
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -97,7 +207,6 @@ export default function DatasetList() {
       try {
         await deleteDataset(id);
         removeDatasetFromList(id);
-        setConfirmDeleteId(null);
       } catch { /* ignore */ }
       finally { setDeletingId(null); }
     },
@@ -164,6 +273,8 @@ export default function DatasetList() {
 
   const handleNewUpload = useCallback(() => { startWizard(); }, [startWizard]);
 
+  const isAllSelected = selectedIds.size === datasets.length && datasets.length > 0;
+
   return (
     <div className="dataset-list">
       <div className="dataset-list-header">
@@ -198,7 +309,7 @@ export default function DatasetList() {
       {bulkMode && datasets.length > 0 && (
         <div className="dataset-bulk-bar">
           <button className="btn-ghost btn-sm" onClick={toggleSelectAll}>
-            {selectedIds.size === datasets.length ? (
+            {isAllSelected ? (
               <><CheckSquare size={14} /> Deselect All</>
             ) : (
               <><Square size={14} /> Select All</>
@@ -212,12 +323,17 @@ export default function DatasetList() {
               className="btn-ghost btn-sm btn-danger-text"
               onClick={() => setConfirmBulkDelete(true)}
             >
-              <Trash2 size={14} /> Delete Selected
+              <Trash2 size={14} />
+              {isAllSelected ? "Delete All" : "Delete Selected"}
             </button>
           )}
           {confirmBulkDelete && (
             <div className="dataset-bulk-confirm">
-              <span>Delete {selectedIds.size} dataset(s)?</span>
+              <span>
+                {isAllSelected
+                  ? `Delete all ${datasets.length} dataset(s)?`
+                  : `Delete ${selectedIds.size} dataset(s)?`}
+              </span>
               <button
                 className="btn-ghost btn-sm btn-danger-text"
                 onClick={handleBulkDelete}
@@ -257,7 +373,10 @@ export default function DatasetList() {
       {!isLoadingDatasets && datasets.length > 0 && (
         <div className="dataset-cards-grid">
           {datasets.map((ds) => (
-            <div key={ds.id} className={`dataset-card ${bulkMode && selectedIds.has(ds.id) ? "selected" : ""}`}>
+            <div
+              key={ds.id}
+              className={`dataset-card ${bulkMode && selectedIds.has(ds.id) ? "selected" : ""} ${bulkMode ? "bulk-mode" : ""}`}
+            >
               {bulkMode && (
                 <button
                   className="dataset-card-checkbox"
@@ -310,6 +429,7 @@ export default function DatasetList() {
                 </span>
 
                 <div className="dataset-card-actions">
+                  {/* View — always visible */}
                   <button
                     className="btn-ghost btn-sm"
                     onClick={() => handleOpen(ds.id, ds.status)}
@@ -322,46 +442,17 @@ export default function DatasetList() {
                     )}
                   </button>
 
+                  {/* Three-dot kebab menu — hidden in bulk mode */}
                   {!bulkMode && (
-                    <>
-                      <button
-                        className="btn-ghost btn-sm"
-                        onClick={() => handleRenameStart(ds.id, ds.display_name)}
-                        title="Rename"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="btn-ghost btn-sm"
-                        onClick={() => handleCopy(ds.id, ds.display_name)}
-                        disabled={copyingId === ds.id}
-                        title="Make a copy"
-                      >
-                        {copyingId === ds.id ? <Loader2 size={14} className="spin" /> : <Copy size={14} />}
-                      </button>
-
-                      {confirmDeleteId === ds.id ? (
-                        <div className="dataset-card-confirm">
-                          <span>Delete?</span>
-                          <button
-                            className="btn-ghost btn-sm btn-danger-text"
-                            onClick={() => handleDelete(ds.id)}
-                            disabled={deletingId === ds.id}
-                          >
-                            {deletingId === ds.id ? <Loader2 size={12} className="spin" /> : "Yes"}
-                          </button>
-                          <button className="btn-ghost btn-sm" onClick={() => setConfirmDeleteId(null)}>No</button>
-                        </div>
-                      ) : (
-                        <button
-                          className="btn-ghost btn-sm btn-danger-text"
-                          onClick={() => setConfirmDeleteId(ds.id)}
-                          title="Delete dataset"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </>
+                    <KebabMenu
+                      dsId={ds.id}
+                      dsName={ds.display_name}
+                      onRename={handleRenameStart}
+                      onCopy={handleCopy}
+                      onDelete={handleDelete}
+                      copyingId={copyingId}
+                      deletingId={deletingId}
+                    />
                   )}
                 </div>
               </div>
@@ -372,3 +463,4 @@ export default function DatasetList() {
     </div>
   );
 }
+

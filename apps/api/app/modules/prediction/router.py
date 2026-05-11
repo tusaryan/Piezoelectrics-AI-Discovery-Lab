@@ -183,7 +183,7 @@ async def predict_batch_from_dataset(
 @router.post("/validate-formula", response_model=FormulaValidateResponse)
 async def validate_formula(body: FormulaValidateRequest):
     """Validate formula for real-time green/red indicator."""
-    result = prediction_service.validate_formula(body.formula)
+    result = prediction_service.validate_formula(body.formula, strict_mode=body.strict_mode)
     return FormulaValidateResponse(**result)
 
 

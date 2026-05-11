@@ -205,3 +205,129 @@
   color: var(--text); font-size: 13px; font-weight: 600;
   outline: none;
 }
+
+/* --- Bulk mode: extra padding for checkbox --- */
+.dataset-card.bulk-mode {
+  padding-top: 36px;
+}
+
+/* --- Three-dot kebab menu --- */
+.kebab-wrapper {
+  position: relative;
+}
+
+.kebab-trigger {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 6px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: all 0.15s;
+}
+.kebab-trigger:hover {
+  background: var(--card-hover); color: var(--text);
+  border-color: var(--border);
+}
+
+.kebab-popover {
+  position: absolute; bottom: 100%; right: 0;
+  min-width: 140px; padding: 4px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  animation: kebab-in 0.12s ease-out;
+  margin-bottom: 4px;
+}
+
+@keyframes kebab-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.kebab-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 7px 10px; border-radius: 6px;
+  background: transparent; border: none; cursor: pointer;
+  font-size: 0.8125rem; font-weight: 500;
+  color: var(--text); transition: background 0.1s;
+  text-align: left;
+}
+.kebab-item:hover {
+  background: var(--card-hover);
+}
+.kebab-item:disabled {
+  opacity: 0.5; cursor: not-allowed;
+}
+
+.kebab-danger {
+  color: var(--error);
+}
+.kebab-danger:hover {
+  background: rgba(239,68,68,0.08);
+}
+
+.kebab-check {
+  color: var(--success);
+  animation: kebab-tick 0.3s ease-out;
+}
+@keyframes kebab-tick {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.kebab-confirm {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px;
+}
+.kebab-confirm-text {
+  font-size: 0.75rem; color: var(--error); font-weight: 500;
+  margin-right: 4px;
+}
+
+/* --- Strict Mode Toggle Card --- */
+.strict-mode-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; margin-bottom: 16px;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card);
+  transition: border-color 0.2s;
+}
+.strict-mode-card:hover {
+  border-color: var(--border-hover);
+}
+
+.strict-mode-info {
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.strict-mode-icon {
+  color: var(--primary); margin-top: 2px; flex-shrink: 0;
+}
+.strict-mode-label {
+  font-size: 0.8125rem; font-weight: 600; color: var(--text);
+}
+.strict-mode-desc {
+  font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;
+  max-width: 340px;
+}
+
+/* --- Glass Toggle Switch --- */
+.toggle-switch {
+  position: relative; display: inline-flex; align-items: center;
+  width: 42px; height: 24px; border-radius: 12px;
+  background: var(--border); border: none; cursor: pointer;
+  transition: background 0.25s; flex-shrink: 0;
+  padding: 0;
+}
+.toggle-switch.active {
+  background: var(--primary);
+}
+.toggle-knob {
+  position: absolute; left: 2px; top: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-switch.active .toggle-knob {
+  transform: translateX(18px);
+}
+

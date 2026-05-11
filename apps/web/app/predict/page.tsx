@@ -93,27 +93,44 @@ export default function PredictPage() {
       };
 
       const targets = ["d33", "tc", "vickers_hardness"] as const;
+      const errors: string[] = [];
+      let anySuccess = false;
+
       for (const target of targets) {
         const modelId = targetModels[target];
         if (!modelId) continue;
 
-        const result = await predictSingle(
-          formula,
-          modelId,
-          isComposite ? compositeParams : undefined,
-        );
+        try {
+          const result = await predictSingle(
+            formula,
+            modelId,
+            isComposite ? compositeParams : undefined,
+          );
 
-        if (result.status !== "success") {
-          merged.status = result.status;
-          merged.notes = result.notes;
-          break;
+          if (result.status !== "success") {
+            errors.push(`${target}: ${result.notes || "prediction failed"}`);
+            continue;
+          }
+
+          anySuccess = true;
+          if (result.d33?.value != null) merged.d33 = result.d33;
+          if (result.tc?.value != null) merged.tc = result.tc;
+          if (result.hardness?.value != null) merged.hardness = result.hardness;
+          if (result.use_case && !merged.use_case) merged.use_case = result.use_case;
+          if (result.composite_params) merged.composite_params = result.composite_params;
+        } catch (err) {
+          errors.push(`${target}: ${err instanceof Error ? err.message : "failed"}`);
         }
+      }
 
-        if (result.d33?.value != null) merged.d33 = result.d33;
-        if (result.tc?.value != null) merged.tc = result.tc;
-        if (result.hardness?.value != null) merged.hardness = result.hardness;
-        if (result.use_case && !merged.use_case) merged.use_case = result.use_case;
-        if (result.composite_params) merged.composite_params = result.composite_params;
+      if (anySuccess) {
+        merged.status = "success";
+        if (errors.length > 0) {
+          merged.notes = `Partial: ${errors.join("; ")}`;
+        }
+      } else if (errors.length > 0) {
+        merged.status = "parse_error";
+        merged.notes = errors.join("; ");
       }
 
       setPrediction(merged as PredictResponse);

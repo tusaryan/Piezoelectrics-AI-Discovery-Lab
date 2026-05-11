@@ -80,7 +80,7 @@ export default function PipelineConfigurator() {
     if (!selectedDatasetId) return;
     setValidating(true);
     try {
-      const result = await validateDataset(selectedDatasetId, selectedFields);
+      const result = await validateDataset(selectedDatasetId, selectedFields, targets);
       setValidationIssues(result.issues);
       // Set default strategies from validation
       for (const issue of result.issues) {
@@ -93,12 +93,12 @@ export default function PipelineConfigurator() {
     }
   };
 
-  // Auto-validate when fields change
+  // Auto-validate when fields or targets change
   useEffect(() => {
     if (selectedDatasetId && selectedFields.length > 1) {
       handleValidate();
     }
-  }, [selectedDatasetId, selectedFields.length]);
+  }, [selectedDatasetId, selectedFields.length, targets.length]);
 
   return (
     <div className="pipeline-configurator">

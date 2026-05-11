@@ -52,6 +52,7 @@ async def validate_for_training(
     try:
         result = await training_service.validate_dataset(
             db, str(request.dataset_id), request.selected_fields,
+            targets=request.targets or None,
         )
         return result
     except ValueError as e:
@@ -227,6 +228,30 @@ async def training_log_stream(websocket: WebSocket, job_id: str):
                 break
 
             await asyncio.sleep(0.1)
+
+        # ── Persist completed job to DB immediately after WS loop ──
+        # This ensures TrainedModel rows exist for the Predict section
+        # without requiring a separate GET /jobs/{id} call.
+        from app.core.database import async_session_factory
+        try:
+            async with async_session_factory() as db:
+                job = await db.get(TrainingJob, job_id)
+                if job and job.status in ("queued", "running"):
+                    if active.completed and active.results:
+                        await _persist_completed_job(db, job, active)
+                        await db.commit()
+                    elif active.completed and active.error:
+                        if active.error == "cancelled":
+                            job.status = "cancelled"
+                        else:
+                            job.status = "failed"
+                            job.error_message = active.error
+                        job.completed_at = datetime.utcnow()
+                        await db.flush()
+                        await db.commit()
+                        training_service.cleanup_job(job_id)
+        except Exception as persist_err:
+            print(f"[Train WS] ⚠️ DB persist failed (will retry on GET): {persist_err}")
 
     except WebSocketDisconnect:
         pass

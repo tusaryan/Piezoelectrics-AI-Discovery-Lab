@@ -34,6 +34,7 @@ class DatasetValidationRequest(BaseModel):
     """Request to pre-validate a dataset before training."""
     dataset_id: UUID
     selected_fields: list[str]
+    targets: list[str] = Field(default_factory=list, description="Active training targets")
 
 
 # ---------------------------------------------------------------------------

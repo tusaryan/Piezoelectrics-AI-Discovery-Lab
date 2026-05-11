@@ -32,6 +32,7 @@ class BatchPredictRequest(BaseModel):
 class FormulaValidateRequest(BaseModel):
     """Request for real-time formula validation."""
     formula: str
+    strict_mode: bool = False
 
 
 class ModelRenameRequest(BaseModel):

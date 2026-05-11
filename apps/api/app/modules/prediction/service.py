@@ -309,7 +309,7 @@ class PredictionService:
 
     # ---- formula validation ----
 
-    def validate_formula(self, formula: str) -> dict[str, Any]:
+    def validate_formula(self, formula: str, strict_mode: bool = False) -> dict[str, Any]:
         """Validate a formula for real-time UI feedback."""
         if not formula or not formula.strip():
             return {
@@ -317,7 +317,7 @@ class PredictionService:
                 "error": "Formula is empty", "warnings": [],
             }
 
-        parsed = self.parser.parse(formula)
+        parsed = self.parser.parse(formula, strict_mode=strict_mode)
         return {
             "formula": formula,
             "is_valid": parsed.is_valid,

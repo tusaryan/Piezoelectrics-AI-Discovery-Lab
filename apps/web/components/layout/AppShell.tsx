@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
+import NavigationLoader from "@/components/common/NavigationLoader";
 import { useUIStore } from "@/lib/store/uiStore";
 
 /**
@@ -23,6 +24,7 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed}>
+      <NavigationLoader />
       <Sidebar />
       <Header />
       <main className="app-main">

@@ -132,10 +132,14 @@ export function getAlgorithms() {
   return apiFetch<AlgorithmInfo[]>(`${BASE}/algorithms`);
 }
 
-export function validateDataset(datasetId: string, selectedFields: string[]) {
+export function validateDataset(datasetId: string, selectedFields: string[], targets?: string[]) {
   return apiFetch<DatasetValidationResult>(`${BASE}/validate`, {
     method: "POST",
-    body: JSON.stringify({ dataset_id: datasetId, selected_fields: selectedFields }),
+    body: JSON.stringify({
+      dataset_id: datasetId,
+      selected_fields: selectedFields,
+      targets: targets || [],
+    }),
   });
 }
 

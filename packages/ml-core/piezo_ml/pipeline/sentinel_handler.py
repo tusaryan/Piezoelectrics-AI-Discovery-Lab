@@ -22,7 +22,7 @@ from piezo_ml.features.field_registry import CATEGORICAL_FIELDS, NUMERIC_FIELDS,
 _COMPOSITE_SENTINEL_FIELDS = {"matrix_type", "particle_morphology", "surface_treatment"}
 
 # Strategies that make sense for each field type
-NUMERIC_STRATEGIES = ("knn", "mean", "median", "drop")
+NUMERIC_STRATEGIES = ("knn", "mean", "median", "mode", "drop")
 CATEGORICAL_STRATEGIES = ("mode", "drop")
 TARGET_STRATEGIES = ("drop",)  # Target fields: only drop (can't impute a label)
 
@@ -40,14 +40,27 @@ class FieldIssue:
     allowed_strategies: list[str] = dc_field(default_factory=list)
 
 
-def _get_allowed_strategies(field: str) -> list[str]:
-    """Return the list of strategies that make sense for this field type."""
-    if field in TARGET_FIELDS:
+def _get_allowed_strategies(field: str, active_targets: list[str] | None = None) -> list[str]:
+    """Return the list of strategies that make sense for this field type.
+
+    Context-aware: if a field is in TARGET_FIELDS but is NOT in the
+    user's active_targets list (i.e., it's being used as an input
+    feature, not as the training label), it gets full numeric strategies.
+    Only when a field IS an active training target is it restricted to 'drop'.
+    """
+    is_active_target = (
+        active_targets is not None
+        and field in active_targets
+        and field in TARGET_FIELDS
+    )
+    if is_active_target:
         return list(TARGET_STRATEGIES)
+    # Not an active target — check field type
+    if field in TARGET_FIELDS or field in NUMERIC_FIELDS:
+        # Numeric (including target fields used as features)
+        return list(NUMERIC_STRATEGIES)
     if field in CATEGORICAL_FIELDS:
         return list(CATEGORICAL_STRATEGIES)
-    if field in NUMERIC_FIELDS:
-        return list(NUMERIC_STRATEGIES)
     # Fallback: all strategies
     return ["knn", "mean", "median", "mode", "drop"]
 
@@ -55,12 +68,18 @@ def _get_allowed_strategies(field: str) -> list[str]:
 def detect_sentinel_issues(
     df: pd.DataFrame,
     selected_fields: list[str],
+    targets: list[str] | None = None,
 ) -> list[FieldIssue]:
     """Scan selected fields for missing/sentinel values that need handling.
 
     Distinguishes between:
     - Legitimate sentinel values (e.g., matrix_type="none" for bulk ceramics)
     - S2-cleared/actually-missing values that need imputation or dropping
+
+    Args:
+        targets: The user's active training targets. Fields in TARGET_FIELDS
+                 that are NOT in targets are treated as numeric features,
+                 getting full imputation options instead of drop-only.
     """
     issues: list[FieldIssue] = []
     total = len(df)
@@ -74,7 +93,7 @@ def detect_sentinel_issues(
             continue
 
         col = df[field]
-        allowed = _get_allowed_strategies(field)
+        allowed = _get_allowed_strategies(field, targets)
 
         # --- Numeric fields: check for NaN/None ---
         if field in NUMERIC_FIELDS or field in TARGET_FIELDS:

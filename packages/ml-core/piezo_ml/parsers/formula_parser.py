@@ -7,6 +7,7 @@ import chemparse
 
 from piezo_ml.parsers.formula_normalizer import normalize_formula
 from piezo_ml.registry import get_unsupported_elements
+from piezo_ml.validators.formula_strict import validate_formula_strict
 
 SKIP_VALUES: frozenset[str] = frozenset(
     {"pvdf", "p_vdf_trfe", "pvdf_hfp", "pvdf_hfp_ctrfe", "none", "na", "n/a", ""}
@@ -66,7 +67,19 @@ def _parse_single_phase(phase_formula: str) -> dict[str, float]:
 
 
 class FormulaParser:
-    def parse(self, formula: str) -> FormulaParseResult:
+    def __init__(self, strict_mode: bool = False) -> None:
+        self.strict_mode = strict_mode
+
+    def parse(self, formula: str, strict_mode: bool | None = None) -> FormulaParseResult:
+        """Parse a chemical formula.
+
+        Args:
+            formula: The chemical formula string.
+            strict_mode: Override instance-level strict mode for this call.
+                         If None, uses self.strict_mode.
+        """
+        use_strict = strict_mode if strict_mode is not None else self.strict_mode
+
         result = FormulaParseResult(formula=formula, normalized_formula=formula)
         if not formula or not formula.strip():
             result.is_valid = False
@@ -77,6 +90,16 @@ class FormulaParser:
         if lower in SKIP_VALUES:
             result.warnings.append("Skipped: polymer/matrix name, not a chemical formula")
             return result
+
+        # ── Strict pre-validation ──
+        if use_strict:
+            strict_result = validate_formula_strict(formula)
+            if not strict_result.is_valid:
+                result.is_valid = False
+                result.error = "; ".join(strict_result.errors)
+                result.warnings.extend(strict_result.warnings)
+                return result
+            result.warnings.extend(strict_result.warnings)
 
         normalized, warnings = normalize_formula(formula)
         result.normalized_formula = normalized

@@ -148,10 +148,10 @@ export function predictSingle(
 }
 
 /** Validate formula (real-time) */
-export function validateFormula(formula: string) {
+export function validateFormula(formula: string, strictMode: boolean = false) {
   return apiFetch<FormulaValidation>(`${BASE}/validate-formula`, {
     method: "POST",
-    body: JSON.stringify({ formula }),
+    body: JSON.stringify({ formula, strict_mode: strictMode }),
   });
 }
 

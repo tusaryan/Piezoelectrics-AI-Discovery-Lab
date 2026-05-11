@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { validateFormula } from "@/lib/api/predictions";
 import { usePredictStore } from "@/lib/store/predictStore";
+import { useUIStore } from "@/lib/store/uiStore";
 
 export default function FormulaInput() {
   const {
@@ -18,6 +19,8 @@ export default function FormulaInput() {
     formulaValidating,
     setFormulaValidating,
   } = usePredictStore();
+
+  const { strictFormulaMode } = useUIStore();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,7 +40,7 @@ export default function FormulaInput() {
       setFormulaValidating(true);
       debounceRef.current = setTimeout(async () => {
         try {
-          const result = await validateFormula(value);
+          const result = await validateFormula(value, strictFormulaMode);
           setFormulaValidation(result);
         } catch {
           setFormulaValidation({

@@ -12,13 +12,45 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Database, GitCompare, Table2 } from "lucide-react";
+import { Database, GitCompare, Table2, ShieldCheck } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
+import { useUIStore } from "@/lib/store/uiStore";
 import { getDataset } from "@/lib/api/datasets";
 import DatasetList from "@/components/dataset/DatasetList";
 import UploadWizard from "@/components/dataset/UploadWizard";
 import DatasetExplorer from "@/components/dataset/DatasetExplorer";
 import DatasetComparisonView from "@/components/dataset/DatasetComparisonView";
+
+/* ---------- Strict Mode Toggle ---------- */
+
+function StrictModeToggle() {
+  const { strictFormulaMode, setStrictFormulaMode } = useUIStore();
+
+  return (
+    <div className="strict-mode-card">
+      <div className="strict-mode-info">
+        <ShieldCheck size={16} className="strict-mode-icon" />
+        <div>
+          <div className="strict-mode-label">Strict Formula Validation</div>
+          <div className="strict-mode-desc">
+            {strictFormulaMode
+              ? "Enforces element casing, bracket rules, and charset restrictions"
+              : "Legacy mode — accepts most formula formats"}
+          </div>
+        </div>
+      </div>
+      <button
+        className={`toggle-switch ${strictFormulaMode ? "active" : ""}`}
+        onClick={() => setStrictFormulaMode(!strictFormulaMode)}
+        role="switch"
+        aria-checked={strictFormulaMode}
+        aria-label="Toggle strict formula validation"
+      >
+        <span className="toggle-knob" />
+      </button>
+    </div>
+  );
+}
 
 /* ---------- Sub-tabs for ready datasets ---------- */
 
@@ -73,6 +105,10 @@ export default function DatasetPage() {
             <p>Upload, map, clean, review, and explore CSV datasets</p>
           </div>
         </div>
+
+        {/* Strict Formula Mode Toggle */}
+        <StrictModeToggle />
+
         <DatasetList />
       </div>
     );

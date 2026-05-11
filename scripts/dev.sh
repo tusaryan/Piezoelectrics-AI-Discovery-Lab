@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================
-# Piezo.AI v2.1.0 — Development Utility Script
+# ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0} — Development Utility Script
 # ============================================
 # Usage: bash scripts/dev.sh <command>
 #
@@ -19,6 +19,21 @@ set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+
+# ── Load .env (if present) without overriding existing env vars ──
+if [ -f "$ROOT_DIR/.env" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then continue; fi
+        key=$(echo "$line" | cut -d '=' -f 1 | xargs)
+        if [ -n "$key" ] && [ -z "${!key+x}" ]; then
+            value=$(echo "$line" | cut -d '=' -f 2-)
+            value="${value%\"}"
+            value="${value#\"}"
+            export "$key"="$value"
+        fi
+    done < "$ROOT_DIR/.env"
+fi
+
 
 # ── Colors ──
 RED='\033[0;31m'
@@ -249,7 +264,7 @@ cmd_setup() {
 
     echo -e "${CYAN}${BOLD}"
     echo "  ╔══════════════════════════════════════╗"
-    echo "  ║     Piezo.AI v2.1.0 — Setup          ║"
+    echo "  ║     ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0} — Setup          ║"
     echo "  ╚══════════════════════════════════════╝"
     echo -e "${NC}"
 
@@ -511,7 +526,7 @@ cmd_db_migrate() {
 }
 
 cmd_start() {
-    log "Starting Piezo.AI v2.1.0 development servers..."
+    log "Starting ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0} development servers..."
 
     # Ensure DB is running
     if ! ensure_db_running; then
@@ -566,7 +581,7 @@ cmd_start() {
     # Summary
     echo ""
     echo -e "${CYAN}${BOLD}════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  Piezo.AI v2.1.0 is running!${NC}"
+    echo -e "${GREEN}${BOLD}  ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0} is running!${NC}"
     echo -e "${CYAN}${BOLD}════════════════════════════════════════${NC}"
     echo -e "  ${BOLD}Frontend:${NC}  http://localhost:3000"
     echo -e "  ${BOLD}Backend:${NC}   http://localhost:8000"
@@ -582,7 +597,7 @@ cmd_start() {
         if [ "$SHUTDOWN_IN_PROGRESS" = true ]; then return; fi
         SHUTDOWN_IN_PROGRESS=true
 
-        echo -e "\n\n${YELLOW}Shutting down Piezo.AI v2.1.0...${NC}"
+        echo -e "\n\n${YELLOW}Shutting down ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0}...${NC}"
 
         if [ -n "${BACKEND_PID:-}" ]; then
             kill "$BACKEND_PID" 2>/dev/null
@@ -623,7 +638,7 @@ cmd_start() {
 }
 
 cmd_stop() {
-    log "Gracefully shutting down Piezo.AI v2.1.0..."
+    log "Gracefully shutting down ${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0}..."
 
     for port in 8000 3000; do
         local label="Backend"
@@ -660,7 +675,7 @@ case "${1:-}" in
     start)      cmd_start ;;
     stop)       cmd_stop ;;
     *)
-        echo -e "${CYAN}${BOLD}Piezo.AI v2.1.0 — Development Tool${NC}"
+        echo -e "${CYAN}${BOLD}${APP_NAME:-Piezo.AI} v${APP_VERSION:-2.1.0} — Development Tool${NC}"
         echo ""
         echo "Usage: bash scripts/dev.sh <command>"
         echo ""

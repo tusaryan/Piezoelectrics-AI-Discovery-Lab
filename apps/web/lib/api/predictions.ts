@@ -97,6 +97,25 @@ export interface FormulaValidation {
   warnings: string[];
 }
 
+export interface BatchResultRow {
+  uid: number | null;
+  formula: string;
+  is_composite: boolean;
+  d33_predicted: number | null;
+  d33_ci_lower: number | null;
+  d33_ci_upper: number | null;
+  tc_predicted: number | null;
+  tc_ci_lower: number | null;
+  tc_ci_upper: number | null;
+  hardness_predicted: number | null;
+  hardness_ci_lower: number | null;
+  hardness_ci_upper: number | null;
+  top_use_case: string | null;
+  use_case_score: number | null;
+  prediction_status: string;
+  prediction_notes: string | null;
+}
+
 export interface BatchPredictSummary {
   batch_id: string;
   total_rows: number;
@@ -104,6 +123,7 @@ export interface BatchPredictSummary {
   error_count: number;
   result_file_path: string | null;
   source_filename: string;
+  results: BatchResultRow[];
 }
 
 export interface SupportedElements {
@@ -179,13 +199,19 @@ export function validateFormula(formula: string, strictMode: boolean = false) {
   });
 }
 
-/** Upload CSV for batch prediction */
+/** Upload CSV for batch prediction — multi-model */
 export async function predictBatchCSV(
-  modelId: string,
+  modelIds: Record<string, string | null>,
   file: File,
 ): Promise<BatchPredictSummary> {
+  // Filter out null values and build clean dict
+  const cleanIds: Record<string, string> = {};
+  for (const [k, v] of Object.entries(modelIds)) {
+    if (v) cleanIds[k] = v;
+  }
+
   const formData = new FormData();
-  formData.append("model_id", modelId);
+  formData.append("model_ids", JSON.stringify(cleanIds));
   formData.append("file", file);
 
   const res = await fetch(`${BASE}/predict/batch`, {
@@ -207,11 +233,15 @@ export async function predictBatchCSV(
   return res.json();
 }
 
-/** Batch predict from existing dataset */
-export function predictBatchFromDataset(modelId: string, datasetId: string) {
+/** Batch predict from existing dataset — multi-model */
+export function predictBatchFromDataset(modelIds: Record<string, string | null>, datasetId: string) {
+  const cleanIds: Record<string, string> = {};
+  for (const [k, v] of Object.entries(modelIds)) {
+    if (v) cleanIds[k] = v;
+  }
   return apiFetch<BatchPredictSummary>(`${BASE}/predict/batch-from-dataset`, {
     method: "POST",
-    body: JSON.stringify({ model_id: modelId, dataset_id: datasetId }),
+    body: JSON.stringify({ model_ids: cleanIds, dataset_id: datasetId }),
   });
 }
 

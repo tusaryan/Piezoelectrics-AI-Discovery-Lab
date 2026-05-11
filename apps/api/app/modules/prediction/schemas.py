@@ -25,7 +25,7 @@ class PredictRequest(BaseModel):
 
 class BatchPredictRequest(BaseModel):
     """Request body for batch prediction from existing dataset."""
-    model_id: UUID
+    model_ids: dict[str, str] = Field(..., description="Per-target model IDs: {d33: uuid, tc: uuid, vickers_hardness: uuid}")
     dataset_id: UUID
 
 
@@ -64,6 +64,18 @@ class UseCaseInfo(BaseModel):
     description: str
     icon: str
     color: str
+    tier: str | None = None
+    tier_label: str | None = None
+    driving_properties: list[str] | None = None
+    score: int | None = None
+
+
+class UsagePredictionsInfo(BaseModel):
+    """Full usage prediction data with multiple recommendations."""
+    recommendations: list[UseCaseInfo] = []
+    caution_notes: list[str] = []
+    property_completeness: str = "full"
+    properties_used: list[str] = []
 
 
 class PredictResponse(BaseModel):
@@ -76,7 +88,28 @@ class PredictResponse(BaseModel):
     tc: PropertyPrediction | None = None
     hardness: PropertyPrediction | None = None
     use_case: UseCaseInfo | None = None
+    usage_predictions: UsagePredictionsInfo | None = None
     composite_params: dict[str, Any] | None = None
+
+
+class BatchResultRow(BaseModel):
+    """A single row from batch prediction results — for tabular preview."""
+    uid: int | None = None
+    formula: str
+    is_composite: bool = False
+    d33_predicted: float | None = None
+    d33_ci_lower: float | None = None
+    d33_ci_upper: float | None = None
+    tc_predicted: float | None = None
+    tc_ci_lower: float | None = None
+    tc_ci_upper: float | None = None
+    hardness_predicted: float | None = None
+    hardness_ci_lower: float | None = None
+    hardness_ci_upper: float | None = None
+    top_use_case: str | None = None
+    use_case_score: int | None = None
+    prediction_status: str = "success"
+    prediction_notes: str | None = None
 
 
 class BatchPredictSummary(BaseModel):
@@ -87,6 +120,7 @@ class BatchPredictSummary(BaseModel):
     error_count: int
     result_file_path: str | None = None
     source_filename: str
+    results: list[BatchResultRow] = []
 
 
 class FormulaValidateResponse(BaseModel):

@@ -131,6 +131,7 @@ class PredictionService:
                         "description": r.description,
                         "icon": r.icon, "color": r.color,
                         "driving_properties": r.driving_properties,
+                        "category": r.category,
                     }
                     for r in usage.recommendations
                 ],
@@ -164,7 +165,7 @@ class PredictionService:
             "notes": result.notes,
             "d33": _prop_dict(result.d33, result.d33_ci_lower, result.d33_ci_upper),
             "tc": _prop_dict(result.tc, result.tc_ci_lower, result.tc_ci_upper),
-            "hardness": _prop_dict(result.hardness, None, None),
+            "hardness": _prop_dict(result.hardness, result.hardness_ci_lower, result.hardness_ci_upper),
             "use_case": use_case,
             "usage_predictions": usage_data,
             "composite_params": result.composite_params,
@@ -173,11 +174,19 @@ class PredictionService:
     # ---- batch prediction from CSV ----
 
     async def predict_batch_csv(
-        self, db: AsyncSession, model_id: str,
+        self, db: AsyncSession, model_ids: dict[str, str],
         csv_content: bytes, filename: str,
     ) -> dict[str, Any]:
-        """Run batch prediction from uploaded CSV."""
-        model_record, metadata = await self.get_model_with_metadata(db, model_id)
+        """Run batch prediction from uploaded CSV with multi-model support."""
+        # Load all selected models
+        loaded_models = {}
+        for target, model_id in model_ids.items():
+            if model_id:
+                model_record, metadata = await self.get_model_with_metadata(db, model_id)
+                loaded_models[target] = (model_record, metadata)
+
+        if not loaded_models:
+            raise ValueError("No models selected for batch prediction")
 
         # Parse CSV
         try:
@@ -185,15 +194,25 @@ class PredictionService:
         except Exception as e:
             raise ValueError(f"Failed to parse CSV: {e}")
 
-        return await self._run_batch(db, model_record, metadata, df, filename)
+        # Use first model for batch DB record
+        first_record = list(loaded_models.values())[0][0]
+        return await self._run_batch_multi(db, loaded_models, first_record, df, filename)
 
     # ---- batch prediction from existing dataset ----
 
     async def predict_batch_from_dataset(
-        self, db: AsyncSession, model_id: str, dataset_id: str,
+        self, db: AsyncSession, model_ids: dict[str, str], dataset_id: str,
     ) -> dict[str, Any]:
-        """Run batch prediction using an existing dataset."""
-        model_record, metadata = await self.get_model_with_metadata(db, model_id)
+        """Run batch prediction using an existing dataset with multi-model support."""
+        # Load all selected models
+        loaded_models = {}
+        for target, model_id in model_ids.items():
+            if model_id:
+                model_record, metadata = await self.get_model_with_metadata(db, model_id)
+                loaded_models[target] = (model_record, metadata)
+
+        if not loaded_models:
+            raise ValueError("No models selected for batch prediction")
 
         # Load dataset materials
         result = await db.execute(
@@ -205,14 +224,13 @@ class PredictionService:
         if not materials:
             raise ValueError(f"No materials found in dataset {dataset_id}")
 
-        # Convert to DataFrame
+        # Convert to DataFrame — only include formula + composite columns
         rows = []
         for m in materials:
             row = {"uid": m.uid, "formula": m.formula}
             for field in [
-                "d33", "tc", "vickers_hardness", "filler_wt_pct",
-                "matrix_type", "particle_morphology", "particle_size_nm",
-                "surface_treatment", "fabrication_method",
+                "filler_wt_pct", "matrix_type", "particle_morphology",
+                "particle_size_nm", "surface_treatment", "fabrication_method",
             ]:
                 row[field] = getattr(m, field, None)
             rows.append(row)
@@ -222,16 +240,21 @@ class PredictionService:
         ds = await db.get(Dataset, dataset_id)
         filename = ds.display_name if ds else f"dataset_{dataset_id}"
 
-        return await self._run_batch(db, model_record, metadata, df, filename)
+        first_record = list(loaded_models.values())[0][0]
+        return await self._run_batch_multi(db, loaded_models, first_record, df, filename)
 
-    async def _run_batch(
-        self, db: AsyncSession, model_record: TrainedModel,
-        metadata: dict[str, Any], df: pd.DataFrame, filename: str,
+    async def _run_batch_multi(
+        self, db: AsyncSession,
+        loaded_models: dict[str, tuple[TrainedModel, dict[str, Any]]],
+        primary_record: TrainedModel,
+        df: pd.DataFrame, filename: str,
     ) -> dict[str, Any]:
-        """Core batch prediction logic."""
+        """Core batch prediction logic with multi-target support."""
+        from piezo_ml.models.use_case_mapper import predict_usage
+
         # Create batch record
         batch = PredictionBatch(
-            model_id=model_record.id,
+            model_id=primary_record.id,
             source_filename=filename,
             total_rows=len(df),
         )
@@ -247,8 +270,9 @@ class PredictionService:
         if not formula_col:
             raise ValueError("No 'formula' column found in dataset")
 
-        # Result rows for CSV output
+        # Result rows for CSV + tabular preview
         result_rows = []
+        tabular_results = []
 
         for idx, row in df.iterrows():
             formula_val = str(row.get(formula_col, "")).strip()
@@ -256,54 +280,142 @@ class PredictionService:
             is_composite = _detect_composite_from_row(row)
 
             if not formula_val or formula_val.lower() in ("nan", "none", ""):
-                pred = PredictionResult(
-                    formula=formula_val, is_composite=is_composite,
-                    status="parse_error", notes="Empty formula",
-                )
-            else:
-                pred = self.engine.predict_single(
-                    formula=formula_val,
-                    model_file_path=model_record.model_file_path,
-                    metadata=metadata,
-                    composite_params=composite_params if is_composite else None,
-                )
+                # Build empty result row
+                csv_row = {
+                    "uid": row.get("uid", idx + 1),
+                    "formula": formula_val,
+                    "is_composite": is_composite,
+                    "prediction_status": "parse_error",
+                    "prediction_notes": "Empty formula",
+                }
+                result_rows.append(csv_row)
+                tabular_results.append({
+                    "uid": csv_row["uid"],
+                    "formula": formula_val,
+                    "is_composite": is_composite,
+                    "prediction_status": "parse_error",
+                    "prediction_notes": "Empty formula",
+                })
+                errors += 1
+                continue
 
-            # Store in DB
+            # Predict with each selected model
+            d33_val = d33_ci_lo = d33_ci_hi = None
+            tc_val = tc_ci_lo = tc_ci_hi = None
+            hv_val = hv_ci_lo = hv_ci_hi = None
+            row_status = "success"
+            row_notes_parts = []
+
+            for target, (model_rec, meta) in loaded_models.items():
+                try:
+                    pred = self.engine.predict_single(
+                        formula=formula_val,
+                        model_file_path=model_rec.model_file_path,
+                        metadata=meta,
+                        composite_params=composite_params if is_composite else None,
+                    )
+                    if pred.status != "success":
+                        row_notes_parts.append(f"{target}: {pred.notes or 'failed'}")
+                        continue
+
+                    if pred.d33 is not None:
+                        d33_val = pred.d33
+                        d33_ci_lo = pred.d33_ci_lower
+                        d33_ci_hi = pred.d33_ci_upper
+                    if pred.tc is not None:
+                        tc_val = pred.tc
+                        tc_ci_lo = pred.tc_ci_lower
+                        tc_ci_hi = pred.tc_ci_upper
+                    if pred.hardness is not None:
+                        hv_val = pred.hardness
+                        hv_ci_lo = pred.hardness_ci_lower
+                        hv_ci_hi = pred.hardness_ci_upper
+                except Exception as e:
+                    row_notes_parts.append(f"{target}: {e}")
+
+            # Determine overall status
+            any_predicted = d33_val is not None or tc_val is not None or hv_val is not None
+            if any_predicted:
+                row_status = "success"
+                success += 1
+            else:
+                row_status = "parse_error"
+                errors += 1
+
+            row_notes = "; ".join(row_notes_parts) if row_notes_parts else None
+
+            # Use-case mapping
+            top_use_case = None
+            use_case_score = None
+            if any_predicted:
+                usage = predict_usage(d33=d33_val, tc=tc_val, hardness=hv_val, is_composite=is_composite)
+                if usage.recommendations:
+                    top_use_case = usage.recommendations[0].name
+                    use_case_score = usage.recommendations[0].score
+
+            # Build clean CSV row (no source d33/tc/hardness — those are what we predict)
+            csv_row = {
+                "uid": row.get("uid", idx + 1),
+                "formula": formula_val,
+                "is_composite": is_composite,
+            }
+            if d33_val is not None:
+                csv_row["d33_predicted"] = d33_val
+                csv_row["d33_ci_lower"] = d33_ci_lo
+                csv_row["d33_ci_upper"] = d33_ci_hi
+            if tc_val is not None:
+                csv_row["tc_predicted"] = tc_val
+                csv_row["tc_ci_lower"] = tc_ci_lo
+                csv_row["tc_ci_upper"] = tc_ci_hi
+            if hv_val is not None:
+                csv_row["hardness_predicted"] = hv_val
+                csv_row["hardness_ci_lower"] = hv_ci_lo
+                csv_row["hardness_ci_upper"] = hv_ci_hi
+            if top_use_case:
+                csv_row["top_use_case"] = top_use_case
+                csv_row["use_case_score"] = use_case_score
+            csv_row["prediction_status"] = row_status
+            csv_row["prediction_notes"] = row_notes or ""
+            result_rows.append(csv_row)
+
+            # Tabular result for frontend
+            tabular_results.append({
+                "uid": csv_row["uid"],
+                "formula": formula_val,
+                "is_composite": is_composite,
+                "d33_predicted": d33_val,
+                "d33_ci_lower": d33_ci_lo,
+                "d33_ci_upper": d33_ci_hi,
+                "tc_predicted": tc_val,
+                "tc_ci_lower": tc_ci_lo,
+                "tc_ci_upper": tc_ci_hi,
+                "hardness_predicted": hv_val,
+                "hardness_ci_lower": hv_ci_lo,
+                "hardness_ci_upper": hv_ci_hi,
+                "top_use_case": top_use_case,
+                "use_case_score": use_case_score,
+                "prediction_status": row_status,
+                "prediction_notes": row_notes,
+            })
+
+            # Store in DB (using primary model)
             prediction = Prediction(
-                model_id=model_record.id,
+                model_id=primary_record.id,
                 batch_id=batch.id,
                 formula=formula_val,
                 is_composite=is_composite,
                 composite_params=composite_params if is_composite else None,
-                d33_predicted=pred.d33,
-                d33_ci_lower=pred.d33_ci_lower,
-                d33_ci_upper=pred.d33_ci_upper,
-                tc_predicted=pred.tc,
-                tc_ci_lower=pred.tc_ci_lower,
-                tc_ci_upper=pred.tc_ci_upper,
-                hardness_predicted=pred.hardness,
-                prediction_status=pred.status,
-                prediction_notes=pred.notes,
+                d33_predicted=d33_val,
+                d33_ci_lower=d33_ci_lo,
+                d33_ci_upper=d33_ci_hi,
+                tc_predicted=tc_val,
+                tc_ci_lower=tc_ci_lo,
+                tc_ci_upper=tc_ci_hi,
+                hardness_predicted=hv_val,
+                prediction_status=row_status,
+                prediction_notes=row_notes,
             )
             db.add(prediction)
-
-            if pred.status == "success":
-                success += 1
-            else:
-                errors += 1
-
-            # Build result row (original data + predictions)
-            result_row = row.to_dict()
-            target = metadata.get("targets", ["d33"])[0]
-            if target == "d33":
-                result_row["d33_predicted"] = pred.d33
-            elif target == "tc":
-                result_row["tc_predicted"] = pred.tc
-            elif target == "vickers_hardness":
-                result_row["hardness_predicted"] = pred.hardness
-            result_row["prediction_status"] = pred.status
-            result_row["prediction_notes"] = pred.notes or ""
-            result_rows.append(result_row)
 
         # Save result CSV
         result_df = pd.DataFrame(result_rows)
@@ -320,6 +432,7 @@ class PredictionService:
             "error_count": errors,
             "result_file_path": str(result_path),
             "source_filename": filename,
+            "results": tabular_results,
         }
 
     def _save_batch_result(self, batch_id: str, df: pd.DataFrame) -> Path:

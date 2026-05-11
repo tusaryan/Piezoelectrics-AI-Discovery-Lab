@@ -36,10 +36,17 @@ export default function UseCaseCard() {
     return null;
   }
 
-  const uc = prediction.use_case as UsageRecommendation;
-  const usage = (prediction as any).usage_predictions as UsagePredictions | null;
+  const uc = prediction.use_case;
+  const usage = prediction.usage_predictions as UsagePredictions | null;
   const extraRecs = usage?.recommendations?.slice(1, 4) || [];
   const cautions = usage?.caution_notes || [];
+
+  // Score display: prefer score field, fallback to confidence * 100
+  const getScore = (item: any): number => {
+    if (item.score != null) return item.score;
+    if (item.confidence != null) return Math.round(item.confidence * 100);
+    return 0;
+  };
 
   const tierBadge = (tier: string, label: string, color: string) => {
     const bgMap: Record<string, string> = {
@@ -101,9 +108,9 @@ export default function UseCaseCard() {
                 color: uc.color,
               }}
             >
-              {uc.score}%
+              {getScore(uc)}%
             </span>
-            {uc.tier_label && tierBadge(uc.tier, uc.tier_label, uc.color)}
+            {uc.tier_label && tierBadge(uc.tier || 'secondary', uc.tier_label, uc.color)}
           </div>
           <p className="use-case-description">{uc.description}</p>
           {uc.driving_properties && uc.driving_properties.length > 0 && (
@@ -164,13 +171,13 @@ export default function UseCaseCard() {
                         style={{
                           background: `${rec.color}15`,
                           color: rec.color,
-                          fontSize: 9,
-                          padding: "1px 5px",
+                          fontSize: 10,
+                          padding: "1px 6px",
                         }}
                       >
-                        {rec.score}%
+                        {getScore(rec)}%
                       </span>
-                      {rec.tier_label && tierBadge(rec.tier, rec.tier_label, rec.color)}
+                      {rec.tier_label && tierBadge(rec.tier || 'tertiary', rec.tier_label, rec.color)}
                     </div>
                     <p className="use-case-description" style={{ fontSize: 10, marginTop: 2 }}>
                       {rec.description}

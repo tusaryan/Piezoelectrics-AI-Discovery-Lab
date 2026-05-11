@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.modules.prediction.schemas import (
     BatchPredictRequest,
     BatchPredictSummary,
+    BatchResultRow,
     FormulaValidateRequest,
     FormulaValidateResponse,
     ModelRenameRequest,
@@ -23,6 +24,7 @@ from app.modules.prediction.schemas import (
     SupportedElementsResponse,
     TrainedModelListItem,
     UseCaseInfo,
+    UsagePredictionsInfo,
 )
 from app.modules.prediction.service import prediction_service
 
@@ -141,18 +143,24 @@ async def predict_single(
 # ---------------------------------------------------------------------------
 @router.post("/predict/batch", response_model=BatchPredictSummary)
 async def predict_batch(
-    model_id: str = Form(...),
+    model_ids: str = Form(..., description="JSON dict of per-target model IDs"),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload CSV and predict all rows."""
+    """Upload CSV and predict all rows with multi-model support."""
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
+
+    import json as json_mod
+    try:
+        parsed_ids = json_mod.loads(model_ids)
+    except Exception:
+        raise HTTPException(status_code=400, detail="model_ids must be a valid JSON dict")
 
     content = await file.read()
     try:
         result = await prediction_service.predict_batch_csv(
-            db, model_id, content, file.filename,
+            db, parsed_ids, content, file.filename,
         )
         return BatchPredictSummary(**result)
     except ValueError as e:
@@ -170,7 +178,7 @@ async def predict_batch_from_dataset(
     """Run batch prediction using an existing dataset."""
     try:
         result = await prediction_service.predict_batch_from_dataset(
-            db, str(body.model_id), str(body.dataset_id),
+            db, body.model_ids, str(body.dataset_id),
         )
         return BatchPredictSummary(**result)
     except ValueError as e:
@@ -220,10 +228,14 @@ async def download_batch_result(batch_id: UUID, db: AsyncSession = Depends(get_d
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Result file not found on disk")
 
+    dl_filename = f"predictions_{batch.source_filename}"
+    if not dl_filename.endswith(".csv"):
+        dl_filename += ".csv"
+
     return FileResponse(
         path=str(file_path),
         media_type="text/csv",
-        filename=f"predictions_{batch.source_filename}",
+        filename=dl_filename,
     )
 
 
@@ -237,6 +249,31 @@ def _format_predict_response(result: dict) -> PredictResponse:
     tc_data = result.get("tc")
     hardness_data = result.get("hardness")
     uc_data = result.get("use_case")
+    usage_data = result.get("usage_predictions")
+
+    # Build usage predictions info
+    usage_info = None
+    if usage_data:
+        recs = []
+        for r in usage_data.get("recommendations", []):
+            recs.append(UseCaseInfo(
+                name=r.get("name", ""),
+                category=r.get("category", ""),
+                confidence=r.get("confidence", 0),
+                description=r.get("description", ""),
+                icon=r.get("icon", "🔧"),
+                color=r.get("color", "#6366F1"),
+                tier=r.get("tier"),
+                tier_label=r.get("tier_label"),
+                driving_properties=r.get("driving_properties"),
+                score=r.get("score"),
+            ))
+        usage_info = UsagePredictionsInfo(
+            recommendations=recs,
+            caution_notes=usage_data.get("caution_notes", []),
+            property_completeness=usage_data.get("property_completeness", "full"),
+            properties_used=usage_data.get("properties_used", []),
+        )
 
     return PredictResponse(
         formula=result["formula"],
@@ -247,5 +284,6 @@ def _format_predict_response(result: dict) -> PredictResponse:
         tc=PropertyPrediction(**tc_data) if tc_data else None,
         hardness=PropertyPrediction(**hardness_data) if hardness_data else None,
         use_case=UseCaseInfo(**uc_data) if uc_data else None,
+        usage_predictions=usage_info,
         composite_params=result.get("composite_params"),
     )

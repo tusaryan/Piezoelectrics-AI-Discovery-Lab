@@ -101,8 +101,8 @@ export default function PredictionGauges() {
           label="Vickers Hardness"
           unit="HV"
           value={prediction.hardness?.value}
-          ciLower={null}
-          ciUpper={null}
+          ciLower={prediction.hardness?.ci_lower}
+          ciUpper={prediction.hardness?.ci_upper}
           min={0}
           max={1200}
           colorClass="hardness"

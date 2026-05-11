@@ -42,6 +42,8 @@ class PredictionResult:
     tc_ci_lower: float | None = None
     tc_ci_upper: float | None = None
     hardness: float | None = None
+    hardness_ci_lower: float | None = None
+    hardness_ci_upper: float | None = None
 
     # Composite params used
     composite_params: dict[str, Any] | None = None
@@ -174,6 +176,8 @@ class InferenceEngine:
             result.tc_ci_upper = round(ci_upper, 2)
         elif target == "vickers_hardness":
             result.hardness = round(float(prediction), 2)
+            result.hardness_ci_lower = round(ci_lower, 2)
+            result.hardness_ci_upper = round(ci_upper, 2)
 
         return result
 

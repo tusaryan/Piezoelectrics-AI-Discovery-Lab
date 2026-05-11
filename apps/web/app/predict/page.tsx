@@ -60,12 +60,17 @@ export default function PredictPage() {
   const formulaReady = formula.trim() && formulaValidation?.is_valid && !formulaValidating;
   const canPredict = formulaReady && hasAnyModel;
 
-  // Determine why predict is blocked (for error message)
+  // Determine why predict is blocked (for guidance near button)
+  // NOTE: formula validation errors are already shown by FormulaInput,
+  // so we only show actionable guidance here, not duplicated errors.
   const getBlockReason = (): string | null => {
     if (!formula.trim()) return null; // empty = no message
     if (formulaValidating) return "Validating formula...";
-    if (formulaValidation && !formulaValidation.is_valid)
-      return formulaValidation.error || "Invalid formula — fix before predicting";
+    if (formulaValidation && !formulaValidation.is_valid) {
+      // FormulaInput already displays the specific error — just show
+      // a short action hint here instead of repeating the error text
+      return "Invalid formula — fix before predicting";
+    }
     if (!hasAnyModel) return "Select at least one model to predict";
     return null;
   };
@@ -116,7 +121,10 @@ export default function PredictPage() {
           if (result.d33?.value != null) merged.d33 = result.d33;
           if (result.tc?.value != null) merged.tc = result.tc;
           if (result.hardness?.value != null) merged.hardness = result.hardness;
-          if (result.use_case && !merged.use_case) merged.use_case = result.use_case;
+          // Always update use_case to the latest — later calls have more
+          // property context for richer usage predictions
+          if (result.use_case) merged.use_case = result.use_case;
+          if (result.usage_predictions) merged.usage_predictions = result.usage_predictions;
           if (result.composite_params) merged.composite_params = result.composite_params;
         } catch (err) {
           errors.push(`${target}: ${err instanceof Error ? err.message : "failed"}`);

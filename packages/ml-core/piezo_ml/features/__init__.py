@@ -9,6 +9,12 @@ from piezo_ml.features.field_registry import (
     get_feature_candidates,
     get_trainable_targets,
 )
+from piezo_ml.features.composite_encoder import (
+    COMPOSITE_CATEGORICAL_ENCODINGS,
+    COMPOSITE_FEATURE_COLUMNS,
+    encode_composite_params,
+    encode_composite_row,
+)
 
 __all__ = [
     "EngineeredRow",
@@ -19,4 +25,9 @@ __all__ = [
     "NUMERIC_FIELDS",
     "get_trainable_targets",
     "get_feature_candidates",
+    "COMPOSITE_CATEGORICAL_ENCODINGS",
+    "COMPOSITE_FEATURE_COLUMNS",
+    "encode_composite_params",
+    "encode_composite_row",
 ]
+

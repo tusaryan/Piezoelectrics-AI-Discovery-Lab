@@ -26,7 +26,7 @@ from piezo_db.models import (
     TrainedModel,
 )
 from piezo_ml.models.inference_engine import InferenceEngine, PredictionResult
-from piezo_ml.models.use_case_mapper import map_use_case
+from piezo_ml.models.use_case_mapper import map_use_case, predict_usage
 from piezo_ml.parsers import FormulaParser
 from piezo_ml.registry import get_supported_elements_list
 
@@ -103,14 +103,40 @@ class PredictionService:
             composite_params=composite_params,
         )
 
-        # Map use-case
+        # Map use-case with composite awareness
         use_case = None
+        usage_data = None
         if result.status == "success":
-            uc = map_use_case(d33=result.d33, tc=result.tc, hardness=result.hardness)
-            use_case = {
-                "name": uc.name, "category": uc.category,
-                "confidence": uc.confidence, "description": uc.description,
-                "icon": uc.icon, "color": uc.color,
+            usage = predict_usage(
+                d33=result.d33, tc=result.tc, hardness=result.hardness,
+                is_composite=result.is_composite,
+            )
+            if usage.recommendations:
+                top = usage.recommendations[0]
+                use_case = {
+                    "name": top.name, "category": top.category,
+                    "confidence": top.confidence, "description": top.description,
+                    "icon": top.icon, "color": top.color,
+                    "tier": top.tier, "tier_label": top.tier_label,
+                    "driving_properties": top.driving_properties,
+                    "score": top.score,
+                }
+            # Include full usage data for richer UI
+            usage_data = {
+                "recommendations": [
+                    {
+                        "name": r.name, "score": r.score,
+                        "confidence": r.confidence,
+                        "tier": r.tier, "tier_label": r.tier_label,
+                        "description": r.description,
+                        "icon": r.icon, "color": r.color,
+                        "driving_properties": r.driving_properties,
+                    }
+                    for r in usage.recommendations
+                ],
+                "caution_notes": usage.caution_notes,
+                "property_completeness": usage.property_completeness,
+                "properties_used": usage.properties_used,
             }
 
         # Persist to DB
@@ -140,6 +166,7 @@ class PredictionService:
             "tc": _prop_dict(result.tc, result.tc_ci_lower, result.tc_ci_upper),
             "hardness": _prop_dict(result.hardness, None, None),
             "use_case": use_case,
+            "usage_predictions": usage_data,
             "composite_params": result.composite_params,
         }
 

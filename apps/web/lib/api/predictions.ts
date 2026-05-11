@@ -23,6 +23,29 @@ export interface UseCaseInfo {
   description: string;
   icon: string;
   color: string;
+  tier?: string;
+  tier_label?: string;
+  driving_properties?: string[];
+  score?: number;
+}
+
+export interface UsageRecommendation {
+  name: string;
+  score: number;
+  confidence: number;
+  tier: string;
+  tier_label: string;
+  description: string;
+  icon: string;
+  color: string;
+  driving_properties: string[];
+}
+
+export interface UsagePredictions {
+  recommendations: UsageRecommendation[];
+  caution_notes: string[];
+  property_completeness: string;
+  properties_used: string[];
 }
 
 export interface PredictResponse {
@@ -34,6 +57,7 @@ export interface PredictResponse {
   tc: PropertyPrediction | null;
   hardness: PropertyPrediction | null;
   use_case: UseCaseInfo | null;
+  usage_predictions?: UsagePredictions | null;
   composite_params: Record<string, unknown> | null;
 }
 

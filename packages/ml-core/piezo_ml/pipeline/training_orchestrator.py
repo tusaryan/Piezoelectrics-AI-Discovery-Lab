@@ -201,6 +201,19 @@ class TrainingOrchestrator:
         # Reindex test to match train columns, filling missing with 0.0
         test_features = test_features.reindex(columns=feature_vectors.columns, fill_value=0.0)
 
+        # ------ 5b. Append composite features ------
+        # Encode composite columns from original data so models learn
+        # the difference between bulk and composite materials.
+        from piezo_ml.features.composite_encoder import (
+            encode_composite_row,
+            COMPOSITE_FEATURE_COLUMNS,
+        )
+
+        _log("info", "Appending composite features to training vectors...")
+        _append_composite_features(feature_vectors, train_df, COMPOSITE_FEATURE_COLUMNS, encode_composite_row)
+        _append_composite_features(test_features, test_df, COMPOSITE_FEATURE_COLUMNS, encode_composite_row)
+        _log("info", f"Composite features appended: {COMPOSITE_FEATURE_COLUMNS}")
+
         post_issues = validate_post_parse_frame(feature_vectors)
         if post_issues:
             for issue in post_issues:
@@ -209,6 +222,8 @@ class TrainingOrchestrator:
         # Save artifacts (source + parsed + features)
         cleaned_full, _ = clean_dataframe(df)
         all_features, all_parsed = self._engineer.engineer_dataframe(cleaned_full)
+        # Also append composite features to full artifact
+        _append_composite_features(all_features, cleaned_full, COMPOSITE_FEATURE_COLUMNS, encode_composite_row)
         artifact = save_parsed_dataset_artifacts(
             dataset_id=config.dataset_id,
             source_frame=cleaned_full,
@@ -345,3 +360,45 @@ class TrainingOrchestrator:
     def _check_cancelled(self) -> None:
         if self.cancel_event and self.cancel_event.is_set():
             raise TrainingCancelledError("Training cancelled by user")
+
+
+def _append_composite_features(
+    feature_df: pd.DataFrame,
+    source_df: pd.DataFrame,
+    composite_columns: list[str],
+    encode_fn,
+) -> None:
+    """
+    Append composite feature columns to the feature DataFrame in-place.
+
+    Aligns by uid: for each row in feature_df, finds matching row in
+    source_df and encodes its composite columns.
+    """
+    from piezo_ml.features.composite_encoder import COMPOSITE_FEATURE_COLUMNS
+
+    # Build encoded composite values for each row in source_df, indexed by uid
+    uid_to_composite: dict[int, dict[str, float]] = {}
+    for _, row in source_df.iterrows():
+        uid = int(row.get("uid", 0))
+        uid_to_composite[uid] = encode_fn(row)
+
+    # Initialize composite columns with zeros
+    for col in COMPOSITE_FEATURE_COLUMNS:
+        feature_df[col] = 0.0
+
+    # Fill in values by matching uid
+    if "uid" in feature_df.columns:
+        for idx, row in feature_df.iterrows():
+            uid = int(row["uid"])
+            if uid in uid_to_composite:
+                for col, val in uid_to_composite[uid].items():
+                    feature_df.at[idx, col] = val
+    else:
+        # Fallback: assume same row order
+        for i, (_, src_row) in enumerate(source_df.iterrows()):
+            if i >= len(feature_df):
+                break
+            encoded = encode_fn(src_row)
+            for col, val in encoded.items():
+                feature_df.iat[i, feature_df.columns.get_loc(col)] = val
+

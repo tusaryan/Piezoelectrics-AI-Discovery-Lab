@@ -1,60 +1,36 @@
-import {
-  BarChart3,
-  FileText,
-  BrainCircuit,
-  Zap,
-  Download,
-  RefreshCw,
-  PieChart,
-  ListChecks,
-} from "lucide-react";
+"use client";
 
-const FEATURES = [
-  {
-    icon: BarChart3,
-    title: "Stats Overview",
-    description: "Datasets uploaded, trained models count, predictions made, and training jobs at a glance",
-  },
-  {
-    icon: ListChecks,
-    title: "Dataset Management",
-    description: "View all datasets with rows & columns, delete, or open in the Dataset Explorer with full CRUD",
-  },
-  {
-    icon: Zap,
-    title: "Quick Actions",
-    description: "One-click navigation to Train, Predict, Optimization Lab, and Interpretability",
-  },
-  {
-    icon: BrainCircuit,
-    title: "Model Library",
-    description: "All trained models with R², RMSE, algorithm, rename (UUID stable), and download parsed dataset",
-  },
-  {
-    icon: PieChart,
-    title: "Target Distribution",
-    description: "Donut chart showing model distribution across d33, tc, and hardness targets",
-  },
-  {
-    icon: FileText,
-    title: "Report Generation",
-    description: "Premium PDF reports with R²/RMSE curves, predicted vs actual graphs, SHAP analysis, and AI insights",
-  },
-  {
-    icon: RefreshCw,
-    title: "Default Model",
-    description: "Select which trained model is used for predictions across the platform",
-  },
-  {
-    icon: Download,
-    title: "Data Export",
-    description: "Download parsed datasets and trained model artifacts for manual verification",
-  },
-];
+import { useEffect } from "react";
+import { BarChart3, RefreshCw } from "lucide-react";
+import { useDashboardStore } from "@/lib/store/dashboardStore";
+import StatsCards from "@/components/dashboard/StatsCards";
+import QuickActions from "@/components/dashboard/QuickActions";
+import DatasetList from "@/components/dashboard/DatasetList";
+import ModelLibrary from "@/components/dashboard/ModelLibrary";
+import DefaultModelSelector from "@/components/dashboard/DefaultModelSelector";
+import TargetDistributionChart from "@/components/dashboard/TargetDistributionChart";
+import ReportGenerator from "@/components/dashboard/ReportGenerator";
+import "./dashboard.css";
 
 export default function DashboardPage() {
+  const {
+    stats,
+    models,
+    targetDistribution,
+    predictionHistory,
+    loading,
+    error,
+    fetchAll,
+    clearError,
+  } = useDashboardStore();
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
   return (
-    <div className="page-container">
+    <div className="page-container dashboard-page">
+      {/* Header */}
       <div className="page-header">
         <div className="page-header-icon">
           <BarChart3 size={22} />
@@ -63,25 +39,54 @@ export default function DashboardPage() {
           <h1>Dashboard</h1>
           <p>System overview, quick actions, report generation, model management</p>
         </div>
+        <button
+          className="refresh-btn"
+          onClick={fetchAll}
+          disabled={loading}
+          title="Refresh dashboard data"
+        >
+          <RefreshCw size={16} className={loading ? "spin" : ""} />
+          Refresh
+        </button>
       </div>
 
-      <div className="feature-grid">
-        {FEATURES.map((feature) => {
-          const Icon = feature.icon;
-          return (
-            <div key={feature.title} className="feature-card">
-              <div className="feature-card-header">
-                <div className="feature-card-icon">
-                  <Icon size={18} />
-                </div>
-                <span className="feature-card-badge">Session 6</span>
-              </div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
-            </div>
-          );
-        })}
+      {/* Error banner */}
+      {error && (
+        <div className="dashboard-error">
+          <span>{error}</span>
+          <button onClick={clearError}>×</button>
+        </div>
+      )}
+
+      {/* Stats Cards */}
+      <StatsCards stats={stats} loading={loading} />
+
+      {/* Quick Actions */}
+      <QuickActions />
+
+      {/* Two-column layout: Datasets + Target Distribution */}
+      <div className="dashboard-two-col">
+        <div className="dashboard-col-main">
+          <DatasetList />
+        </div>
+        <div className="dashboard-col-side">
+          <TargetDistributionChart data={targetDistribution} />
+          <DefaultModelSelector models={models} />
+        </div>
       </div>
+
+      {/* Model Library */}
+      <ModelLibrary models={models} />
+
+      {/* Report Generation */}
+      <ReportGenerator
+        predictionHistory={predictionHistory}
+        models={models.map((m) => ({
+          id: m.id,
+          display_name: m.display_name,
+          target: m.target,
+        }))}
+      />
     </div>
   );
 }

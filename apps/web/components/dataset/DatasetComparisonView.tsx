@@ -5,13 +5,10 @@
  * =====================================
  * Tabs: Source Data | Parsed Preview | Comparison (side-by-side)
  *
- * S2: Shows all mapped fields + formula validation.
- * S3: Will add parsed elemental compositions & feature vectors.
- *
- * Features:
- * - Multi-select search field filter
- * - Column visibility toggles with select/deselect all
- * - Client-side pagination (25/50/100)
+ * Source Data: Shows the raw uploaded dataset fields (formula, d33, tc, etc.)
+ * Parsed Preview: Shows elemental decomposition parsed ON-DEMAND from DB materials
+ *   via POST /dashboard/datasets/{id}/parse — no training needed.
+ * Comparison: Side-by-side source vs parsed for manual verification.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -24,11 +21,14 @@ import {
   X,
   RotateCcw,
   ChevronDown,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
 import { getMaterials, type MaterialRow } from "@/lib/api/datasets";
+import { parseDataset } from "@/lib/api/dashboard";
 
-/* ---------- All displayable fields ---------- */
+/* ---------- All displayable fields (source) ---------- */
 
 const ALL_FIELDS: { key: keyof MaterialRow; label: string; category: string }[] = [
   { key: "uid", label: "UID", category: "core" },
@@ -95,7 +95,6 @@ function MultiSelectFilter({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const allSelected = options.every(o => selected.has(o.key));
   const count = selected.size;
 
   return (
@@ -201,6 +200,16 @@ function TablePagination({
   );
 }
 
+/* ---------- Helper: format numeric cell ---------- */
+function formatCell(val: unknown): string {
+  if (val == null || val === "") return "—";
+  if (typeof val === "number") {
+    if (Number.isInteger(val)) return String(val);
+    return val.toFixed(4);
+  }
+  return String(val);
+}
+
 /* ---------- Component ---------- */
 
 export default function DatasetComparisonView() {
@@ -210,9 +219,19 @@ export default function DatasetComparisonView() {
     setComparisonTab,
   } = useDatasetStore();
 
+  // Source data (raw uploaded dataset)
   const [materials, setMaterials] = useState<MaterialRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Parsed data — fetched on-demand via POST /dashboard/datasets/{id}/parse
+  const [parsedRows, setParsedRows] = useState<Record<string, unknown>[]>([]);
+  const [parsedColumns, setParsedColumns] = useState<string[]>([]);
+  const [parsedFound, setParsedFound] = useState(false);
+  const [parsedLoading, setParsedLoading] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parseStats, setParseStats] = useState<{ total: number; skipped: number } | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
@@ -221,7 +240,10 @@ export default function DatasetComparisonView() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  /* Load materials */
+  // Parsed columns visibility
+  const [visibleParsedCols, setVisibleParsedCols] = useState<Set<string>>(new Set());
+
+  /* Load source materials */
   useEffect(() => {
     if (!activeDatasetId) {
       setIsLoading(false);
@@ -231,7 +253,6 @@ export default function DatasetComparisonView() {
     setLoadError(null);
     getMaterials(activeDatasetId, { page: 1, page_size: 5000 })
       .then((r) => {
-        console.log(`[ComparisonView] Loaded ${r.items.length} materials`);
         setMaterials(r.items);
       })
       .catch((err) => {
@@ -241,6 +262,33 @@ export default function DatasetComparisonView() {
       })
       .finally(() => setIsLoading(false));
   }, [activeDatasetId]);
+
+  /* Auto-parse on mount — parse formulas on-demand from DB */
+  const runParse = useCallback(async () => {
+    if (!activeDatasetId) return;
+    setParsedLoading(true);
+    setParseError(null);
+    try {
+      const result = await parseDataset(activeDatasetId, true);
+      setParsedRows(result.rows);
+      setParsedColumns(result.columns);
+      setParsedFound(result.rows.length > 0);
+      setVisibleParsedCols(new Set(result.columns));
+      setParseStats({ total: result.total_parsed, skipped: result.total_skipped });
+    } catch (err) {
+      console.error("[ComparisonView] Parse failed:", err);
+      setParseError(err instanceof Error ? err.message : String(err));
+      setParsedFound(false);
+      setParsedRows([]);
+      setParsedColumns([]);
+    } finally {
+      setParsedLoading(false);
+    }
+  }, [activeDatasetId]);
+
+  useEffect(() => {
+    runParse();
+  }, [runParse]);
 
   /* Debounced search */
   useEffect(() => {
@@ -263,7 +311,7 @@ export default function DatasetComparisonView() {
     return hasData;
   }, [materials]);
 
-  /* Visible columns — intersection of fieldsWithData and user-selected */
+  /* Visible columns */
   const displayFields = useMemo(
     () => ALL_FIELDS.filter((f) => fieldsWithData.has(f.key) && visibleFields.has(f.key)),
     [fieldsWithData, visibleFields],
@@ -272,9 +320,8 @@ export default function DatasetComparisonView() {
     () => displayFields.filter((f) => f.category !== "validation"),
     [displayFields],
   );
-  const parsedFields = useMemo(() => displayFields, [displayFields]);
 
-  /* Filter materials by search across intersection of Search-In and visible columns */
+  /* Filter materials by search */
   const filteredMaterials = useMemo(() => {
     if (!searchQuery) return materials;
     const q = searchQuery.toLowerCase();
@@ -293,11 +340,33 @@ export default function DatasetComparisonView() {
     });
   }, [materials, searchQuery, searchFields, visibleFields]);
 
-  /* Paginate filtered results */
+  /* Paginate */
   const paginatedData = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredMaterials.slice(start, start + pageSize);
   }, [filteredMaterials, page, pageSize]);
+
+  /* Build uid→parsedRow map */
+  const parsedByUid = useMemo(() => {
+    const map = new Map<string, Record<string, unknown>>();
+    for (const row of parsedRows) {
+      const uid = String(row.uid);
+      if (uid) map.set(uid, row);
+    }
+    return map;
+  }, [parsedRows]);
+
+  /* Paginate parsed rows */
+  const paginatedParsed = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return parsedRows.slice(start, start + pageSize);
+  }, [parsedRows, page, pageSize]);
+
+  /* Visible parsed columns */
+  const displayParsedCols = useMemo(
+    () => parsedColumns.filter((c) => visibleParsedCols.has(c)),
+    [parsedColumns, visibleParsedCols],
+  );
 
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size);
@@ -310,20 +379,13 @@ export default function DatasetComparisonView() {
     setSearchQuery("");
     setSearchFields(new Set(ALL_FIELDS.map(f => f.key)));
     setVisibleFields(new Set(ALL_FIELDS.map(f => f.key)));
+    setVisibleParsedCols(new Set(parsedColumns));
     setPage(1);
-  }, []);
+  }, [parsedColumns]);
 
-
-
-  const getSnapshotVal = (m: MaterialRow, key: keyof MaterialRow, which: "source" | "parsed") => {
-    const snap = which === "source" ? (m as any).source_row : (m as any).parsed_row;
-    if (snap && typeof snap === "object" && key in snap) return snap[key as any];
-    return (m as any)[key as any];
-  };
-
-  /* Cell value renderer */
-  const renderVal = (m: MaterialRow, key: keyof MaterialRow, which: "source" | "parsed") => {
-    const v = getSnapshotVal(m, key, which);
+  /* Cell value renderer for source data */
+  const renderSourceVal = (m: MaterialRow, key: keyof MaterialRow) => {
+    const v = m[key];
     if (key === "parse_status") return <StatusBadge status={String(v || "pending")} />;
     if (key === "parse_warnings") return v ? String(v) : "—";
     if (v == null || v === "") return <span style={{ color: "var(--text-muted)" }}>—</span>;
@@ -374,57 +436,74 @@ export default function DatasetComparisonView() {
         ))}
       </div>
 
-      {/* Search + Filter bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <div className="comparison-search" style={{ flex: "0 1 260px" }}>
-          <Search size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+      {/* Search + Filter bar (for source tabs) */}
+      {(comparisonTab === "source" || comparisonTab === "comparison") && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div className="comparison-search" style={{ flex: "0 1 260px" }}>
+            <Search size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button onClick={() => setSearchInput("")} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <MultiSelectFilter
+            label="Search In"
+            icon={<Search size={12} />}
+            options={ALL_FIELDS.map(f => ({ key: f.key, label: f.label }))}
+            selected={searchFields}
+            onChange={(next) => { setSearchFields(next); setPage(1); }}
           />
-          {searchInput && (
-            <button onClick={() => setSearchInput("")} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}>
-              <X size={14} />
-            </button>
-          )}
+
+          <MultiSelectFilter
+            label="Columns"
+            icon={<Filter size={12} />}
+            options={ALL_FIELDS.filter(f => fieldsWithData.has(f.key)).map(f => ({ key: f.key, label: f.label }))}
+            selected={visibleFields}
+            onChange={setVisibleFields}
+            required={new Set(["uid", "formula"])}
+          />
+
+          <button className="btn-ghost btn-sm" onClick={handleResetFilters} title="Reset all filters">
+            <RotateCcw size={14} /> Reset
+          </button>
         </div>
+      )}
 
-        {/* Multi-select: search in which fields */}
-        <MultiSelectFilter
-          label="Search In"
-          icon={<Search size={12} />}
-          options={ALL_FIELDS.map(f => ({ key: f.key, label: f.label }))}
-          selected={searchFields}
-          onChange={(next) => { setSearchFields(next); setPage(1); }}
-        />
-
-        {/* Column visibility filter */}
-        <MultiSelectFilter
-          label="Columns"
-          icon={<Filter size={12} />}
-          options={ALL_FIELDS.filter(f => fieldsWithData.has(f.key)).map(f => ({ key: f.key, label: f.label }))}
-          selected={visibleFields}
-          onChange={setVisibleFields}
-          required={new Set(["uid", "formula"])}
-        />
-
-        {/* Reset */}
-        <button className="btn-ghost btn-sm" onClick={handleResetFilters} title="Reset all filters">
-          <RotateCcw size={14} /> Reset
-        </button>
-      </div>
-
-      {/* Info banner */}
-      <div className="comparison-info">
-        <Info size={14} />
-        <span>Full parsed compositions (element fractions, features) will be available after training. Currently showing formula validation results.</span>
-      </div>
+      {/* Parsed column filter (for parsed tab) */}
+      {comparisonTab === "parsed" && parsedFound && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <MultiSelectFilter
+            label="Columns"
+            icon={<Filter size={12} />}
+            options={parsedColumns.map(c => ({ key: c, label: c }))}
+            selected={visibleParsedCols}
+            onChange={setVisibleParsedCols}
+            required={new Set(["uid", "formula"])}
+          />
+          <button className="btn-ghost btn-sm" onClick={() => setVisibleParsedCols(new Set(parsedColumns))} title="Show all columns">
+            <RotateCcw size={14} /> Show All
+          </button>
+          <button className="btn-ghost btn-sm" onClick={runParse} disabled={parsedLoading} title="Re-parse formulas">
+            <RefreshCw size={14} className={parsedLoading ? "spin" : ""} /> Re-parse
+          </button>
+        </div>
+      )}
 
       {/* Source Data tab */}
       {comparisonTab === "source" && (
         <>
+          <div className="comparison-info">
+            <Info size={14} />
+            <span>Source data as uploaded. Shows the raw dataset fields before elemental decomposition.</span>
+          </div>
           <div className="comparison-table-wrapper">
             <table className="comparison-table">
               <thead>
@@ -439,7 +518,7 @@ export default function DatasetComparisonView() {
                   <tr key={m.id}>
                     {sourceFields.map((f) => (
                       <td key={f.key} className={typeof m[f.key] === "number" ? "numeric" : ""}>
-                        {renderVal(m, f.key, "source")}
+                        {renderSourceVal(m, f.key)}
                       </td>
                     ))}
                   </tr>
@@ -451,48 +530,88 @@ export default function DatasetComparisonView() {
         </>
       )}
 
-      {/* Parsed Preview tab */}
+      {/* Parsed Preview tab — on-demand parsing, NO training required */}
       {comparisonTab === "parsed" && (
         <>
-          <div className="comparison-table-wrapper">
-            <table className="comparison-table">
-              <thead>
-                <tr>
-                  {parsedFields.map((f) => (
-                    <th key={f.key}>{f.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((m) => (
-                  <tr
-                    key={m.id}
-                    className={
-                      m.parse_status === "error" ? "highlight-error"
-                      : m.parse_status === "unsupported_elements" ? "highlight-warning"
-                      : ""
-                    }
-                  >
-                    {parsedFields.map((f) => (
-                      <td key={f.key} className={typeof m[f.key] === "number" ? "numeric" : ""}>
-                        {renderVal(m, f.key, "parsed")}
-                      </td>
+          {parsedLoading ? (
+            <div className="review-loading" style={{ padding: 32 }}>
+              <Loader2 size={20} className="spin" />
+              <p>Parsing formulas (stoichiometry + elemental decomposition)...</p>
+            </div>
+          ) : parseError ? (
+            <div className="comparison-info" style={{ flexDirection: "column", gap: 8, padding: 24 }}>
+              <AlertTriangle size={20} style={{ color: "var(--error)" }} />
+              <span>
+                <strong>Parsing failed.</strong> {parseError}
+              </span>
+              <button className="btn-ghost btn-sm" onClick={runParse} style={{ marginTop: 8 }}>
+                <RefreshCw size={14} /> Retry
+              </button>
+            </div>
+          ) : !parsedFound ? (
+            <div className="comparison-info" style={{ flexDirection: "column", gap: 8, padding: 24 }}>
+              <AlertTriangle size={20} style={{ color: "var(--warning)" }} />
+              <span>
+                <strong>No parseable formulas found.</strong> All formulas may have unsupported elements or invalid syntax.
+              </span>
+              <button className="btn-ghost btn-sm" onClick={runParse} style={{ marginTop: 8 }}>
+                <RefreshCw size={14} /> Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="comparison-info">
+                <Info size={14} />
+                <span>
+                  Parsed elemental decomposition (on-demand). Shows element fractions (e.g., Na_frac, K_frac),
+                  stoichiometry, and carried-over material properties.
+                  {parseStats && (
+                    <> — <strong>{parseStats.total}</strong> parsed, <strong>{parseStats.skipped}</strong> skipped.</>
+                  )}
+                </span>
+              </div>
+              <div className="comparison-table-wrapper">
+                <table className="comparison-table">
+                  <thead>
+                    <tr>
+                      {displayParsedCols.map((col) => (
+                        <th key={col}>{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedParsed.map((row, idx) => (
+                      <tr key={row.uid as string || idx}>
+                        {displayParsedCols.map((col) => (
+                          <td key={col} className={typeof row[col] === "number" ? "numeric" : ""}>
+                            {formatCell(row[col])}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <TablePagination total={filteredMaterials.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={handlePageSizeChange} />
+                  </tbody>
+                </table>
+              </div>
+              <TablePagination total={parsedRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={handlePageSizeChange} />
+            </>
+          )}
         </>
       )}
 
-      {/* Comparison tab — side-by-side */}
+      {/* Comparison tab — side-by-side source vs parsed */}
       {comparisonTab === "comparison" && (
         <>
+          {!parsedFound && (
+            <div className="comparison-info" style={{ background: "color-mix(in srgb, #F59E0B 8%, transparent)" }}>
+              <AlertTriangle size={14} style={{ color: "#F59E0B" }} />
+              <span>
+                Parsed data not available yet. Switch to &quot;Parsed Preview&quot; tab to trigger on-demand parsing.
+              </span>
+            </div>
+          )}
           <div className="comparison-split">
             <div className="comparison-pane">
-              <div className="comparison-pane-header">Source</div>
+              <div className="comparison-pane-header">Source (Uploaded)</div>
               <div className="comparison-table-wrapper">
                 <table className="comparison-table compact">
                   <thead>
@@ -506,7 +625,7 @@ export default function DatasetComparisonView() {
                     {paginatedData.map((m) => (
                       <tr key={m.id}>
                         {sourceFields.map((f) => (
-                          <td key={f.key}>{renderVal(m, f.key, "source")}</td>
+                          <td key={f.key}>{renderSourceVal(m, f.key)}</td>
                         ))}
                       </tr>
                     ))}
@@ -515,33 +634,37 @@ export default function DatasetComparisonView() {
               </div>
             </div>
             <div className="comparison-pane">
-              <div className="comparison-pane-header">Parsed</div>
+              <div className="comparison-pane-header">Parsed (Elemental)</div>
               <div className="comparison-table-wrapper">
-                <table className="comparison-table compact">
-                  <thead>
-                    <tr>
-                      {parsedFields.map((f) => (
-                        <th key={f.key}>{f.label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData.map((m) => (
-                      <tr
-                        key={m.id}
-                        className={
-                          m.parse_status === "error" ? "highlight-error"
-                          : m.parse_status === "unsupported_elements" ? "highlight-warning"
-                          : ""
-                        }
-                      >
-                        {parsedFields.map((f) => (
-                          <td key={f.key}>{renderVal(m, f.key, "parsed")}</td>
+                {parsedFound ? (
+                  <table className="comparison-table compact">
+                    <thead>
+                      <tr>
+                        {displayParsedCols.slice(0, 10).map((col) => (
+                          <th key={col}>{col}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paginatedData.map((m) => {
+                        const parsed = parsedByUid.get(String(m.uid));
+                        return (
+                          <tr key={m.id} className={!parsed ? "highlight-warning" : ""}>
+                            {displayParsedCols.slice(0, 10).map((col) => (
+                              <td key={col} className={typeof parsed?.[col] === "number" ? "numeric" : ""}>
+                                {parsed ? formatCell(parsed[col]) : "—"}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+                    Switch to &quot;Parsed Preview&quot; to parse formulas first
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = ""
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 4096
+    GEMINI_API_KEY: str = ""  # Alias: auto-used if LLM_API_KEY is empty
+
+    @property
+    def effective_llm_api_key(self) -> str:
+        """Return the effective API key — LLM_API_KEY takes priority, then GEMINI_API_KEY."""
+        return self.LLM_API_KEY or self.GEMINI_API_KEY
 
     @property
     def cors_origins_list(self) -> List[str]:

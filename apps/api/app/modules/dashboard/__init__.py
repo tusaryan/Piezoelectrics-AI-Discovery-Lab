@@ -1,1 +1,1 @@
-"""Piezo.AI — dashboard module."""
+"""Piezo.AI — Dashboard module (stats, model management, reports)."""

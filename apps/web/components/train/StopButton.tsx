@@ -58,7 +58,16 @@ export default function StopButton() {
       await stopTrainingJob(activeJobId);
       setJobPhase("cancelled");
     } catch (err) {
-      console.error("Failed to stop training:", err);
+      // If job already finished/not running, treat as completed gracefully
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("not running") || msg.includes("already finished")) {
+        // Job completed before stop signal arrived — show checkmark
+        setJobPhase("completed");
+      } else {
+        console.error("Failed to stop training:", msg);
+        // Still transition to avoid stuck UI
+        setJobPhase("failed");
+      }
     } finally {
       setLoading(false);
     }

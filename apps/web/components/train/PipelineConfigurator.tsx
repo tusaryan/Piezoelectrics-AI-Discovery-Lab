@@ -1,16 +1,22 @@
 /**
  * PipelineConfigurator — Dataset selector, field selector, missing value strategies.
+ * Features: Select All / Deselect All for targets and input fields.
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, ChevronDown, AlertTriangle, Zap } from "lucide-react";
+import { Database, ChevronDown, AlertTriangle, Zap, CheckSquare, Square, Layers } from "lucide-react";
 import { useTrainingStore } from "@/lib/store/trainingStore";
 import { listDatasets, type DatasetSummary } from "@/lib/api/datasets";
 import { validateDataset, type FieldIssue } from "@/lib/api/training";
 
 const TARGET_FIELDS = ["d33", "tc", "vickers_hardness"];
+const TARGET_LABELS: Record<string, string> = {
+  d33: "d₃₃ (pC/N)",
+  tc: "Tc (°C)",
+  vickers_hardness: "Hardness (HV)",
+};
 const INPUT_FIELDS = [
   "qm", "kp", "relative_density_pct", "sintering_temp_c",
   "sintering_method", "ceramic_type", "fabrication_method",
@@ -75,6 +81,29 @@ export default function PipelineConfigurator() {
     setSelectedFields([...new Set([...selectedFields, ...next])]);
   };
 
+  // Select All / Deselect All targets
+  const allTargetsSelected = TARGET_FIELDS.every(t => targets.includes(t));
+  const handleSelectAllTargets = () => {
+    if (allTargetsSelected) {
+      // Keep only the first target (at least one required)
+      setTargets([TARGET_FIELDS[0]]);
+    } else {
+      setTargets([...TARGET_FIELDS]);
+      setSelectedFields([...new Set([...selectedFields, ...TARGET_FIELDS])]);
+    }
+  };
+
+  // Select All / Deselect All input features
+  const allInputsSelected = INPUT_FIELDS.every(f => selectedFields.includes(f));
+  const handleSelectAllInputs = () => {
+    if (allInputsSelected) {
+      // Deselect all inputs, keep targets + formula
+      setSelectedFields(["formula", ...targets]);
+    } else {
+      setSelectedFields([...new Set(["formula", ...targets, ...INPUT_FIELDS])]);
+    }
+  };
+
   // Run pre-training validation
   const handleValidate = async () => {
     if (!selectedDatasetId) return;
@@ -125,9 +154,19 @@ export default function PipelineConfigurator() {
         <>
           {/* Target Selection */}
           <div className="config-section">
-            <h3 className="config-section-title">
-              <Zap size={16} /> Target Variables
-            </h3>
+            <div className="config-section-header">
+              <h3 className="config-section-title">
+                <Zap size={16} /> Target Variables
+              </h3>
+              <button
+                className="config-toggle-all-btn"
+                onClick={handleSelectAllTargets}
+                title={allTargetsSelected ? "Deselect All" : "Select All"}
+              >
+                {allTargetsSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                {allTargetsSelected ? "Deselect All" : "Select All"}
+              </button>
+            </div>
             <div className="config-chips">
               {TARGET_FIELDS.map((t) => (
                 <button
@@ -135,7 +174,7 @@ export default function PipelineConfigurator() {
                   className={`config-chip ${targets.includes(t) ? "active" : ""}`}
                   onClick={() => toggleTarget(t)}
                 >
-                  {t}
+                  {TARGET_LABELS[t] || t}
                 </button>
               ))}
             </div>
@@ -143,9 +182,19 @@ export default function PipelineConfigurator() {
 
           {/* Input Field Selection */}
           <div className="config-section">
-            <h3 className="config-section-title">
-              <ChevronDown size={16} /> Input Features
-            </h3>
+            <div className="config-section-header">
+              <h3 className="config-section-title">
+                <Layers size={16} /> Input Features
+              </h3>
+              <button
+                className="config-toggle-all-btn"
+                onClick={handleSelectAllInputs}
+                title={allInputsSelected ? "Deselect All" : "Select All"}
+              >
+                {allInputsSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                {allInputsSelected ? "Deselect All" : "Select All"}
+              </button>
+            </div>
             <div className="config-chips">
               <span className="config-chip active locked">formula</span>
               {INPUT_FIELDS.map((f) => (

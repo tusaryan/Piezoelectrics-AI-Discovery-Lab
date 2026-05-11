@@ -136,6 +136,15 @@ class FeatureEngineer:
         compositions: list[dict[str, Any]] = []
         skipped_uids: list[tuple[int, str]] = []  # (uid, reason)
 
+        # Columns to carry over from source for the unified parsed dataset
+        _CARRY_OVER_COLS = [
+            "d33", "tc", "vickers_hardness", "qm", "kp",
+            "relative_density_pct", "sintering_temp_c",
+            "sintering_method", "ceramic_type", "fabrication_method",
+            "matrix_type", "filler_wt_pct", "particle_morphology",
+            "particle_size_nm", "surface_treatment",
+        ]
+
         for _, row in frame.iterrows():
             uid = int(row[uid_col])
             formula_raw = str(row[formula_col])
@@ -162,7 +171,14 @@ class FeatureEngineer:
                 "parse_status": "success",
                 "parse_warnings": "; ".join(engineered.warnings) if engineered.warnings else "",
             }
+            # Add element amounts
             comp.update(engineered.element_amounts)
+            # Carry over original material properties for unified artifact
+            for col in _CARRY_OVER_COLS:
+                if col in row.index:
+                    val = row[col]
+                    if pd.notna(val):
+                        comp[col] = val
             compositions.append(comp)
 
         # Store skipped info for callers to access
@@ -171,3 +187,4 @@ class FeatureEngineer:
         vectors_df = pd.DataFrame(rows).fillna(0.0)
         parsed_df = pd.DataFrame(compositions).fillna(0.0)
         return vectors_df, parsed_df
+

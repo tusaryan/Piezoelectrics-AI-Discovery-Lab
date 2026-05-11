@@ -23,6 +23,9 @@
 /* S5: Prediction section styles */
 @import "../app/predict/predict.css";
 
+/* S6: Dashboard section styles */
+@import "../app/dashboard/dashboard.css";
+
 /* ---------- Theme: Dark (default) — Deep navy ---------- */
 :root,
 [data-theme="dark"] {

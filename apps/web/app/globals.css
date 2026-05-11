@@ -20,6 +20,9 @@
 /* S4: Training section styles */
 @import "../app/train/train.css";
 
+/* S5: Prediction section styles */
+@import "../app/predict/predict.css";
+
 /* ---------- Theme: Dark (default) — Deep navy ---------- */
 :root,
 [data-theme="dark"] {

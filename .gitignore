@@ -99,3 +99,6 @@ add_column.py
 *.orig
 coverage/
 .nyc_output/
+/resources/trained-models
+/resources/training-artifacts
+/resources/prediction-results

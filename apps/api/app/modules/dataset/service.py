@@ -1023,6 +1023,88 @@ async def delete_material(
 
 
 # ---------------------------------------------------------------------------
+# Copy dataset
+# ---------------------------------------------------------------------------
+
+async def copy_dataset(
+    dataset_id: str,
+    new_name: str | None,
+    db: AsyncSession,
+) -> DatasetDetailResponse:
+    """Copy a dataset and all its materials. UUID is new, display_name customizable."""
+    result = await db.execute(
+        select(Dataset).where(Dataset.id == uuid.UUID(dataset_id))
+    )
+    source_ds = result.scalar_one_or_none()
+    if not source_ds:
+        raise ValueError(f"Dataset {dataset_id} not found")
+
+    display = new_name or f"{source_ds.display_name} (copy)"
+    new_ds = Dataset(
+        display_name=display,
+        original_filename=source_ds.original_filename,
+        status="pending",
+        total_rows=source_ds.total_rows,
+        total_columns=source_ds.total_columns,
+        column_mapping=source_ds.column_mapping,
+        has_composite_fields=source_ds.has_composite_fields,
+    )
+    db.add(new_ds)
+    await db.flush()
+
+    # Copy materials
+    mat_result = await db.execute(
+        select(Material).where(Material.dataset_id == uuid.UUID(dataset_id)).order_by(Material.uid)
+    )
+    source_materials = mat_result.scalars().all()
+
+    for m in source_materials:
+        new_mat = Material(
+            dataset_id=new_ds.id,
+            uid=m.uid,
+            formula=m.formula, d33=m.d33, tc=m.tc,
+            vickers_hardness=m.vickers_hardness, qm=m.qm, kp=m.kp,
+            relative_density_pct=m.relative_density_pct,
+            sintering_temp_c=m.sintering_temp_c,
+            sintering_method=m.sintering_method,
+            ceramic_type=m.ceramic_type,
+            fabrication_method=m.fabrication_method,
+            matrix_type=m.matrix_type,
+            filler_wt_pct=m.filler_wt_pct,
+            particle_morphology=m.particle_morphology,
+            particle_size_nm=m.particle_size_nm,
+            surface_treatment=m.surface_treatment,
+            source_doi=m.source_doi, source_notes=m.source_notes,
+            parse_status=m.parse_status, parse_warnings=m.parse_warnings,
+            source_row=m.source_row, parsed_row=m.parsed_row,
+        )
+        db.add(new_mat)
+
+    await db.flush()
+    return DatasetDetailResponse(**_serialize_dataset(new_ds))
+
+
+# ---------------------------------------------------------------------------
+# Bulk delete datasets
+# ---------------------------------------------------------------------------
+
+async def bulk_delete_datasets(
+    dataset_ids: list[str],
+    db: AsyncSession,
+) -> dict[str, Any]:
+    """Delete multiple datasets at once. Returns count of deleted."""
+    deleted = 0
+    errors: list[str] = []
+    for did in dataset_ids:
+        try:
+            await delete_dataset(did, db)
+            deleted += 1
+        except ValueError as e:
+            errors.append(str(e))
+    return {"deleted_count": deleted, "errors": errors}
+
+
+# ---------------------------------------------------------------------------
 # Column clear (Review Issues remediation)
 # ---------------------------------------------------------------------------
 

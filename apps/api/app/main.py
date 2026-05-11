@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.modules.dataset.router import router as dataset_router
 from app.modules.training.router import router as training_router
+from app.modules.prediction.router import router as prediction_router
 
 
 @asynccontextmanager
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     print(f"📊 Database: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else 'configured'}")
     print(f"📁 Dataset endpoints: /api/v1/datasets")
     print(f"🧠 Training endpoints: /api/v1/training")
+    print(f"🔮 Prediction endpoints: /api/v1/predictions")
     yield
     # Shutdown
     await engine.dispose()
@@ -50,6 +52,7 @@ app.add_middleware(
 # --- Routers ---
 app.include_router(dataset_router, prefix="/api/v1/datasets", tags=["datasets"])
 app.include_router(training_router, prefix="/api/v1/training", tags=["training"])
+app.include_router(prediction_router, prefix="/api/v1/predictions", tags=["predictions"])
 
 
 @app.get("/health")

@@ -43,6 +43,7 @@ def save_trained_model(
     artifact_dir: str,
     convergence_data: list[dict] | None = None,
     feature_importances: dict[str, float] | None = None,
+    feature_columns: list[str] | None = None,
     root_dir: Path | None = None,
     timestamp: str | None = None,
 ) -> ModelArtifact:
@@ -76,6 +77,8 @@ def save_trained_model(
         metadata["convergence"] = {target: convergence_data}
     if feature_importances:
         metadata["feature_importances"] = {target: feature_importances}
+    if feature_columns:
+        metadata["feature_columns"] = feature_columns
 
     metadata_path = root_dir / f"metadata_{target}_{algorithm}_{ts}.json"
     metadata_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")

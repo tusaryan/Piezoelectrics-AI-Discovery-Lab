@@ -1,1 +1,1 @@
-"""Piezo.AI — prediction module."""
+"""Piezo.AI — prediction module: single, batch, formula validation, model management."""

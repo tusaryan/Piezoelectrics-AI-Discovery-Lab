@@ -35,9 +35,11 @@ from app.modules.dataset import service
 from app.modules.dataset.schemas import (
     BACKEND_FIELD_META,
     BackendFieldInfo,
+    BulkDeleteDatasetsRequest,
     BulkMaterialRequest,
     ColumnMappingRequest,
     DataQualityReport,
+    DatasetCopyRequest,
     DatasetDetailResponse,
     DatasetRenameRequest,
     DatasetSummaryResponse,
@@ -210,6 +212,40 @@ async def delete_dataset(
         await service.delete_dataset(dataset_id, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Copy + Bulk Delete
+# ---------------------------------------------------------------------------
+
+@router.post("/{dataset_id}/copy", response_model=DatasetDetailResponse)
+async def copy_dataset(
+    dataset_id: str,
+    body: DatasetCopyRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Copy a dataset and all its materials."""
+    try:
+        new_name = body.new_name if body else None
+        result = await service.copy_dataset(dataset_id, new_name, db)
+        logger.info("[COPY] dataset=%s → new=%s", dataset_id[:8], result.id[:8])
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/bulk-delete", response_model=BulkUpdateResponse)
+async def bulk_delete_datasets(
+    body: BulkDeleteDatasetsRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete multiple datasets at once."""
+    result = await service.bulk_delete_datasets(body.dataset_ids, db)
+    return BulkUpdateResponse(
+        updated_count=0,
+        deleted_count=result["deleted_count"],
+        errors=result.get("errors", []),
+    )
 
 
 # ---------------------------------------------------------------------------

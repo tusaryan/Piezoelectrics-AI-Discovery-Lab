@@ -174,6 +174,16 @@ class DatasetRenameRequest(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=255)
 
 
+class DatasetCopyRequest(BaseModel):
+    """Copy a dataset with all materials."""
+    new_name: str | None = Field(None, max_length=255, description="Name for the copy (optional)")
+
+
+class BulkDeleteDatasetsRequest(BaseModel):
+    """Delete multiple datasets at once."""
+    dataset_ids: list[str] = Field(..., min_length=1, description="Dataset UUIDs to delete")
+
+
 # ---------------------------------------------------------------------------
 # Response Models
 # ---------------------------------------------------------------------------

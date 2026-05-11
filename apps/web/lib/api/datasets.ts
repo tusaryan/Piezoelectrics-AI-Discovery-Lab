@@ -303,3 +303,19 @@ export function deleteMaterial(datasetId: string, materialId: string) {
     method: "DELETE",
   });
 }
+
+/* ---------- Dataset Management (copy, rename, bulk delete) ---------- */
+
+export function copyDataset(datasetId: string, newName?: string) {
+  return apiFetch<DatasetDetail>(`${BASE}/${datasetId}/copy`, {
+    method: "POST",
+    body: JSON.stringify({ new_name: newName }),
+  });
+}
+
+export function bulkDeleteDatasets(datasetIds: string[]) {
+  return apiFetch<{ deleted_count: number; errors: string[] }>(`${BASE}/bulk-delete`, {
+    method: "POST",
+    body: JSON.stringify({ dataset_ids: datasetIds }),
+  });
+}

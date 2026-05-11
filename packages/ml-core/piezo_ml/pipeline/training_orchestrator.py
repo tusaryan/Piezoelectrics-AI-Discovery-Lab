@@ -314,6 +314,7 @@ class TrainingOrchestrator:
                 artifact_dir=str(artifact.artifact_dir),
                 convergence_data=result.convergence_data,
                 feature_importances=result.feature_importances,
+                feature_columns=feature_cols,
             )
             model_artifacts.append(ma)
             _log("success", f"Model saved: {ma.model_path.name}")

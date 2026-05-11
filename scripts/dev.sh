@@ -325,7 +325,7 @@ cmd_setup() {
     success "packages/db installed"
 
     log "  Installing packages/ml-core..."
-    pip install -e packages/ml-core || { err "Failed to install packages/ml-core"; return 1; }
+    pip install -e "packages/ml-core[symbolic]" || { err "Failed to install packages/ml-core"; return 1; }
     success "packages/ml-core installed"
 
     log "  Installing apps/api..."

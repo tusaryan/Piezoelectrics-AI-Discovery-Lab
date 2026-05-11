@@ -26,6 +26,11 @@
 /* S6: Dashboard section styles */
 @import "../app/dashboard/dashboard.css";
 
+/* S7: Interpretability section styles */
+@import "../app/interpret/interpret.css";
+@import "../app/interpret/interpret-details.css";
+@import "katex/dist/katex.min.css";
+
 /* ---------- Theme: Dark (default) — Deep navy ---------- */
 :root,
 [data-theme="dark"] {

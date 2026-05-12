@@ -425,4 +425,94 @@ npm-debug.log*
 /resources/trained-models
 /.pnpm-store
 /apps/resources
+=======
+=======
+*.p12
+
+# ==================== Turborepo & pnpm ====================
+.turbo/
+.pnpm-store/
+pnpm-debug.log
+
+# ==================== Next.js ====================
+.next/
+out/
+build/
+next-env.d.ts
+
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==================== Virtual Environments ====================
+.venv/
+venv/
+ENV/
+env/
+
+# ==================== IDE / Editor ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==================== ML Artifacts ====================
+# Large model files and training outputs (too big for git)
+resources/trained-models/*.joblib
+resources/trained-models/*.pkl
+resources/training-artifacts/dataset_*/
+
+# ==================== Data files ====================
+*.pkl
+*.csv
+!resources/main-datasets/*.csv
+!resources/sample-and-test-dataset/*.csv
+
+# ==================== Project docs (private) ====================
+# Internal planning, architecture docs, and personal notes
+# Project/
+synopsis_6thsem_2026.md
+
+# ==================== Legacy ====================
+old-codebase/
+add_column.py
+
+# ==================== Misc ====================
+*.log
+*.tmp
+*.bak
+*.orig
+coverage/
+.nyc_output/
+# ML artifacts and runtime output (not versioned)
+resources/trained-models/
+resources/training-artifacts/
+resources/prediction-results/
+resources/reports/
+# Legacy stale location (migrated to resources/)
+apps/resources/
+
+# ==================== Runtime logs ====================
+logs/
+/.claude
 /Project

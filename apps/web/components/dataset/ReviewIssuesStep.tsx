@@ -82,22 +82,22 @@ export default function ReviewIssuesStep() {
     return parts.join(", ");
   }, [editedCells, pendingDeletes]);
 
-  /* Load quality report */
+  /* Load quality report — re-fetch when activeDatasetId changes */
   useEffect(() => {
-    if (!activeDatasetId || qualityReport) return;
+    if (!activeDatasetId) return;
     setIsLoadingReport(true);
     getQualityReport(activeDatasetId)
       .then(setQualityReport)
       .catch(() => setQualityReport(null))
       .finally(() => setIsLoadingReport(false));
-  }, [activeDatasetId, qualityReport, setQualityReport, setIsLoadingReport]);
+  }, [activeDatasetId, setQualityReport, setIsLoadingReport]);
 
   useEffect(() => {
     if (!activeDatasetId) return;
     getMaterials(activeDatasetId, { page: 1, page_size: 5000, sort_by: "uid", sort_order: "asc" })
       .then((res) => setMaterials(res.items))
       .catch(() => setMaterials([]));
-  }, [activeDatasetId, qualityReport]);
+  }, [activeDatasetId]);
 
   const issueByMaterial = useMemo(() => {
     const map = new Map<string, { columns: Set<string>; messages: string[] }>();
@@ -394,6 +394,29 @@ export default function ReviewIssuesStep() {
               Delete Selected Rows
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Quick select: all rows with issues */}
+      {qualityReport && qualityReport.issue_count > 0 && (
+        <div className="bulk-actions-bar" style={{ marginTop: 4 }}>
+          <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+            {qualityReport.issue_count} rows with issues
+          </span>
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => {
+              deselectAll();
+              materials.forEach((m) => {
+                const materialId = String(m.id ?? "");
+                if (issueByMaterial.has(materialId)) {
+                  toggleRowSelection(materialId);
+                }
+              });
+            }}
+          >
+            Select All with Issues
+          </button>
         </div>
       )}
 

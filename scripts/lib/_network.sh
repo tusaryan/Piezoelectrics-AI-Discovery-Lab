@@ -3,9 +3,9 @@
 # Piezo.AI — Shell Library: Network Diagnostics
 # ============================================
 
-# ── Check pypi.org reachability ──────────────
+# ── Check pypi.org reachability via curl ──────
 # Returns 0 if reachable, 1 if not.
-pz_check_pypi() {
+pz_check_pypi_curl() {
     if curl -s --max-time 5 https://pypi.org/simple/ >/dev/null 2>&1; then
         return 0
     fi
@@ -47,28 +47,54 @@ pz_check_pypi() {
 pz_diagnose_network() {
     pz_log "Running network diagnostics..."
 
-    # Check internet
-    if curl -s --max-time 5 https://pypi.org >/dev/null 2>&1; then
-        pz_success "Internet: reachable (pypi.org)"
+    # ── curl reachability (quick check) ──
+    pz_log "  Checking internet via curl..."
+    if pz_check_pypi_curl; then
+        pz_success "  [curl] pypi.org is reachable"
     else
-        pz_warn "Internet: pypi.org is NOT reachable"
-        pz_info "Possible causes:"
-        pz_info "  - VPN / proxy blocking pypi.org"
-        pz_info "  - Firewall / DNS outage"
-        pz_info "  - No internet connection"
-        pz_info ""
-        pz_info "Try:"
-        pz_info "  - Disable VPN / proxy temporarily"
-        pz_info "  - Check DNS:   nslookup pypi.org"
-        pz_info "  - Test:        curl https://pypi.org/simple/"
+        pz_warn "  [curl] pypi.org is NOT reachable via curl"
+        pz_info "  Possible causes:"
+        pz_info "    - VPN / proxy blocking pypi.org"
+        pz_info "    - Firewall / DNS outage"
+        pz_info "    - No internet connection"
     fi
 
-    # Check DNS
+    # ── pip reachability (authoritative check) ──
+    pz_log "  Checking internet via pip..."
+    if [ -f "$_PZ_VENV_DIR/bin/pip" ]; then
+        if "$_PZ_VENV_DIR/bin/pip" download --no-deps --dest /tmp/pz_pip_test \
+            --index-url https://pypi.org/simple/ setuptools &>/dev/null; then
+            pz_success "  [pip] pypi.org is reachable"
+            rm -rf /tmp/pz_pip_test 2>/dev/null
+        else
+            pz_warn "  [pip] pypi.org is NOT reachable via pip (curl worked — pip may use different proxy/DNS)"
+            pz_info "  Try:"
+            pz_info "    - Disable VPN / proxy"
+            pz_info "    - Check pip proxy: pip config list"
+            pz_info "    - Check pip SSL: pip config list --format freeze | grep cert"
+            pz_info "    - Force DNS: pip install --trusted-host pypi.org ..."
+            rm -rf /tmp/pz_pip_test 2>/dev/null
+        fi
+    else
+        pz_info "  [pip] not installed yet — skipping pip-level check"
+    fi
+
+    # ── pip cache status ──
+    local cache_dir
+    cache_dir=$(pip cache dir 2>/dev/null)
+    if [ -n "$cache_dir" ] && [ -d "$cache_dir" ]; then
+        local cached_pkgs
+        cached_pkgs=$(find "$cache_dir" -type f -name "*.whl" 2>/dev/null | wc -l | tr -d ' ')
+        pz_info "  pip cache dir: $cache_dir"
+        pz_info "    ($cached_pkgs cached package files — used only when package version matches)"
+    fi
+
+    # ── DNS check ──
     if command -v nslookup &>/dev/null; then
         if nslookup pypi.org &>/dev/null; then
-            pz_success "DNS: pypi.org resolves"
+            pz_success "  DNS: pypi.org resolves"
         else
-            pz_warn "DNS: pypi.org does NOT resolve"
+            pz_warn "  DNS: pypi.org does NOT resolve"
         fi
     fi
 

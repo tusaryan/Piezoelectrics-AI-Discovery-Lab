@@ -609,7 +609,7 @@ async def get_quality_report(
     return DataQualityReport(
         total_rows=len(materials),
         valid_rows=valid_count,
-        issue_count=len(issues),
+        issue_count=len({i.material_id for i in issues}),  # unique rows with issues
         issues=issues,
         column_stats=column_stats,
     )
@@ -871,14 +871,14 @@ async def update_material(
                     )
             setattr(material, field_name, value)
 
-    # Re-validate formula if changed
+    # Re-validate formula if changed — validate the NEW value, not the DB value
     if "formula" in data:
         from piezo_ml.validators.formula_validator import validate_formula
-        vr = validate_formula(material.formula)
+        new_formula = data["formula"]
+        vr = validate_formula(new_formula)
         material.parse_status = vr.parse_status
         material.parse_warnings = vr.parse_warnings_str
-        if vr.normalized_formula != vr.formula:
-            material.formula = vr.normalized_formula
+        material.formula = vr.normalized_formula  # always update to normalized
 
     # Refresh snapshots after any change
     material.source_row = {k: v for k, v in _serialize_material(material).items() if k not in ("source_row", "parsed_row")}

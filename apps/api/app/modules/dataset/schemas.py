@@ -48,32 +48,14 @@ BACKEND_FIELDS: dict[str, list[str]] = {
     "source_notes": ["source_notes", "notes", "comments"],
 }
 
-# Fields that have constrained valid values (for dropdown rendering)
-# NOTE: These are SUGGESTIONS, not strict constraints. During quality report,
-# values outside these lists are flagged as warnings, not errors.
+# Import from ml-core's central registry (single source of truth)
+from piezo_ml.registry.field_options_registry import CATEGORICAL_OPTIONS as _ML_CORE_CATEGORICAL
+
+# Build CATEGORICAL_FIELD_OPTIONS dict for Pydantic validation
+# Keys match what the backend API expects
 CATEGORICAL_FIELD_OPTIONS: dict[str, list[str]] = {
-    "sintering_method": [
-        "conventional", "hot_press", "sps", "rtgg", "tgg", "two_step",
-        "cold_sinter", "microwave", "flash",
-    ],
-    "ceramic_type": ["soft", "hard", "composite"],
-    "fabrication_method": [
-        "conventional", "hot_press", "sps", "rtgg", "tgg", "two_step",
-        "electrospinning", "solvent_cast", "cold_sinter", "hot_compression",
-        "3d_print", "tape_casting", "screen_printing", "injection_molding",
-    ],
-    "matrix_type": [
-        "none", "pvdf", "p_vdf_trfe", "pvdf_trfe", "pvdf_hfp",
-        "pvdf_hfp_ctrfe", "epoxy", "silicone", "polyimide", "pdms",
-    ],
-    "particle_morphology": [
-        "none", "spherical", "rod", "cube", "nanoblock", "fiber",
-        "platelet", "whisker", "irregular",
-    ],
-    "surface_treatment": [
-        "none", "untreated", "silane", "plasma", "acid", "peg",
-        "dopamine", "fluorinated", "kh550", "kh560",
-    ],
+    field: info["values"]
+    for field, info in _ML_CORE_CATEGORICAL.items()
 }
 
 

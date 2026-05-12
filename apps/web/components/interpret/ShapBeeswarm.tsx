@@ -11,6 +11,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { Loader2, ScatterChart, Maximize2, Minimize2 } from "lucide-react";
 import { useInterpretStore } from "@/lib/store/interpretStore";
 import InfoTooltip from "./InfoTooltip";
+import { ChartNavigation } from "./ChartNavigation";
 
 export default function ShapBeeswarm() {
   const { beeswarm, beeswarmLoading, beeswarmError, selectedModelId, fetchBeeswarm } =
@@ -242,8 +243,10 @@ export default function ShapBeeswarm() {
           <div className="interpret-error">{beeswarmError}</div>
         )}
         {beeswarm && !beeswarmLoading && (
-          <div className="beeswarm-container">
-            <svg ref={svgRef} />
+          <div className="beeswarm-container" ref={containerRef}>
+            <ChartNavigation containerRef={containerRef} id="shap-beeswarm">
+              <svg ref={svgRef} />
+            </ChartNavigation>
             <div className="beeswarm-meta">
               {beeswarm.n_samples} samples analyzed • {beeswarm.feature_names.length} features
             </div>

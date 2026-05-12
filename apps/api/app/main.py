@@ -13,11 +13,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine
+from app.core.logging_config import setup_logging
+
+# Set up structured logging BEFORE any other imports
+setup_logging()
+
 from app.modules.dataset.router import router as dataset_router
 from app.modules.training.router import router as training_router
 from app.modules.prediction.router import router as prediction_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.interpret.router import router as interpret_router
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

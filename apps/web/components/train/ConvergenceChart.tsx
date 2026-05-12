@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTrainingStore } from "@/lib/store/trainingStore";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { ChartNavigation } from "@/components/interpret/ChartNavigation";
 
 const TARGET_COLORS: Record<string, string> = {
   d33: "hsl(245, 80%, 65%)",       // Indigo
@@ -29,6 +30,7 @@ export default function ConvergenceChart() {
   const convergenceData = useTrainingStore((s) => s.convergenceData);
   const jobPhase = useTrainingStore((s) => s.jobPhase);
   const [showGuide, setShowGuide] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const targets = Object.keys(convergenceData).filter(
     (t) => convergenceData[t]?.length > 0
@@ -67,6 +69,8 @@ export default function ConvergenceChart() {
 
       {/* Render one chart per target — each has its own Y-axis scale */}
       <div className="convergence-charts-grid">
+        <div ref={gridRef} style={{ position: "relative" }}>
+          <ChartNavigation containerRef={gridRef} id="convergence">
         {targets.map((target) => {
           const points = convergenceData[target] || [];
           const chartData = points.map((p, i) => ({
@@ -133,6 +137,8 @@ export default function ConvergenceChart() {
             </div>
           );
         })}
+        </ChartNavigation>
+        </div>
       </div>
     </div>
   );

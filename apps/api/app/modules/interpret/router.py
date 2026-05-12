@@ -7,11 +7,17 @@ DUMB PIPE: validates requests, delegates to InterpretService.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+
+
+def _project_root() -> Path:
+    """Get the project root directory."""
+    return Path(__file__).resolve().parents[5]
 from app.modules.interpret.schemas import (
     InterpretModelInfo,
     PhysicsValidationRequest,
@@ -166,14 +172,42 @@ async def symbolic_regression(
         )
 
 @router.post("/install-pysr")
-async def install_pysr(db: AsyncSession = Depends(get_db)):
-    """Install PySR backend (downloads Julia and packages)."""
+async def install_pysr():
+    """Install PySR backend (downloads Julia ~300MB, runs in background).
+
+    This endpoint returns immediately while installation continues in the background.
+    The installation status is reflected when user tries to run symbolic regression again.
+    """
+    import asyncio
+    import subprocess
+    import threading
+
+    def _install_in_background():
+        """Background thread: installs PySR Julia backend."""
+        root = _project_root()
+        venv_python = root / ".venv" / "bin" / "python3"
+        python_cmd = str(venv_python) if venv_python.exists() else "python3"
+        cmd = [python_cmd, "-c", "import pysr; pysr.install(quiet=True)"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if result.returncode != 0:
+                import logging
+                logging.getLogger("interpret").error(
+                    f"PySR install background failed: {result.stderr[:300]}"
+                )
+        except Exception:
+            pass
+
     try:
-        service = InterpretService(db)
-        result = await service.install_pysr_backend()
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        thread = threading.Thread(target=_install_in_background, daemon=True)
+        thread.start()
     except Exception as e:
-        logger.error(f"PySR install error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Installation failed: {str(e)}")
+        import logging
+        logging.getLogger("interpret").warning(f"Could not start background install thread: {e}")
+
+    return {
+        "success": True,
+        "message": "PySR installation started in the background. "
+                   "This downloads Julia (~300MB) and may take 2-5 minutes. "
+                   "Try running symbolic regression in a few minutes.",
+    }

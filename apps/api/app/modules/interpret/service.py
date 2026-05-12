@@ -51,7 +51,8 @@ def _load_model_and_data(
         metadata = json.loads(meta_path.read_text(encoding="utf-8"))
 
     # Load feature vectors CSV from training artifacts
-    artifact_dir = model_row.artifact_dir
+    # Try model_row.artifact_dir first, then fall back to metadata source_artifact_dir
+    artifact_dir = model_row.artifact_dir or metadata.get("source_artifact_dir", "")
     if artifact_dir:
         art_path = Path(artifact_dir)
         if not art_path.is_absolute():
@@ -334,24 +335,53 @@ class InterpretService:
         }
 
     async def install_pysr_backend(self) -> dict:
-        """Run PySR installation (downloads Julia and setups dependencies)."""
+        """Run PySR installation (downloads Julia and setups dependencies).
+
+        Uses the .venv Python if available, falling back to system python.
+        Prompts user for confirmation since it downloads ~300MB of Julia binaries.
+        """
         import asyncio
         import subprocess
-        
+        import os
+
+        # Find the right Python (prefer .venv, fallback to system)
+        root = _project_root()
+        venv_python = root / ".venv" / "bin" / "python3"
+        if venv_python.exists():
+            python_cmd = str(venv_python)
+        else:
+            python_cmd = "python3"
+
         try:
-            cmd = ["python", "-c", "import pysr; pysr.install(quiet=True)"]
+            # pysr.install() downloads Julia (~300MB) and sets up the environment
+            cmd = [python_cmd, "-c", "import pysr; pysr.install(quiet=True)"]
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
             stdout, stderr = await process.communicate()
-            
+
             if process.returncode != 0:
-                raise ValueError(f"Failed to install PySR backend: {stderr.decode()}")
-                
-            return {"success": True, "message": "PySR backend installed successfully."}
+                err_msg = stderr.decode(errors="replace") or stdout.decode(errors="replace")
+                logger.error(f"PySR install failed: {err_msg}")
+                raise ValueError(
+                    f"PySR installation failed. Julia download may have been interrupted or failed.\n"
+                    f"Error: {err_msg[:500]}\n\n"
+                    f"Manual install: Run in terminal: {python_cmd} -c 'import pysr; pysr.install()'"
+                )
+
+            return {
+                "success": True,
+                "message": "PySR backend installed successfully. Julia binaries are now available.",
+            }
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"PySR install error: {e}", exc_info=True)
-            raise ValueError(f"Installation failed: {str(e)}")
+            raise ValueError(
+                f"Installation command failed: {str(e)}\n\n"
+                f"Manual install: bash scripts/dev.sh setup (to reinstall all deps with symbolic extras)\n"
+                f"Or manually: source .venv/bin/activate && pip install 'piezo-ml[symbolic]' && python -c 'import pysr; pysr.install()'"
+            )
 

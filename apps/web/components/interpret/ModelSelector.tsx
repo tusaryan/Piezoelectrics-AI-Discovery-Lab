@@ -64,7 +64,7 @@ export default function InterpretModelSelector() {
               <div className="model-card-meta">
                 <span>{m.algorithm}</span>
                 <span>R² {(m.r2_score ?? 0).toFixed(3)}</span>
-                <span>{m.n_train_samples} samples</span>
+                <span className="meta-samples">{m.n_train_samples} samples</span>
               </div>
             </button>
           ))}

@@ -197,10 +197,8 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
     try {
       await apiInstallPySRBackend();
       set({ pysrInstalling: false });
-      // Clear the error/availability state by triggering a rerun of symReg
-      // Or just let the user click "Run" again.
-      // We will re-fetch the symbolic regression to clear the 'not available' state
-      get().fetchSymbolicRegression();
+      // Do NOT auto-run symbolic regression — let the user click "Run" manually
+      // after installation completes in the background
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Installation failed";
       set({ symRegError: msg, pysrInstalling: false });

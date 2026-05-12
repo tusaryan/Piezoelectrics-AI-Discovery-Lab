@@ -112,7 +112,7 @@ export interface SymbolicRegressionResult {
 // ---------- API Functions ----------
 
 export async function fetchInterpretModels(): Promise<InterpretModel[]> {
-  const res = await fetch(`${BASE}/models`);
+  const res = await fetch(`${BASE}/models`, { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`Failed to fetch models: ${res.statusText}`);
   return res.json();
 }
@@ -125,6 +125,7 @@ export async function runShapBeeswarm(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_id: modelId, max_samples: maxSamples }),
+    signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -141,6 +142,7 @@ export async function runShapWaterfall(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_id: modelId, sample_index: sampleIndex }),
+    signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -157,6 +159,7 @@ export async function runShapDependence(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_id: modelId, feature_name: featureName }),
+    signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -172,6 +175,7 @@ export async function runPhysicsValidation(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_id: modelId }),
+    signal: AbortSignal.timeout(120000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -193,6 +197,7 @@ export async function runSymbolicRegression(
       n_iterations: opts?.nIterations ?? 40,
       timeout_seconds: opts?.timeoutSeconds ?? 120,
     }),
+    signal: AbortSignal.timeout(300000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

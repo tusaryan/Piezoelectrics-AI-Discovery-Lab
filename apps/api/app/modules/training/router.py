@@ -340,7 +340,7 @@ async def _persist_completed_job(
             n_test_samples=model_data["n_test"],
             supported_elements=model_data.get("supported_elements", []),
             model_file_path=model_data.get("model_path", ""),
-            artifact_dir=model_data.get("artifact_dir", ""),
+            artifact_dir=job.artifact_dir or "",
             training_duration_s=model_data["training_duration_s"],
         )
         db.add(tm)

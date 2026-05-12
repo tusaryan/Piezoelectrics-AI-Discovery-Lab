@@ -14,6 +14,7 @@ import {
 import { Loader2, Sigma, Maximize2, Minimize2, Play, AlertCircle } from "lucide-react";
 import { useInterpretStore } from "@/lib/store/interpretStore";
 import InfoTooltip from "./InfoTooltip";
+import { ChartNavigation } from "./ChartNavigation";
 
 function KaTeXBlock({ latex }: { latex: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -47,6 +48,7 @@ export default function SymbolicRegression() {
   } = useInterpretStore();
   const [expanded, setExpanded] = useState(false);
   const [selectedEqIdx, setSelectedEqIdx] = useState<number | null>(null);
+  const paretoRef = useRef<HTMLDivElement>(null);
 
   const handleRun = () => {
     if (selectedModelId) fetchSymbolicRegression();
@@ -161,36 +163,40 @@ export default function SymbolicRegression() {
             {pareto.length > 1 && (
               <div className="symreg-pareto">
                 <h4>Parsimony Pareto Front</h4>
-                <ResponsiveContainer width="100%" height={200}>
-                  <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
-                    <XAxis
-                      dataKey="complexity" type="number" name="Complexity"
-                      tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
-                      label={{ value: "Complexity", position: "bottom", offset: 15, fill: "var(--text-secondary)", fontSize: 11 }}
-                    />
-                    <YAxis
-                      dataKey="r2" type="number" name="R²"
-                      tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
-                      label={{ value: "R²", angle: -90, position: "insideLeft", fill: "var(--text-secondary)", fontSize: 11 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--card)", border: "1px solid var(--border)",
-                        borderRadius: "8px", fontSize: "12px", color: "var(--text)",
-                      }}
-                    />
-                    <Scatter data={pareto}>
-                      {pareto.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={i === bestIdx ? "var(--success)" : "var(--chart-pareto)"}
-                          r={i === bestIdx ? 6 : 4}
-                        />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
+                <div ref={paretoRef} style={{ position: "relative" }}>
+                  <ChartNavigation containerRef={paretoRef} id="pysr-pareto">
+                    <ResponsiveContainer width="100%" height={200}>
+                    <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                      <XAxis
+                        dataKey="complexity" type="number" name="Complexity"
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
+                        label={{ value: "Complexity", position: "bottom", offset: 15, fill: "var(--text-secondary)", fontSize: 11 }}
+                      />
+                      <YAxis
+                        dataKey="r2" type="number" name="R²"
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
+                        label={{ value: "R²", angle: -90, position: "insideLeft", fill: "var(--text-secondary)", fontSize: 11 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--card)", border: "1px solid var(--border)",
+                          borderRadius: "8px", fontSize: "12px", color: "var(--text)",
+                        }}
+                      />
+                      <Scatter data={pareto}>
+                        {pareto.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={i === bestIdx ? "var(--success)" : "var(--chart-pareto)"}
+                            r={i === bestIdx ? 6 : 4}
+                          />
+                        ))}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </ChartNavigation>
+                </div>
               </div>
             )}
 

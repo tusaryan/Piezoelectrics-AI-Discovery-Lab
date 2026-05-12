@@ -420,3 +420,9 @@ id_rsa.pub
 *.log
 npm-debug.log*
 *.pkl
+/apps/web/.next
+/resources/training-artifacts
+/resources/trained-models
+/.pnpm-store
+/apps/resources
+/Project

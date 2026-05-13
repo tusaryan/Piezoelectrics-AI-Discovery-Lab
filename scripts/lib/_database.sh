@@ -43,16 +43,34 @@ pz_get_db_vars() {
 # ── Check if PostgreSQL is reachable ─────────
 pz_db_is_ready() {
     pz_get_db_vars
-    export PGPASSWORD="$DB_PASS"
-    if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; then
+
+    # Method 1: Try pg_isready (if installed)
+    if command -v pg_isready &>/dev/null; then
+        export PGPASSWORD="$DB_PASS"
+        if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; then
+            unset PGPASSWORD
+            return 0
+        fi
         unset PGPASSWORD
-        return 0
     fi
-    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "SELECT 1;" >/dev/null 2>&1; then
+
+    # Method 2: Try psql (if installed)
+    if command -v psql &>/dev/null; then
+        export PGPASSWORD="$DB_PASS"
+        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "SELECT 1;" >/dev/null 2>&1; then
+            unset PGPASSWORD
+            return 0
+        fi
         unset PGPASSWORD
-        return 0
     fi
-    unset PGPASSWORD
+
+    # Method 3: Use docker exec (works if docker is available)
+    if command -v docker &>/dev/null; then
+        if docker exec piezo-ai-db psql -U piezo -d piezo_ai -c "SELECT 1;" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
     return 1
 }
 
@@ -90,9 +108,9 @@ pz_ensure_db_running() {
 
     pz_db_start_docker || return 1
 
-    # Wait for readiness
+    # Wait for readiness (increased timeout for first-time Docker startup)
     pz_log "Waiting for database to be ready..."
-    for i in {1..30}; do
+    for i in {1..60}; do
         if pz_db_is_ready; then
             pz_success "Database is ready!"
             return 0
@@ -101,7 +119,7 @@ pz_ensure_db_running() {
         sleep 1
     done
     echo ""
-    pz_err "Timed out waiting for PostgreSQL (30s). Check: docker logs piezo-ai-db"
+    pz_err "Timed out waiting for PostgreSQL (60s). Check: docker logs piezo-ai-db"
     return 1
 }
 
@@ -109,25 +127,35 @@ pz_ensure_db_running() {
 pz_db_create() {
     pz_ensure_db_running || return 1
     pz_get_db_vars
-    export PGPASSWORD="$DB_PASS"
 
     pz_log "Checking if database '$DB_NAME' exists..."
-    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt 2>/dev/null | \
-       cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+
+    # Check using docker exec (most reliable on macOS)
+    if docker exec piezo-ai-db psql -U piezo -d postgres -t -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';" 2>/dev/null | grep -q 1; then
         pz_success "Database '$DB_NAME' already exists"
-    else
-        pz_log "Creating database '$DB_NAME'..."
-        createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" 2>/dev/null || \
-        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "CREATE DATABASE \"$DB_NAME\";" 2>/dev/null || \
-        docker exec piezo-ai-db psql -U piezo -c "CREATE DATABASE piezo_ai;" 2>/dev/null || {
-            pz_err "Failed to create database"
-            unset PGPASSWORD
-            return 1
-        }
-        pz_success "Database '$DB_NAME' created"
+        return 0
     fi
-    unset PGPASSWORD
-    return 0
+
+    # Try createdb if available
+    if command -v createdb &>/dev/null; then
+        export PGPASSWORD="$DB_PASS"
+        if createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" 2>/dev/null; then
+            pz_success "Database '$DB_NAME' created"
+            unset PGPASSWORD
+            return 0
+        fi
+        unset PGPASSWORD
+    fi
+
+    # Fallback: use docker exec
+    pz_log "Creating database '$DB_NAME'..."
+    if docker exec piezo-ai-db psql -U piezo -d postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null; then
+        pz_success "Database '$DB_NAME' created"
+        return 0
+    fi
+
+    pz_err "Failed to create database"
+    return 1
 }
 
 # ── Run Alembic migrations ───────────────────
@@ -237,7 +265,7 @@ pz_db_setup_interactive() {
         pz_db_start_docker || return 1
 
         pz_log "Waiting for database..."
-        for i in {1..30}; do
+        for i in {1..60}; do
             if pz_db_is_ready; then
                 pz_success "Database is ready!"
                 return 0
@@ -246,7 +274,7 @@ pz_db_setup_interactive() {
             sleep 1
         done
         echo ""
-        pz_warn "Timed out waiting for DB (30s). It may still be starting."
+        pz_warn "Timed out waiting for DB (60s). It may still be starting."
     fi
     return 0
 }

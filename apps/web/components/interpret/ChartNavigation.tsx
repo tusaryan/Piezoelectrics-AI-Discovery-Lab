@@ -1,24 +1,31 @@
 "use client";
 
 /**
- * ChartNavigation — SVG-level zoom/pan/reset/copy controls for chart containers.
+ * ChartNavigation — GitHub mermaid-style zoom/pan/reset/expand controls.
  *
- * Wraps any chart content. On show: renders a floating toolbar at the bottom-left.
- * The toolbar adapts to the current theme (light/dark/night).
- *
- * Zoom/Pan work via CSS transform on the content wrapper.
- * Copy downloads the chart area as PNG via canvas.
+ * Layout:
+ * - Plus-like orientation with arrows: ← ↑ ↓ →
+ * - Center: Reset (home) button
+ * - Right-top: Zoom in (+)
+ * - Right-bottom: Zoom out (-)
+ * - Right edge, vertically: Expand (fullscreen) button
+ * - Copy button with image/mermaid choice
+ * - Hide/Unhide toggle
+ * - Opaque background canvas behind the chart
  */
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import {
-  Eye, EyeOff, ZoomIn, ZoomOut, Move, RotateCcw, Copy, Download,
+  Eye, EyeOff, ZoomIn, ZoomOut, RotateCcw, Move, Expand,
+  Copy, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
+  Image, Code, X
 } from "lucide-react";
 
 interface ChartNavigationProps {
   children: ReactNode;
   containerRef: React.RefObject<HTMLDivElement | null>;
   id?: string;
+  mermaidCode?: string; // Optional mermaid code for copy option
 }
 
 type Theme = "light" | "dark" | "night";
@@ -30,32 +37,36 @@ interface ThemeColors {
   textMuted: string;
   success: string;
   error: string;
+  canvasBg: string;
 }
 
 const THEME_COLORS: Record<Theme, ThemeColors> = {
   light: {
     bg: "#ffffff",
-    border: "#E4E4E7",
-    text: "#1E1B4B",
-    textMuted: "#6B6D8A",
-    success: "#10B981",
+    border: "#D4D4D8",
+    text: "#18181B",
+    textMuted: "#71717A",
+    success: "#22C55E",
     error: "#EF4444",
+    canvasBg: "#FAFAFA",
   },
   dark: {
-    bg: "#1A1A2E",
-    border: "#2D2D4A",
-    text: "#E8E9FF",
-    textMuted: "#6B6D8A",
-    success: "#10B981",
+    bg: "#18181B",
+    border: "#3F3F46",
+    text: "#FAFAFA",
+    textMuted: "#A1A1AA",
+    success: "#22C55E",
     error: "#EF4444",
+    canvasBg: "#09090B",
   },
   night: {
     bg: "#1C1917",
-    border: "#292524",
-    text: "#F0E6D3",
-    textMuted: "#8A7F6E",
-    success: "#10B981",
+    border: "#44403C",
+    text: "#F5F5F4",
+    textMuted: "#A8A29E",
+    success: "#22C55E",
     error: "#EF4444",
+    canvasBg: "#1C1917",
   },
 };
 
@@ -66,8 +77,8 @@ function getTheme(): Theme {
   return "dark";
 }
 
-export function ChartNavigation({ children, containerRef, id }: ChartNavigationProps) {
-  const [visible, setVisible] = useState(false);
+export function ChartNavigation({ children, containerRef, id, mermaidCode }: ChartNavigationProps) {
+  const [visible, setVisible] = useState(true);
   const [hidden, setHidden] = useState(false);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -75,8 +86,11 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<Theme>("dark");
   const [copied, setCopied] = useState(false);
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const expandedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const t = getTheme();
@@ -88,9 +102,9 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     return () => observer.disconnect();
   }, []);
 
-  // Compute chart colors from current theme
   const colors = THEME_COLORS[theme];
 
+  // Zoom handlers
   const handleZoomIn = useCallback(() => {
     setScale((s) => Math.min(s + 0.2, 4));
   }, []);
@@ -104,6 +118,16 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     setOffset({ x: 0, y: 0 });
   }, []);
 
+  // Pan handlers
+  const handleMove = useCallback((direction: "up" | "down" | "left" | "right") => {
+    const step = 50;
+    setOffset((prev) => ({
+      x: prev.x + (direction === "left" ? step : direction === "right" ? -step : 0),
+      y: prev.y + (direction === "up" ? step : direction === "down" ? -step : 0),
+    }));
+  }, []);
+
+  // Drag handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -120,33 +144,31 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     setIsDragging(false);
   }, []);
 
-  const handleCopy = useCallback(async () => {
+  // Copy as PNG
+  const handleCopyImage = useCallback(async () => {
     const el = contentRef.current;
     if (!el) return;
     try {
       const svg = el.querySelector("svg");
       if (svg) {
-        // Clone SVG and inline its styles for export
         const clone = svg.cloneNode(true) as SVGSVGElement;
         clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-
-        // Apply current colors as inline styles on the clone
-        const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
-        style.textContent = `
+        const styleEl = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        styleEl.textContent = `
           * { color: ${colors.text}; fill: ${colors.text}; }
           text { fill: ${colors.textMuted}; font-family: monospace; }
           line, path { stroke: ${colors.border}; }
         `;
-        clone.insertBefore(style, clone.firstChild);
-
-        const serializer = new XMLSerializer();
+        clone.insertBefore(styleEl, clone.firstChild);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serializer = new (window as any).XMLSerializer();
         const svgStr = serializer.serializeToString(clone);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        const img = new Image();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const img = new (window as any).Image();
         const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
-
         img.onload = () => {
           canvas.width = img.width * 2;
           canvas.height = img.height * 2;
@@ -154,17 +176,15 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
           ctx?.drawImage(img, 0, 0);
           URL.revokeObjectURL(url);
           try {
-            canvas.toBlob((blob) => {
-              if (blob) {
-                navigator.clipboard.write([
-                  new ClipboardItem({ "image/png": blob }),
-                ]);
+            canvas.toBlob((b) => {
+              if (b) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                navigator.clipboard.write([new (window as any).ClipboardItem({ "image/png": b })]);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }
             });
           } catch {
-            // Clipboard API not available — try download fallback
             const a = document.createElement("a");
             a.href = canvas.toDataURL("image/png");
             a.download = `${id || "chart"}-${Date.now()}.png`;
@@ -175,11 +195,21 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
         };
         img.src = url;
       }
-    } catch {
-      // Silently fail
-    }
+    } catch { /* silent */ }
+    setShowCopyMenu(false);
   }, [colors, id]);
 
+  // Copy as Mermaid
+  const handleCopyMermaid = useCallback(async () => {
+    if (mermaidCode) {
+      await navigator.clipboard.writeText(mermaidCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+    setShowCopyMenu(false);
+  }, [mermaidCode]);
+
+  // Download
   const handleDownload = useCallback(() => {
     const el = contentRef.current;
     if (!el) return;
@@ -187,11 +217,13 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     if (!svg) return;
     const clone = svg.cloneNode(true) as SVGSVGElement;
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    const serializer = new XMLSerializer();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const serializer = new (window as any).XMLSerializer();
     const svgStr = serializer.serializeToString(clone);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const img = new Image();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const img = new (window as any).Image();
     const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     img.onload = () => {
@@ -208,6 +240,17 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     img.src = url;
   }, [id]);
 
+  // Handle escape key for expanded mode
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isExpanded) {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isExpanded]);
+
   if (hidden) {
     return (
       <div className="chart-nav-hidden-wrapper">
@@ -223,9 +266,48 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
     );
   }
 
+  // Expanded fullscreen view
+  if (isExpanded) {
+    return (
+      <div
+        className="chart-nav-expanded-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setIsExpanded(false);
+        }}
+      >
+        <div className="chart-nav-expanded-container" ref={expandedRef}>
+          <div className="chart-nav-expanded-header">
+            <span style={{ color: colors.text }}>Expanded View</span>
+            <button
+              className="chart-nav-expanded-close"
+              onClick={() => setIsExpanded(false)}
+              style={{ color: colors.textMuted }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div
+            className="chart-nav-expanded-content"
+            style={{
+              background: colors.canvasBg,
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="chart-nav-root">
-      {/* Content area */}
+      {/* Opaque background canvas */}
+      <div
+        className="chart-nav-canvas"
+        style={{ background: colors.canvasBg }}
+      />
+
+      {/* Content area with transform */}
       <div
         ref={contentRef}
         className="chart-nav-content"
@@ -242,106 +324,176 @@ export function ChartNavigation({ children, containerRef, id }: ChartNavigationP
         {children}
       </div>
 
-      {/* Toolbar — shown when visible, floating bottom-left */}
+      {/* Navigation controls - only show when visible */}
       {visible && (
-        <div
-          className="chart-nav-toolbar"
-          style={{
-            background: colors.bg,
-            border: `1px solid ${colors.border}`,
-            color: colors.text,
-          }}
-        >
-          {/* Hide */}
+        <>
+          {/* Left side: Directional arrows + center reset */}
+          <div className="chart-nav-dpad" style={{ background: colors.bg, borderColor: colors.border }}>
+            {/* Up */}
+            <button
+              className="chart-nav-dpad-btn"
+              onClick={() => handleMove("up")}
+              title="Move up"
+              style={{ color: colors.text }}
+            >
+              <ChevronUp size={16} />
+            </button>
+
+            {/* Left-Down-Right row */}
+            <div className="chart-nav-dpad-row">
+              <button
+                className="chart-nav-dpad-btn"
+                onClick={() => handleMove("left")}
+                title="Move left"
+                style={{ color: colors.text }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* Center: Reset */}
+              <button
+                className="chart-nav-dpad-center"
+                onClick={handleReset}
+                title="Reset view"
+                style={{
+                  color: (scale !== 1 || offset.x !== 0 || offset.y !== 0) ? colors.success : colors.textMuted,
+                  background: colors.canvasBg,
+                }}
+              >
+                <RotateCcw size={14} />
+              </button>
+
+              <button
+                className="chart-nav-dpad-btn"
+                onClick={() => handleMove("right")}
+                title="Move right"
+                style={{ color: colors.text }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Down */}
+            <button
+              className="chart-nav-dpad-btn"
+              onClick={() => handleMove("down")}
+              title="Move down"
+              style={{ color: colors.text }}
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+
+          {/* Right side: Zoom controls + expand + copy */}
+          <div className="chart-nav-zoom-panel" style={{ background: colors.bg, borderColor: colors.border }}>
+            {/* Zoom in (top) */}
+            <button
+              className="chart-nav-zoom-btn"
+              onClick={handleZoomIn}
+              title="Zoom in"
+              style={{ color: scale >= 4 ? colors.textMuted : colors.text }}
+              disabled={scale >= 4}
+            >
+              <ZoomIn size={16} />
+            </button>
+
+            {/* Zoom level indicator */}
+            <div className="chart-nav-zoom-level" style={{ color: colors.textMuted }}>
+              {Math.round(scale * 100)}%
+            </div>
+
+            {/* Zoom out (bottom) */}
+            <button
+              className="chart-nav-zoom-btn"
+              onClick={handleZoomOut}
+              title="Zoom out"
+              style={{ color: scale <= 0.3 ? colors.textMuted : colors.text }}
+              disabled={scale <= 0.3}
+            >
+              <ZoomOut size={16} />
+            </button>
+
+            <div className="chart-nav-zoom-divider" style={{ background: colors.border }} />
+
+            {/* Expand (fullscreen) */}
+            <button
+              className="chart-nav-zoom-btn"
+              onClick={() => setIsExpanded(true)}
+              title="Expand to fullscreen"
+              style={{ color: colors.text }}
+            >
+              <Expand size={16} />
+            </button>
+
+            <div className="chart-nav-zoom-divider" style={{ background: colors.border }} />
+
+            {/* Copy menu */}
+            <div className="chart-nav-copy-wrapper">
+              <button
+                className="chart-nav-zoom-btn"
+                onClick={() => setShowCopyMenu(!showCopyMenu)}
+                title={copied ? "Copied!" : "Copy"}
+                style={{ color: copied ? colors.success : colors.textMuted }}
+              >
+                {copied ? <Download size={16} /> : <Copy size={16} />}
+              </button>
+
+              {showCopyMenu && (
+                <div className="chart-nav-copy-menu" style={{ background: colors.bg, borderColor: colors.border }}>
+                  <button
+                    className="chart-nav-copy-option"
+                    onClick={handleCopyImage}
+                    style={{ color: colors.text }}
+                  >
+                    <Image size={14} />
+                    <span>Copy as Image</span>
+                  </button>
+                  {mermaidCode && (
+                    <button
+                      className="chart-nav-copy-option"
+                      onClick={handleCopyMermaid}
+                      style={{ color: colors.text }}
+                    >
+                      <Code size={14} />
+                      <span>Copy as Mermaid</span>
+                    </button>
+                  )}
+                  <button
+                    className="chart-nav-copy-option"
+                    onClick={handleDownload}
+                    style={{ color: colors.text }}
+                  >
+                    <Download size={14} />
+                    <span>Download PNG</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Hide button */}
           <button
-            className="chart-nav-btn"
+            className="chart-nav-hide-btn"
             onClick={() => setHidden(true)}
-            title="Hide chart"
-            style={{ color: colors.textMuted }}
+            title="Hide controls"
+            style={{ background: colors.bg, borderColor: colors.border, color: colors.textMuted }}
           >
             <EyeOff size={14} />
           </button>
-
-          <div className="chart-nav-divider" style={{ background: colors.border }} />
-
-          {/* Zoom in */}
-          <button
-            className="chart-nav-btn"
-            onClick={handleZoomIn}
-            title="Zoom in"
-            style={{ color: scale >= 4 ? colors.textMuted : colors.text }}
-            disabled={scale >= 4}
-          >
-            <ZoomIn size={14} />
-          </button>
-
-          {/* Zoom out */}
-          <button
-            className="chart-nav-btn"
-            onClick={handleZoomOut}
-            title="Zoom out"
-            style={{ color: scale <= 0.3 ? colors.textMuted : colors.text }}
-            disabled={scale <= 0.3}
-          >
-            <ZoomOut size={14} />
-          </button>
-
-          {/* Pan (move) */}
-          <button
-            className="chart-nav-btn"
-            title="Drag to pan"
-            style={{ color: colors.text }}
-          >
-            <Move size={14} />
-          </button>
-
-          {/* Reset */}
-          <button
-            className="chart-nav-btn"
-            onClick={handleReset}
-            title="Reset view"
-            style={{ color: (scale !== 1 || offset.x !== 0 || offset.y !== 0) ? colors.success : colors.textMuted }}
-          >
-            <RotateCcw size={14} />
-          </button>
-
-          <div className="chart-nav-divider" style={{ background: colors.border }} />
-
-          {/* Copy as PNG */}
-          <button
-            className="chart-nav-btn"
-            onClick={handleCopy}
-            title={copied ? "Copied!" : "Copy as PNG"}
-            style={{ color: copied ? colors.success : colors.textMuted }}
-          >
-            {copied ? <Download size={14} /> : <Copy size={14} />}
-          </button>
-
-          {/* Download */}
-          <button
-            className="chart-nav-btn"
-            onClick={handleDownload}
-            title="Download as PNG"
-            style={{ color: colors.textMuted }}
-          >
-            <Download size={14} />
-          </button>
-        </div>
+        </>
       )}
 
-      {/* Toggle visibility button — always shown in card actions */}
-      <button
-        className="chart-nav-toggle"
-        onClick={() => setVisible((v) => !v)}
-        title={visible ? "Hide chart controls" : "Show chart controls"}
-        style={{
-          background: colors.bg,
-          border: `1px solid ${colors.border}`,
-          color: visible ? colors.text : colors.textMuted,
-        }}
-      >
-        <Eye size={14} />
-      </button>
+      {/* Show toggle button when hidden controls */}
+      {!visible && (
+        <button
+          className="chart-nav-show-btn"
+          onClick={() => setVisible(true)}
+          title="Show controls"
+          style={{ background: colors.bg, borderColor: colors.border, color: colors.textMuted }}
+        >
+          <Eye size={14} />
+        </button>
+      )}
     </div>
   );
 }

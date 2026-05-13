@@ -14,12 +14,10 @@
 #   start       Start backend + frontend dev servers
 #   stop        Gracefully shut down all servers + free ports
 #
-# Library modules (scripts/lib/):
-#   _colors.sh   — Colors, logging, summary printer
-#   _python.sh   — Python/venv detection and pip install helpers
-#   _node.sh     — Node.js / pnpm detection
-#   _database.sh — PostgreSQL (Docker + local), migrations
-#   _network.sh  — Connectivity diagnostics
+# This script manages all dependencies LOCALLY within the project:
+#   - Python: via pyenv (auto-installed if needed)
+#   - Node.js: via nvm (auto-installed if needed)
+#   - No global installations required on your laptop
 # ============================================
 
 set -uo pipefail
@@ -69,15 +67,12 @@ cmd_setup() {
         pz_success ".env already exists"
     fi
 
-    # 2. Python
-    pz_log "[Step 2/7] Checking Python version (requires 3.11–3.13)..."
-    if ! pz_find_python; then
-        pz_err "No compatible Python found (need 3.11, 3.12, or 3.13)."
-        pz_err "Python 3.14 is NOT supported — mendeleev requires <3.14."
-        pz_err "Install: brew install python@3.13"
+    # 2. Python (via pyenv - local to project)
+    pz_log "[Step 2/7] Setting up Python (locally via pyenv)..."
+    if ! pz_setup_python_local; then
+        pz_err "Python setup failed"
         return 1
     fi
-    pz_success "Using $_PZ_PYTHON_VERSION ($_PZ_PYTHON_CMD)"
 
     # 3. Network check before pip install
     pz_log "[Step 3/7] Checking network connectivity..."
@@ -112,7 +107,6 @@ cmd_setup() {
     else
         pz_warn "pip upgrade failed (network may be slow)"
     fi
-    source "$VENV_DIR/bin/activate"
 
     # Install build dependencies (fixes setuptools >=75.0 requirement)
     pz_log "  Ensuring build dependencies..."
@@ -140,9 +134,11 @@ cmd_setup() {
         pz_info "TIP: For faster retry, use: pip install --no-build-isolation ..."
     fi
 
-    # 5. Node.js + frontend
-    pz_log "[Step 6/7] Setting up frontend..."
-    if pz_ensure_node; then
+    # 5. Node.js + frontend (via nvm - local to project)
+    pz_log "[Step 6/7] Setting up Node.js (locally via nvm)..."
+    if ! pz_setup_node_local; then
+        pz_warn "Node.js setup failed - frontend may not work"
+    else
         pz_ensure_pnpm || pz_warn "pnpm unavailable"
         pz_pnpm_install || pz_warn "pnpm install failed — frontend deps may be missing"
     fi
@@ -214,36 +210,20 @@ cmd_start() {
     if ! pz_ensure_db_running; then
         pz_err "Database not available. Cannot start."
         return 1
-    }
+    fi
     unset PGPASSWORD
 
     cmd_db_create
 
-    log "Running migrations on fresh database..."
-    activate_venv || true
+    pz_log "Running migrations on fresh database..."
+    pz_activate_venv || true
+    pz_get_db_vars
     SYNC_URL=$(echo "$DB_URL" | sed 's|postgresql+asyncpg://|postgresql://|' | sed 's|postgresql+psycopg://|postgresql://|')
     DATABASE_URL="$SYNC_URL" alembic -c packages/db/alembic.ini upgrade head || {
-        err "Migrations failed after reset. Check schema code."
+        pz_err "Migrations failed after reset. Check schema code."
         return 1
     }
-    success "Database hard reset complete."
-}
-
-cmd_db_migrate() {
-    ensure_db_running || return 1
-    get_db_vars
-    log "Applying database migrations..."
-
-    activate_venv || true
-
-    SYNC_URL=$(echo "$DB_URL" | sed 's|postgresql+asyncpg://|postgresql://|' | sed 's|postgresql+psycopg://|postgresql://|')
-
-    if DATABASE_URL="$SYNC_URL" alembic -c packages/db/alembic.ini upgrade head 2>/tmp/piezo_alembic.log; then
-        success "Migrations applied successfully."
-        rm -f /tmp/piezo_alembic.log
-        return 0
-    fi
-    pz_success "Database is active"
+    pz_success "Database hard reset complete."
 
     # Port checks
     pz_log "Checking ports..."
@@ -252,36 +232,58 @@ cmd_db_migrate() {
             local label="Backend"
             [ "$port" = "3000" ] && label="Frontend"
             pz_warn "Port $port ($label) is already in use"
-            read -p "  Kill conflicting process? (y/N): " kill_choice
-            echo ""
-            if [[ "$kill_choice" =~ ^[Yy]$ ]]; then
-                kill -9 "$(lsof -Pi :"$port" -sTCP:LISTEN -t)" 2>/dev/null || true
-                pz_success "Freed port $port"
+            # Check if it's likely our own process - if so, skip kill prompt
+            local existing_pid
+            existing_pid=$(lsof -Pi :"$port" -sTCP:LISTEN -t 2>/dev/null | head -1)
+            local cmd_name
+            cmd_name=$(ps -p "$existing_pid" -o comm= 2>/dev/null || echo "unknown")
+            if [[ "$cmd_name" == "next-server" ]] || [[ "$cmd_name" == "node" ]] || [[ "$cmd_name" == "uvicorn" ]]; then
+                pz_info "  Found existing $label process - will reuse it"
+                if [ "$port" = "3000" ]; then
+                    # Don't start new frontend
+                    continue
+                fi
             else
-                pz_err "Cannot start — port $port is occupied"
-                return 1
+                read -p "  Kill conflicting process? (y/N): " kill_choice
+                echo ""
+                if [[ "$kill_choice" =~ ^[Yy]$ ]]; then
+                    kill -9 "$(lsof -Pi :"$port" -sTCP:LISTEN -t)" 2>/dev/null || true
+                    pz_success "Freed port $port"
+                else
+                    if [ "$port" = "8000" ]; then
+                        pz_err "Cannot start — port $port is occupied"
+                        return 1
+                    fi
+                    # For port 3000, just skip starting new frontend
+                fi
             fi
         fi
     done
 
-    # venv
-    if ! pz_activate_venv; then
+    # venv - ensure it's activated with full path to be safe
+    if [ ! -f "$_PZ_VENV_DIR/bin/activate" ]; then
         pz_err "Virtual environment not found. Run: bash scripts/dev.sh setup"
         return 1
     fi
+    source "$_PZ_VENV_DIR/bin/activate"
 
-    # Start backend
+    # Verify we're using the right Python
+    pz_log "Using Python: $(python --version)"
+
+    # Start backend using venv's uvicorn
     pz_log "Starting FastAPI backend on port 8000..."
     cd "$ROOT_DIR/apps/api"
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload \
+    "$_PZ_VENV_DIR/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 --reload \
         --reload-dir "$ROOT_DIR/apps/api" \
         --reload-dir "$ROOT_DIR/packages" &
     BACKEND_PID=$!
     cd "$ROOT_DIR"
 
-    # Start frontend
+    # Start frontend (only if not already running)
     FRONTEND_PID=""
-    if pz_ensure_node; then
+    if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        pz_log "Frontend already running on port 3000 - reusing existing process"
+    elif pz_ensure_node; then
         pz_ensure_pnpm
         pz_pnpm_install
         if command -v pnpm &>/dev/null; then
@@ -293,7 +295,7 @@ cmd_db_migrate() {
         fi
     else
         warn "Node.js 20+ not found. Frontend will not start."
-        warn "Fix: nvm install 20 && nvm use 20 && npm i -g pnpm"
+        warn "Fix: bash scripts/dev.sh setup (will install nvm + Node.js locally)"
     fi
 
     # Summary
@@ -372,11 +374,11 @@ cmd_stop() {
 cmd_diagnose() {
     pz_log "Running full diagnostics..."
 
-    pz_log "--- Python ---"
-    if pz_find_python; then
-        pz_success "Python: $_PZ_PYTHON_VERSION ($_PZ_PYTHON_CMD)"
+    pz_log "--- Python (local) ---"
+    if pz_setup_python_local; then
+        pz_success "Python: ready via pyenv"
     else
-        pz_err "Python: not found or incompatible"
+        pz_err "Python: not configured"
     fi
 
     pz_log "--- Network ---"
@@ -389,9 +391,9 @@ cmd_diagnose() {
         pz_warn "pip not available in venv"
     fi
 
-    pz_log "--- Node.js ---"
-    if pz_ensure_node; then
-        pz_success "Node.js: $NODE_VERSION"
+    pz_log "--- Node.js (local) ---"
+    if pz_setup_node_local; then
+        pz_success "Node.js: ready via nvm"
     fi
 
     pz_log "--- Database ---"
@@ -434,6 +436,9 @@ case "${1:-}" in
         echo "  stop        Shut down all servers + Docker DB"
         echo "  diagnose    Run full diagnostics (Python, network, DB, Node)"
         echo ""
-        echo "Python: 3.11–3.13 required | Node: 20+ required"
+        echo "All dependencies are installed LOCALLY in the project:"
+        echo "  - Python 3.13 via pyenv"
+        echo "  - Node.js 20 via nvm"
+        echo "  No global installations required on your laptop!"
         ;;
 esac

@@ -7,11 +7,15 @@ Provides data for:
 - Dependence (feature-value vs SHAP-value scatter)
 
 Uses TreeExplainer for tree-based models, KernelExplainer as fallback.
+
+IMPORTANT: XGBoost models use n_jobs=1 to prevent macOS OpenMP crashes.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import platform
 import warnings
 from dataclasses import dataclass, field
 from typing import Any
@@ -20,6 +24,12 @@ import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# Force single-threaded for SHAP on macOS to prevent OpenMP crashes
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 
 @dataclass

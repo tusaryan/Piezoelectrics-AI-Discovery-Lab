@@ -32,6 +32,9 @@ def _load_model_and_data(
     model_row: Any,
 ) -> tuple[Any, pd.DataFrame, dict[str, Any]]:
     """Load model .joblib and its training feature vectors from disk."""
+    import platform
+    import os
+
     root = _project_root()
 
     # Load model
@@ -41,6 +44,22 @@ def _load_model_and_data(
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path}")
     model = joblib.load(model_path)
+
+    # Fix: Set n_jobs=1 for XGBoost/LightGBM to prevent macOS OpenMP crashes
+    # This must be done AFTER loading, not before, as joblib restores params
+    model_name = type(model).__name__.lower()
+    if "xgboost" in model_name or "xgbclassifier" in model_name:
+        if hasattr(model, "set_params"):
+            try:
+                model.set_params(n_jobs=1)
+            except Exception:
+                pass  # Some XGBoost versions don't support n_jobs setter
+    elif "lightgbm" in model_name or "lgbclassifier" in model_name:
+        if hasattr(model, "set_params"):
+            try:
+                model.set_params(n_jobs=1)
+            except Exception:
+                pass
 
     # Load metadata to get artifact dir
     meta_path = model_path.parent / model_path.name.replace(".joblib", ".json").replace(

@@ -415,7 +415,8 @@ export default function DataTable({
                       }
                     }}
                     onClick={() => {
-                      if (editingRowId === rowId && col.editable && !deleted) {
+                      // Single click enters edit mode for editable cells
+                      if (col.editable && editable && !deleted) {
                         startEditing(rowId, col.key, value);
                       }
                     }}

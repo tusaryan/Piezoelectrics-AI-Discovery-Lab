@@ -73,7 +73,7 @@ export default function Sidebar() {
       {/* Brand — pinned top */}
       <div className="sidebar-brand">
         <div className="sidebar-brand-logo" aria-label={APP_CONFIG.name}>
-          {APP_CONFIG.logoText}
+          <img src={APP_CONFIG.logoPath} alt="Logo" />
         </div>
         <AnimatePresence mode="wait">
           {!sidebarCollapsed && (

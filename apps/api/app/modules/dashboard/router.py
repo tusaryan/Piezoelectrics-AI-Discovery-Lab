@@ -201,7 +201,7 @@ async def download_model_file(
 
     model_path = Path(model.model_file_path)
     if not model_path.is_absolute():
-        model_path = Path(__file__).resolve().parents[4] / model.model_file_path
+        model_path = Path(__file__).resolve().parents[5] / model.model_file_path
 
     if not model_path.exists():
         raise HTTPException(404, "Model file not found on disk")
@@ -292,7 +292,7 @@ async def download_report(report_id: str):
     file_path = _report_store.get(report_id)
     if not file_path:
         # Try scanning reports directory
-        reports_dir = Path(__file__).resolve().parents[4] / "resources" / "reports"
+        reports_dir = Path(__file__).resolve().parents[5] / "resources" / "reports"
         for f in reports_dir.glob(f"*{report_id}*"):
             file_path = str(f)
             break
@@ -341,7 +341,7 @@ async def get_parsed_compositions(
     import io
 
     # Look for artifact directory matching this dataset
-    artifacts_root = Path(__file__).resolve().parents[4] / "resources" / "training-artifacts"
+    artifacts_root = Path(__file__).resolve().parents[5] / "resources" / "training-artifacts"
     if not artifacts_root.exists():
         return {"rows": [], "columns": [], "found": False}
 

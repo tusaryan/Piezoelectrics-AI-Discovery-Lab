@@ -72,63 +72,74 @@ pz_install_pyenv() {
 
 # ── Setup Python via pyenv (local to project) ─
 pz_setup_python_local() {
-    # Try to find existing pyenv
-    if command -v pyenv &>/dev/null; then
-        eval "$(pyenv init -)"
+    local choice="${_PZ_INSTALL_PREF:-ACCEPT_ALL}"
+
+    local has_global=false
+    local global_python_cmd=""
+    local global_python_ver=""
+    
+    # Temporarily check system/global Python
+    if pz_find_python >/dev/null 2>&1; then
+        has_global=true
+        global_python_cmd="$_PZ_PYTHON_CMD"
+        global_python_ver="$_PZ_PYTHON_VERSION"
     fi
 
-    # Check for pyenv in common locations
-    if [ -f "$HOME/.pyenv/bin/pyenv" ]; then
-        export PYENV_ROOT="$HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        eval "$(pyenv init -)"
-    fi
-
-    # Try to use pyenv to install/manage Python
-    if command -v pyenv &>/dev/null; then
-        pz_log "Using pyenv to manage Python..."
-
-        # Check if Python version is installed
-        if ! pyenv versions | grep -q "$_PZ_PYTHON_VERSION"; then
-            pz_log "Installing Python $_PZ_PYTHON_VERSION via pyenv..."
-            if pyenv install "$_PZ_PYTHON_VERSION"; then
-                pz_success "Python $_PZ_PYTHON_VERSION installed"
+    if [ "$has_global" = true ]; then
+        if [ "$choice" = "INDIVIDUAL" ]; then
+            pz_info "Detected compatible global Python: $global_python_ver"
+            read -p "  Use this global version? [Y/n] (n = install locally from scratch): " ans
+            if [[ "$ans" =~ ^[Nn]$ ]]; then
+                choice="REJECT_ALL"
             else
-                pz_err "Failed to install Python $_PZ_PYTHON_VERSION"
-                return 1
+                choice="ACCEPT_ALL"
             fi
+            echo ""
         fi
 
-        # Set local version for this project
-        cd "$ROOT_DIR"
-        pyenv local "$_PZ_PYTHON_VERSION"
-        cd - >/dev/null
+        if [ "$choice" != "REJECT_ALL" ]; then
+            _PZ_PYTHON_CMD="$global_python_cmd"
+            _PZ_PYTHON_VERSION="$global_python_ver"
+            pz_success "Using global Python: $_PZ_PYTHON_VERSION"
+            return 0
+        fi
+    fi
 
-        # Export for scripts
-        _PZ_PYTHON_CMD="$PYENV_ROOT/versions/$_PZ_PYTHON_VERSION/bin/python"
+    pz_log "Proceeding with local Python installation (isolated pyenv)..."
+
+    # For local isolation, force pyenv to be in project
+    export PYENV_ROOT="$ROOT_DIR/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    
+    if [ ! -x "$PYENV_ROOT/bin/pyenv" ]; then
+        pz_log "Installing pyenv locally to project..."
+        if ! git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT" >/dev/null 2>&1; then
+            pz_err "Failed to clone pyenv to $PYENV_ROOT"
+            return 1
+        fi
+    fi
+    eval "$(pyenv init -)" 2>/dev/null || true
+
+    if ! pyenv versions 2>/dev/null | grep -q "$_PZ_PYTHON_VERSION"; then
+        pz_log "Installing Python $_PZ_PYTHON_VERSION locally via pyenv (this may take a few minutes)..."
+        if ! pyenv install "$_PZ_PYTHON_VERSION" >/dev/null; then
+            pz_err "Local Python installation failed."
+            return 1
+        fi
+    fi
+
+    cd "$ROOT_DIR"
+    pyenv local "$_PZ_PYTHON_VERSION" >/dev/null 2>&1 || true
+    cd - >/dev/null
+
+    _PZ_PYTHON_CMD="$PYENV_ROOT/versions/$_PZ_PYTHON_VERSION/bin/python"
+    if [ -x "$_PZ_PYTHON_CMD" ]; then
         _PZ_PYTHON_VERSION=$("$_PZ_PYTHON_CMD" --version 2>&1)
-
-        pz_success "Python $_PZ_PYTHON_VERSION configured (via pyenv)"
+        pz_success "Python $_PZ_PYTHON_VERSION configured locally"
         return 0
     fi
 
-    # pyenv not found - try to install it
-    pz_install_pyenv || return 1
-
-    # Retry after install
-    if command -v pyenv &>/dev/null; then
-        eval "$(pyenv init -)"
-        pz_setup_python_local
-        return $?
-    fi
-
-    # Fallback: try system Python
-    pz_log "pyenv installation failed. Trying system Python..."
-    if pz_find_python; then
-        pz_success "Using system Python: $_PZ_PYTHON_VERSION"
-        return 0
-    fi
-
+    pz_err "Local Python setup failed."
     return 1
 }
 
@@ -211,7 +222,11 @@ pz_ensure_venv() {
     local venv_minor
     venv_minor=$("$_PZ_VENV_DIR/bin/python" -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
     if [ "$venv_minor" -lt "$_PZ_PYTHON_MINOR_MIN" ] || [ "$venv_minor" -gt "$_PZ_PYTHON_MINOR_MAX" ]; then
-        pz_warn "Existing .venv uses Python 3.$venv_minor — incompatible. Recreating..."
+        if [ "$venv_minor" = "0" ]; then
+            pz_warn "Existing .venv is broken or inaccessible. Recreating..."
+        else
+            pz_warn "Existing .venv uses Python 3.$venv_minor — incompatible. Recreating..."
+        fi
         rm -rf "$_PZ_VENV_DIR"
         "$_PZ_PYTHON_CMD" -m venv "$_PZ_VENV_DIR" || return 1
         pz_success "Virtual environment recreated with $_PZ_PYTHON_VERSION"
@@ -247,4 +262,94 @@ pz_pip_install() {
         pz_err "Failed to install $pkg${extras}"
         return 1
     fi
+}
+
+# ── Verify critical Python packages are importable ──
+# Checks a list of (import_name, pip_package) pairs.
+# If any are missing, prompts the user to install them.
+# Returns 0 on success, 1 if critical deps are still missing.
+pz_check_python_deps() {
+    local python_bin="$_PZ_VENV_DIR/bin/python"
+    if [ ! -x "$python_bin" ]; then
+        pz_err "Python venv not found. Run: bash scripts/dev.sh setup"
+        return 1
+    fi
+
+    # Critical packages: "import_name:pip_package" pairs
+    local deps=(
+        "sklearn:scikit-learn"
+        "xgboost:xgboost"
+        "lightgbm:lightgbm"
+        "optuna:optuna"
+        "numpy:numpy"
+        "pandas:pandas"
+        "joblib:joblib"
+        "chemparse:chemparse"
+        "pymatgen:pymatgen"
+        "mendeleev:mendeleev"
+        "shap:shap"
+        "matplotlib:matplotlib"
+        "reportlab:reportlab"
+        "pymoo:pymoo"
+        "fastapi:fastapi"
+        "uvicorn:uvicorn"
+        "sqlalchemy:sqlalchemy"
+        "alembic:alembic"
+    )
+
+    local missing_imports=()
+    local missing_packages=()
+
+    for dep in "${deps[@]}"; do
+        local import_name="${dep%%:*}"
+        local pip_name="${dep##*:}"
+        if ! "$python_bin" -c "import $import_name" 2>/dev/null; then
+            missing_imports+=("$import_name")
+            missing_packages+=("$pip_name")
+        fi
+    done
+
+    if [ ${#missing_imports[@]} -eq 0 ]; then
+        pz_success "All critical Python dependencies are available"
+        return 0
+    fi
+
+    echo ""
+    pz_warn "Missing Python packages detected (${#missing_imports[@]}):"
+    for i in "${!missing_imports[@]}"; do
+        echo "  • ${missing_imports[$i]} (pip: ${missing_packages[$i]})"
+    done
+    echo ""
+
+    read -p "Install missing packages now? (Y/n): " install_choice
+    echo ""
+
+    if [[ "$install_choice" =~ ^[Nn]$ ]]; then
+        pz_warn "Skipping installation. Some features may not work."
+        pz_warn "To install later: source .venv/bin/activate && pip install ${missing_packages[*]}"
+        return 1
+    fi
+
+    # Install missing packages
+    pz_log "Installing missing packages..."
+    source "$_PZ_VENV_DIR/bin/activate"
+
+    local install_failed=false
+    for pkg in "${missing_packages[@]}"; do
+        pz_log "  Installing $pkg..."
+        if pip install "$pkg" --quiet 2>&1; then
+            pz_success "  $pkg installed"
+        else
+            pz_err "  Failed to install $pkg"
+            install_failed=true
+        fi
+    done
+
+    if [ "$install_failed" = true ]; then
+        pz_warn "Some packages failed to install. Check network/build tools."
+        return 1
+    fi
+
+    pz_success "All missing packages installed successfully"
+    return 0
 }

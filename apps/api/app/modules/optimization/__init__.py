@@ -1,1 +1,1 @@
-"""Piezo.AI — optimization module."""
+"""Optimization module — structural analysis + NSGA-II optimization."""

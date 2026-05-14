@@ -47,7 +47,56 @@ pz_install_nvm() {
 
 # ── Setup Node.js via nvm (local to project) ─
 pz_setup_node_local() {
-    # Try to load existing nvm
+    local choice="${_PZ_INSTALL_PREF:-ACCEPT_ALL}"
+
+    # Check for global node first
+    local has_global=false
+    local global_node_ver=""
+    
+    # Check system node
+    if command -v node &>/dev/null; then
+        local major
+        major=$(node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
+        if [ "${major:-0}" -ge 20 ]; then
+            has_global=true
+            global_node_ver=$(node -v)
+        fi
+    elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+        # Check global nvm
+        export NVM_DIR="$HOME/.nvm"
+        source "$NVM_DIR/nvm.sh" 2>/dev/null || true
+        if nvm use 20 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1; then
+            local major
+            major=$(node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
+            if [ "${major:-0}" -ge 20 ]; then
+                has_global=true
+                global_node_ver=$(node -v)
+            fi
+        fi
+    fi
+
+    if [ "$has_global" = true ]; then
+        if [ "$choice" = "INDIVIDUAL" ]; then
+            pz_info "Detected compatible global Node.js: $global_node_ver"
+            read -p "  Use this global version? [Y/n] (n = install locally from scratch): " ans
+            if [[ "$ans" =~ ^[Nn]$ ]]; then
+                choice="REJECT_ALL"
+            else
+                choice="ACCEPT_ALL"
+            fi
+            echo ""
+        fi
+
+        if [ "$choice" != "REJECT_ALL" ]; then
+            NODE_VERSION="$global_node_ver"
+            pz_success "Using global Node.js: $global_node_ver"
+            return 0
+        fi
+    fi
+
+    pz_log "Proceeding with local Node.js installation (nvm)..."
+
+    # Try to load existing local nvm
     if [ -s "$_PZ_NVM_DIR/nvm.sh" ]; then
         export NVM_DIR="$_PZ_NVM_DIR"
         source "$NVM_DIR/nvm.sh" 2>/dev/null || true
@@ -55,51 +104,27 @@ pz_setup_node_local() {
 
     # Check if nvm exists
     if ! command -v nvm &>/dev/null; then
-        # Try to install nvm
-        pz_install_nvm || return 1
-
-        # Retry loading
+        pz_install_nvm || { pz_err "Failed to install local nvm"; return 1; }
         if [ -s "$_PZ_NVM_DIR/nvm.sh" ]; then
             export NVM_DIR="$_PZ_NVM_DIR"
             source "$NVM_DIR/nvm.sh" 2>/dev/null || true
         fi
     fi
 
-    # Now try to use nvm
     if command -v nvm &>/dev/null; then
-        pz_log "Using nvm to manage Node.js..."
-
-        # Check if Node 20 is installed
         if ! nvm ls "$_PZ_NODE_VERSION" 2>/dev/null | grep -q "v$_PZ_NODE_VERSION"; then
-            pz_log "Installing Node.js $_PZ_NODE_VERSION via nvm..."
-            echo ""
-            if nvm install "$_PZ_NODE_VERSION"; then
-                pz_success "Node.js $_PZ_NODE_VERSION installed"
-            else
-                pz_err "Failed to install Node.js $_PZ_NODE_VERSION"
-                return 1
-            fi
+            pz_log "Installing Node.js $_PZ_NODE_VERSION locally via nvm..."
+            nvm install "$_PZ_NODE_VERSION" >/dev/null || return 1
         fi
-
-        # Use Node 20
-        if nvm use "$_PZ_NODE_VERSION" 2>/dev/null; then
-            NODE_VERSION=$(node -v)
-            pz_success "Node.js $NODE_VERSION configured (via nvm)"
-
-            # Create .nvmrc for project
-            echo "$_PZ_NODE_VERSION" > "$ROOT_DIR/.nvmrc"
-
-            return 0
-        fi
-    fi
-
-    # Fallback: try system node
-    pz_log "nvm setup failed. Trying system Node.js..."
-    if pz_ensure_node; then
-        pz_success "Using system Node.js: $NODE_VERSION"
+        
+        nvm use "$_PZ_NODE_VERSION" >/dev/null || return 1
+        NODE_VERSION=$(node -v)
+        echo "$_PZ_NODE_VERSION" > "$ROOT_DIR/.nvmrc"
+        pz_success "Node.js $NODE_VERSION configured locally"
         return 0
     fi
 
+    pz_err "Local Node.js installation failed."
     return 1
 }
 
@@ -149,16 +174,27 @@ pz_ensure_pnpm() {
     # Ensure we have node first
     pz_ensure_node || return 1
 
+    local pnpm_ver
     if command -v pnpm &>/dev/null; then
-        pz_success "pnpm $(pnpm --version)"
-        return 0
+        pnpm_ver=$(pnpm --version 2>/dev/null || echo "ERROR")
+        if [ "$pnpm_ver" != "ERROR" ]; then
+            pz_success "pnpm $pnpm_ver"
+            return 0
+        fi
+        pz_warn "Existing pnpm is broken or incompatible with Node $NODE_VERSION. Reinstalling..."
     fi
-    pz_log "Installing pnpm globally..."
-    if npm install -g pnpm 2>/dev/null; then
-        pz_success "pnpm installed"
-        return 0
+
+    pz_log "Installing pnpm@9 globally via npm..."
+    if npm install -g pnpm@9.15.4 >/dev/null 2>&1; then
+        pnpm_ver=$(pnpm --version 2>/dev/null || echo "ERROR")
+        if [ "$pnpm_ver" != "ERROR" ]; then
+            pz_success "pnpm $pnpm_ver installed successfully"
+            return 0
+        fi
+        pz_warn "pnpm installed but still broken. Your PATH may be prioritizing a broken Homebrew pnpm."
     fi
-    pz_warn "Failed to install pnpm. Frontend may not work properly."
+    
+    pz_err "Failed to install a working pnpm. Frontend may not work properly."
     return 1
 }
 

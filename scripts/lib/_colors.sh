@@ -34,19 +34,23 @@ pz_print_summary() {
     local exit_code=$?
     echo ""
     echo "=========================================================================="
-    if [ $exit_code -eq 0 ] && [ ${#_pz_errors[@]} -eq 0 ]; then
-        if [ ${#_pz_warnings[@]} -eq 0 ]; then
+    if [ $exit_code -eq 0 ] && [ ${#_pz_errors[@]:-0} -eq 0 ]; then
+        if [ ${#_pz_warnings[@]:-0} -eq 0 ]; then
             echo -e "${GREEN}✅ SUCCESS!${NC}"
         else
             echo -e "${YELLOW}⚠️  COMPLETED WITH WARNINGS:${NC}"
-            for w in "${_pz_warnings[@]}"; do echo -e "   -> $w"; done
+            for w in "${_pz_warnings[@]:-}"; do echo -e "   -> $w"; done
         fi
     else
         echo -e "${RED}❌ FAILED:${NC}"
-        for e in "${_pz_errors[@]}"; do echo -e "   -> $e"; done
-        if [ ${#_pz_warnings[@]} -gt 0 ]; then
+        if [ ${#_pz_errors[@]:-0} -gt 0 ]; then
+            for e in "${_pz_errors[@]}"; do echo -e "   -> $e"; done
+        else
+            echo -e "   -> Command failed with exit code $exit_code"
+        fi
+        if [ ${#_pz_warnings[@]:-0} -gt 0 ]; then
             echo -e "${YELLOW}Warnings:${NC}"
-            for w in "${_pz_warnings[@]}"; do echo -e "   -> $w"; done
+            for w in "${_pz_warnings[@]:-}"; do echo -e "   -> $w"; done
         fi
     fi
     echo "=========================================================================="

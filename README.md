@@ -167,6 +167,19 @@ pnpm dev:web
 - **7 Sections** — Dashboard, Dataset, Train, Predict, Optimization Lab, Interpretability, Settings
 - **Virtual environment** — all Python deps installed in `.venv/`, nothing pollutes your system
 
+## Logging Architecture
+
+Piezo.AI uses a dual-logging system to keep the terminal clean while ensuring deep debuggability:
+
+- **Terminal (Console):** Shows clean, high-level `INFO`, `WARNING`, and `ERROR` logs.
+- **Session Logs (`logs/session_*.log`):** A direct persistent transcript of everything you saw in the terminal (including Frontend Next.js logs).
+- **Detailed Backend Logs (`logs/backend_detailed_*.log`):** Contains *everything*, including raw SQL queries, HTTP access traces, and internal ML library processing. 
+
+If you want to see detailed backend logs in your terminal in real-time, start the server with the debug flag:
+```bash
+PZ_LOG_LEVEL=DEBUG bash scripts/dev.sh start
+```
+
 ## Tech Stack
 
 | Layer | Technology |

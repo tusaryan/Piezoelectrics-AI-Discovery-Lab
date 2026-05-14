@@ -186,7 +186,7 @@ class DashboardService:
         try:
             path = Path(model_file_path)
             if not path.is_absolute():
-                path = Path(__file__).resolve().parents[4] / model_file_path
+                path = Path(__file__).resolve().parents[5] / model_file_path
             if path.exists():
                 path.unlink()
         except Exception:
@@ -332,7 +332,7 @@ class DashboardService:
             raise ValueError(f"Model {model_id} not found")
         artifact_dir = Path(model.artifact_dir)
         if not artifact_dir.is_absolute():
-            artifact_dir = Path(__file__).resolve().parents[4] / model.artifact_dir
+            artifact_dir = Path(__file__).resolve().parents[5] / model.artifact_dir
         parsed_csv = artifact_dir / "parsed_compositions.csv"
         if parsed_csv.exists():
             return parsed_csv
@@ -466,7 +466,7 @@ class DashboardService:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"piezo_report_{report_id}_{ts}.pdf"
 
-        output_dir = Path(__file__).resolve().parents[4] / "resources" / "reports"
+        output_dir = Path(__file__).resolve().parents[5] / "resources" / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / filename
 

@@ -16,8 +16,11 @@ export const APP_CONFIG = {
   /** Current version — driven by NEXT_PUBLIC_APP_VERSION */
   version: `v${process.env.NEXT_PUBLIC_APP_VERSION || "2.1.0"}`,
 
-  /** Short logo text (used until an image logo is added) */
+  /** Short logo text (fallback if image fails) */
   logoText: process.env.NEXT_PUBLIC_APP_LOGO_TEXT || "P",
+
+  /** Logo image path */
+  logoPath: process.env.NEXT_PUBLIC_APP_LOGO_PATH || "/piezo-ai-logo.png",
 
   /** Full tagline */
   tagline: "AI-Driven Piezoelectric Material Discovery",

@@ -48,6 +48,21 @@ cmd_setup() {
     echo "  ╚══════════════════════════════════════╝"
     echo -e "${NC}"
 
+    if [ -z "${_PZ_INSTALL_PREF:-}" ]; then
+        echo -e "${YELLOW}Dependency Setup Initialization${NC}"
+        echo "How would you like to handle dependencies?"
+        echo "  [1] Accept All: Use existing global/system installations if compatible."
+        echo "  [2] Reject All: Force isolated local installations (from scratch)."
+        echo "  [3] Select individually for each tool."
+        read -p "Select [1/2/3] (default 1): " pref_choice
+        case "$pref_choice" in
+            2) export _PZ_INSTALL_PREF="REJECT_ALL" ;;
+            3) export _PZ_INSTALL_PREF="INDIVIDUAL" ;;
+            *) export _PZ_INSTALL_PREF="ACCEPT_ALL" ;;
+        esac
+        echo ""
+    fi
+
     # 0. Optional clean
     if [ "$force_clean" == "all" ]; then
         pz_log "Running full clean..."
@@ -213,6 +228,14 @@ cmd_start() {
     fi
     unset PGPASSWORD
 
+    # Set up session logging
+    mkdir -p "$ROOT_DIR/logs"
+    local session_log="$ROOT_DIR/logs/session_$(date +%Y%m%d_%H%M%S).log"
+    pz_success "Logging all session output to: $session_log"
+    echo "==========================================================" >> "$session_log"
+    echo "Piezo.AI Session Log - $(date)" >> "$session_log"
+    echo "==========================================================" >> "$session_log"
+
     cmd_db_create
 
     pz_log "Running migrations on fresh database..."
@@ -270,12 +293,24 @@ cmd_start() {
     # Verify we're using the right Python
     pz_log "Using Python: $(python --version)"
 
+    # Verify critical dependencies are importable
+    pz_log "Checking Python dependencies..."
+    if ! pz_check_python_deps; then
+        pz_warn "Some dependencies are missing — backend may fail at runtime."
+        read -p "Continue starting anyway? (y/N): " continue_choice
+        echo ""
+        if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
+            pz_err "Startup aborted. Run: bash scripts/dev.sh setup"
+            return 1
+        fi
+    fi
+
     # Start backend using venv's uvicorn
     pz_log "Starting FastAPI backend on port 8000..."
     cd "$ROOT_DIR/apps/api"
     "$_PZ_VENV_DIR/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 --reload \
         --reload-dir "$ROOT_DIR/apps/api" \
-        --reload-dir "$ROOT_DIR/packages" &
+        --reload-dir "$ROOT_DIR/packages" > >(tee -a "$session_log") 2>&1 &
     BACKEND_PID=$!
     cd "$ROOT_DIR"
 
@@ -288,7 +323,7 @@ cmd_start() {
         pz_pnpm_install
         if command -v pnpm &>/dev/null; then
             pz_log "Starting Next.js frontend on port 3000..."
-            pnpm dev:web &
+            pnpm dev:web > >(tee -a "$session_log") 2>&1 &
             FRONTEND_PID=$!
         else
             warn "pnpm not available. Frontend will not start."

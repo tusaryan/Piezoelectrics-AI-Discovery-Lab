@@ -6,11 +6,12 @@
 # ── Check pypi.org reachability via curl ──────
 # Returns 0 if reachable, 1 if not.
 pz_check_pypi_curl() {
-    if curl -s --max-time 5 https://pypi.org/simple/ >/dev/null 2>&1; then
+    # Use -I (HEAD) to prevent downloading the massive 30MB+ simple index, which causes timeouts
+    if curl -sI --max-time 5 https://pypi.org/simple/ >/dev/null 2>&1; then
         return 0
     fi
     # Try alternative DNS
-    if curl -s --max-time 5 --dns-servers 8.8.8.8 https://pypi.org/simple/ >/dev/null 2>&1; then
+    if curl -sI --max-time 5 --dns-servers 8.8.8.8 https://pypi.org/simple/ >/dev/null 2>&1; then
         return 0
     fi
     return 1
@@ -67,7 +68,7 @@ pz_diagnose_network() {
             pz_success "  [pip] pypi.org is reachable"
             rm -rf /tmp/pz_pip_test 2>/dev/null
         else
-            pz_warn "  [pip] pypi.org is NOT reachable via pip (curl worked — pip may use different proxy/DNS)"
+            pz_warn "  [pip] pypi.org is NOT reachable via pip (network issue or broken venv)"
             pz_info "  Try:"
             pz_info "    - Disable VPN / proxy"
             pz_info "    - Check pip proxy: pip config list"

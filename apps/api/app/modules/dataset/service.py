@@ -42,7 +42,7 @@ from app.modules.dataset.schemas import (
 # ---------------------------------------------------------------------------
 
 # Project root — used for temp file storage
-_PROJECT_ROOT = Path(__file__).resolve().parents[4]  # apps/api/app/modules/dataset/ → root
+_PROJECT_ROOT = Path(__file__).resolve().parents[5]  # apps/api/app/modules/dataset/ → root
 _TEMP_DIR = _PROJECT_ROOT / "resources" / "training-artifacts" / ".tmp"
 
 

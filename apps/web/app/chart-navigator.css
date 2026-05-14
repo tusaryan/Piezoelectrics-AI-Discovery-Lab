@@ -1,0 +1,244 @@
+/* ============================================
+   ChartNavigator — GitHub Mermaid-style D-pad
+   ============================================ */
+
+/* Wrapper */
+.cn-wrapper {
+  position: relative;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.cn-wrapper.cn-expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  background: var(--background);
+}
+
+/* Viewport — clips overflow, allows scroll */
+.cn-viewport {
+  width: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+/* Content — transformed via pan/zoom */
+.cn-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+/* Toolbar — top-right of chart */
+.cn-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.cn-toolbar-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cn-toolbar-btn:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  border-color: var(--border-hover);
+}
+
+/* Copy dropdown */
+.cn-copy-dropdown-wrapper {
+  position: relative;
+}
+
+.cn-copy-menu {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 160px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: cn-menu-in 0.15s ease;
+}
+
+@keyframes cn-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cn-copy-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.cn-copy-menu button:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+/* Copy feedback toast */
+.cn-toast {
+  position: absolute;
+  top: 48px;
+  right: 8px;
+  padding: 6px 14px;
+  background: var(--primary);
+  color: white;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 20;
+  animation: cn-toast-in 0.2s ease;
+  pointer-events: none;
+}
+
+@keyframes cn-toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* D-pad controls — bottom-right */
+.cn-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10;
+}
+
+.cn-row {
+  display: flex;
+  gap: 2px;
+}
+
+.cn-spacer {
+  width: 30px;
+  height: 30px;
+}
+
+.cn-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.cn-btn:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  border-color: var(--border-hover);
+}
+
+.cn-btn:active {
+  transform: scale(0.92);
+}
+
+.cn-reset {
+  background: color-mix(in srgb, var(--primary) 15%, var(--card) 85%);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  color: var(--primary);
+}
+
+.cn-reset:hover {
+  background: color-mix(in srgb, var(--primary) 25%, var(--card) 75%);
+  color: var(--primary-hover);
+}
+
+/* Close button for expanded mode */
+.cn-close {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.cn-close:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+/* Responsive D-pad — smaller on narrow screens */
+@media (max-width: 767px) {
+  .cn-btn,
+  .cn-spacer {
+    width: 26px;
+    height: 26px;
+  }
+  .cn-toolbar-btn {
+    width: 26px;
+    height: 26px;
+  }
+  .cn-controls {
+    bottom: 8px;
+    right: 8px;
+  }
+  .cn-toolbar {
+    top: 6px;
+    right: 6px;
+  }
+}

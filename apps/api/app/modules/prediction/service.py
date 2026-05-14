@@ -58,7 +58,7 @@ class PredictionService:
 
         model_path = Path(model_record.model_file_path)
         if not model_path.is_absolute():
-            model_path = Path(__file__).resolve().parents[4] / model_record.model_file_path
+            model_path = Path(__file__).resolve().parents[5] / model_record.model_file_path
 
         # Find corresponding metadata JSON
         models_dir = model_path.parent
@@ -438,7 +438,7 @@ class PredictionService:
     def _save_batch_result(self, batch_id: str, df: pd.DataFrame) -> Path:
         """Save batch prediction results to CSV."""
         output_dir = (
-            Path(__file__).resolve().parents[4]
+            Path(__file__).resolve().parents[5]
             / "resources" / "prediction-results"
         )
         output_dir.mkdir(parents=True, exist_ok=True)

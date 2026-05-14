@@ -29,6 +29,9 @@ export const metadata: Metadata = {
     "Curie temperature",
     "lead-free",
   ],
+  icons: {
+    icon: process.env.NEXT_PUBLIC_APP_LOGO_PATH || "/piezo-ai-logo.png",
+  },
 };
 
 export default function RootLayout({

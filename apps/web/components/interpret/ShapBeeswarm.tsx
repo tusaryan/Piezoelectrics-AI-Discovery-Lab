@@ -7,18 +7,17 @@
  * Color = feature value (low=blue, high=red).
  */
 
-import { useEffect, useRef, useCallback, useState } from "react";
-import { Loader2, ScatterChart, Maximize2, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useCallback } from "react";
+import { Loader2, ScatterChart } from "lucide-react";
 import { useInterpretStore } from "@/lib/store/interpretStore";
 import InfoTooltip from "./InfoTooltip";
-import { ChartNavigation } from "./ChartNavigation";
+import ChartNavigator from "@/components/ui/ChartNavigator";
 
 export default function ShapBeeswarm() {
   const { beeswarm, beeswarmLoading, beeswarmError, selectedModelId, fetchBeeswarm } =
     useInterpretStore();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (selectedModelId && !beeswarm && !beeswarmLoading) {
@@ -213,7 +212,7 @@ export default function ShapBeeswarm() {
   }, [drawChart]);
 
   return (
-    <div className={`interpret-card ${expanded ? "expanded" : ""}`} id="shap-beeswarm">
+    <div className="interpret-card" id="shap-beeswarm">
       <div className="interpret-card-header">
         <div className="interpret-card-title">
           <ScatterChart size={16} />
@@ -226,9 +225,6 @@ export default function ShapBeeswarm() {
             <p><strong>Color:</strong> Blue = low feature value, Red = high feature value.</p>
             <p><strong>Interpretation:</strong> Features at the top have the most impact on predictions overall.</p>
           </InfoTooltip>
-          <button className="expand-btn" onClick={() => setExpanded(!expanded)}>
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
         </div>
       </div>
 
@@ -244,9 +240,9 @@ export default function ShapBeeswarm() {
         )}
         {beeswarm && !beeswarmLoading && (
           <div className="beeswarm-container" ref={containerRef}>
-            <ChartNavigation containerRef={containerRef} id="shap-beeswarm">
+            <ChartNavigator chartId="shap-beeswarm" minHeight={280}>
               <svg ref={svgRef} />
-            </ChartNavigation>
+            </ChartNavigator>
             <div className="beeswarm-meta">
               {beeswarm.n_samples} samples analyzed • {beeswarm.feature_names.length} features
             </div>

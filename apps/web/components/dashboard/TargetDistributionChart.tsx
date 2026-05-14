@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import type { TargetDistribution } from "@/lib/api/dashboard";
+import ChartNavigator from "@/components/ui/ChartNavigator";
 
 interface TargetDistributionChartProps {
   data: TargetDistribution[];
@@ -55,46 +56,50 @@ export default function TargetDistributionChart({ data }: TargetDistributionChar
         <PieChart size={18} /> Target Distribution
       </h2>
       <div className="donut-container">
-        <ResponsiveContainer width="100%" height={280}>
-          <RechartsPie>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={4}
-              dataKey="value"
-              stroke="none"
-              label={({ name, percentage }) => `${name} ${percentage}%`}
-              labelLine={false}
-            >
-              {chartData.map((entry, idx) => (
-                <Cell key={idx} fill={entry.fill} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                color: "var(--text)",
-              }}
-              formatter={(value: number, name: string) => [
-                `${value} model${value !== 1 ? "s" : ""}`,
-                name,
-              ]}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: "12px", color: "var(--text-muted)" }}
-            />
-          </RechartsPie>
-        </ResponsiveContainer>
-        {/* Center label */}
-        <div className="donut-center">
-          <span className="donut-total">{data.reduce((a, b) => a + b.count, 0)}</span>
-          <span className="donut-label">Models</span>
-        </div>
+        <ChartNavigator chartId="target-distribution" minHeight={280}>
+          <div style={{ width: "100%", position: "relative" }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <RechartsPie>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={4}
+                  dataKey="value"
+                  stroke="none"
+                  label={({ name, percentage }) => `${name} ${percentage}%`}
+                  labelLine={false}
+                >
+                  {chartData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    color: "var(--text)",
+                  }}
+                  formatter={(value: number, name: string) => [
+                    `${value} model${value !== 1 ? "s" : ""}`,
+                    name,
+                  ]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", color: "var(--text-muted)" }}
+                />
+              </RechartsPie>
+            </ResponsiveContainer>
+            {/* Center label */}
+            <div className="donut-center">
+              <span className="donut-total">{data.reduce((a, b) => a + b.count, 0)}</span>
+              <span className="donut-label">Models</span>
+            </div>
+          </div>
+        </ChartNavigator>
       </div>
     </div>
   );

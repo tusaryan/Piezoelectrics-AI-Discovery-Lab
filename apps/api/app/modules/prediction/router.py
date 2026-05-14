@@ -223,7 +223,7 @@ async def download_batch_result(batch_id: UUID, db: AsyncSession = Depends(get_d
     from pathlib import Path
     file_path = Path(batch.result_file_path)
     if not file_path.is_absolute():
-        file_path = Path(__file__).resolve().parents[4] / batch.result_file_path
+        file_path = Path(__file__).resolve().parents[5] / batch.result_file_path
 
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Result file not found on disk")

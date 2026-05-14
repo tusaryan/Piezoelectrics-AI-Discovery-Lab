@@ -1,58 +1,21 @@
-import {
-  FlaskConical,
-  Atom,
-  Orbit,
-  Target,
-  Waypoints,
-  TrendingUp,
-  Tags,
-  Box,
-} from "lucide-react";
+"use client";
 
-const FEATURES = [
-  {
-    icon: Atom,
-    title: "Crystal Structure Analysis",
-    description: "Generate approximate 3D perovskite structures from formulas with rapid structural relaxation",
-  },
-  {
-    icon: Orbit,
-    title: "Structural Feature Extraction",
-    description: "Tolerance factor, octahedral factor, bond valence, Goldschmidt criteria — physics-based structural descriptors",
-  },
-  {
-    icon: Box,
-    title: "Structure Visualization",
-    description: "Interactive 3D crystal structure display with comparison across different compositions",
-  },
-  {
-    icon: Target,
-    title: "Optimization Config",
-    description: "Set target property ranges/constraints for d33, tc, hardness with use-case preset profiles",
-  },
-  {
-    icon: Waypoints,
-    title: "NSGA-II Optimization",
-    description: "Multi-objective optimization using trained ML models to evaluate millions of theoretical compositions",
-  },
-  {
-    icon: TrendingUp,
-    title: "Pareto Front",
-    description: "2D/3D interactive chart showing optimal trade-off surface between d33, tc, and hardness",
-  },
-  {
-    icon: Tags,
-    title: "Use-Case Mapping",
-    description: "Each Pareto-optimal composition tagged with best-fit industrial use-case — wearables, actuators, transducers",
-  },
-  {
-    icon: FlaskConical,
-    title: "Solution Table",
-    description: "Ranked list of Pareto-optimal compositions with predicted properties and convergence tracking",
-  },
-];
+import { FlaskConical, Atom, Target } from "lucide-react";
+import { useState } from "react";
+import OptModelSelector from "@/components/optimization/ModelSelector";
+import OptimizationConfigPanel from "@/components/optimization/OptimizationConfig";
+import ParetoChart from "@/components/optimization/ParetoChart";
+import SolutionTable from "@/components/optimization/SolutionTable";
+import OptConvergenceChart from "@/components/optimization/ConvergenceChart";
+import StructuralAnalysis from "@/components/optimization/StructuralAnalysis";
+import { useOptimizationStore } from "@/lib/store/optimizationStore";
+
+type TabKey = "optimization" | "structural";
 
 export default function OptimizationLabPage() {
+  const [activeTab, setActiveTab] = useState<TabKey>("optimization");
+  const { solutions, optimizationError } = useOptimizationStore();
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -61,27 +24,87 @@ export default function OptimizationLabPage() {
         </div>
         <div className="page-header-text">
           <h1>Optimization Lab</h1>
-          <p>Crystal structure analysis + multi-objective property optimization</p>
+          <p>
+            Crystal structure analysis + multi-objective property optimization
+          </p>
         </div>
       </div>
 
-      <div className="feature-grid">
-        {FEATURES.map((feature) => {
-          const Icon = feature.icon;
-          return (
-            <div key={feature.title} className="feature-card">
-              <div className="feature-card-header">
-                <div className="feature-card-icon">
-                  <Icon size={18} />
-                </div>
-                <span className="feature-card-badge">Session 8</span>
-              </div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
-            </div>
-          );
-        })}
+      {/* Tab navigation */}
+      <div className="opt-tabs">
+        <button
+          className={`opt-tab ${activeTab === "optimization" ? "active" : ""}`}
+          onClick={() => setActiveTab("optimization")}
+        >
+          <Target size={16} />
+          Property Optimization
+        </button>
+        <button
+          className={`opt-tab ${activeTab === "structural" ? "active" : ""}`}
+          onClick={() => setActiveTab("structural")}
+        >
+          <Atom size={16} />
+          Structure Analysis
+        </button>
       </div>
+
+      {/* Tab content */}
+      {activeTab === "optimization" && (
+        <div className="opt-layout">
+          {/* Left column: config */}
+          <div className="opt-config-col">
+            <OptModelSelector />
+            <OptimizationConfigPanel />
+          </div>
+
+          {/* Right column: results */}
+          <div className="opt-results-col">
+            {optimizationError && (
+              <div className="opt-error-banner">
+                <span>⚠️ {optimizationError}</span>
+              </div>
+            )}
+
+            {solutions.length > 0 ? (
+              <>
+                <ParetoChart />
+                <OptConvergenceChart />
+                <SolutionTable />
+              </>
+            ) : (
+              <div className="opt-empty-results">
+                <FlaskConical size={48} />
+                <h3>No Optimization Results Yet</h3>
+                <p>
+                  Select models, configure objectives, and click{" "}
+                  <strong>Run Optimization</strong> to find Pareto-optimal
+                  compositions.
+                </p>
+                <div className="opt-empty-steps">
+                  <div className="opt-step">
+                    <span className="opt-step-num">1</span>
+                    Select surrogate models for each target property
+                  </div>
+                  <div className="opt-step">
+                    <span className="opt-step-num">2</span>
+                    Choose a use-case preset or configure custom objectives
+                  </div>
+                  <div className="opt-step">
+                    <span className="opt-step-num">3</span>
+                    Run NSGA-II to find Pareto-optimal compositions
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "structural" && (
+        <div className="opt-structural-layout">
+          <StructuralAnalysis />
+        </div>
+      )}
     </div>
   );
 }

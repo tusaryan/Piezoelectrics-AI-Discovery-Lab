@@ -51,33 +51,39 @@ def setup_logging(project_root: Path | None = None) -> None:
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(logging.Formatter(FILE_FORMAT, datefmt="%Y-%m-%d %H:%M:%S"))
 
-    # Console handler — INFO and above only (keeps terminal clean)
+    import os
+    import datetime
+
+    # Configurable log levels
+    console_level_name = os.getenv("PZ_LOG_LEVEL", "INFO").upper()
+    console_level = getattr(logging, console_level_name, logging.INFO)
+
+    # Detailed session file handler for EVERYTHING
+    session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    session_file_handler = logging.FileHandler(
+        log_dir / f"backend_detailed_{session_id}.log",
+        encoding="utf-8"
+    )
+    session_file_handler.setLevel(logging.DEBUG)
+    session_file_handler.setFormatter(logging.Formatter(FILE_FORMAT, datefmt="%Y-%m-%d %H:%M:%S"))
+
+    # Console handler (clean terminal)
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(console_level)
     console_handler.setFormatter(logging.Formatter(CONSOLE_FORMAT, datefmt="%H:%M:%S"))
 
-    # Suppress verbose third-party loggers
-    noisy_loggers = [
-        "uvicorn.access",
-        "uvicorn.config",
-        "sqlalchemy.engine",
-        "sqlalchemy.pool",
-        "asyncio",
-        "shap",
-        "numpy",
-        "sklearn",
-        "xgboost",
-        "lightgbm",
-        "matplotlib",
-        "PIL",
-        "fsspec",
-        "distributed",
-        "boto3",
-        "botocore",
+    # Suppress verbose third-party loggers from console completely
+    noisy_third_party = [
+        "shap", "numpy", "sklearn", "matplotlib", "PIL", 
+        "fsspec", "distributed", "boto3", "botocore"
     ]
-    for name in noisy_loggers:
-        logging.getLogger(name).setLevel(logging.WARNING)
-        logging.getLogger(name).propagate = False
+    for name in noisy_third_party:
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
+        logger.propagate = False
+        logger.handlers.clear()
+        logger.addHandler(session_file_handler)
+        logger.addHandler(error_handler)
 
     # Root logger configuration
     root_logger = logging.getLogger()
@@ -85,8 +91,31 @@ def setup_logging(project_root: Path | None = None) -> None:
     root_logger.handlers.clear()
     root_logger.addHandler(file_handler)
     root_logger.addHandler(error_handler)
+    root_logger.addHandler(session_file_handler)
     root_logger.addHandler(console_handler)
 
-    # uvicorn access logs should go to file only, not stdout
-    # (we keep our own console output clean)
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # Route backend-heavy logs strictly to files unless PZ_LOG_LEVEL is DEBUG
+    heavy_loggers = [
+        "uvicorn.access",
+        "sqlalchemy.engine",
+        "piezo_ml",
+        "xgboost",
+        "lightgbm"
+    ]
+    for name in heavy_loggers:
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
+        logger.propagate = False
+        logger.handlers.clear()
+        
+        # Always save to our detailed files
+        logger.addHandler(session_file_handler)
+        logger.addHandler(file_handler)
+        logger.addHandler(error_handler)
+        
+        # Only show in console if user asked for DEBUG
+        if console_level == logging.DEBUG:
+            logger.addHandler(console_handler)
+
+    # Uvicorn error/startup logs should hit console to show server status
+    logging.getLogger("uvicorn.error").propagate = True

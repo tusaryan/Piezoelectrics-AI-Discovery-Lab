@@ -11,10 +11,10 @@ import { useEffect, useState, useRef } from "react";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { Loader2, Sigma, Maximize2, Minimize2, Play, AlertCircle } from "lucide-react";
+import { Loader2, Sigma, Play, AlertCircle } from "lucide-react";
 import { useInterpretStore } from "@/lib/store/interpretStore";
 import InfoTooltip from "./InfoTooltip";
-import { ChartNavigation } from "./ChartNavigation";
+import ChartNavigator from "@/components/ui/ChartNavigator";
 
 function KaTeXBlock({ latex }: { latex: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -46,9 +46,7 @@ export default function SymbolicRegression() {
     selectedModelId, fetchSymbolicRegression,
     pysrInstalling, installPySRBackend,
   } = useInterpretStore();
-  const [expanded, setExpanded] = useState(false);
   const [selectedEqIdx, setSelectedEqIdx] = useState<number | null>(null);
-  const paretoRef = useRef<HTMLDivElement>(null);
 
   const handleRun = () => {
     if (selectedModelId) fetchSymbolicRegression();
@@ -68,7 +66,7 @@ export default function SymbolicRegression() {
   );
 
   return (
-    <div className={`interpret-card ${expanded ? "expanded" : ""}`} id="symbolic-regression">
+    <div className="interpret-card" id="symbolic-regression">
       <div className="interpret-card-header">
         <div className="interpret-card-title">
           <Sigma size={16} />
@@ -82,9 +80,6 @@ export default function SymbolicRegression() {
             <p><strong>Best equation:</strong> The equation with highest R² — the most accurate discovered formula.</p>
             <p>⚠️ Requires Julia backend. May take 1-3 minutes.</p>
           </InfoTooltip>
-          <button className="expand-btn" onClick={() => setExpanded(!expanded)}>
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
         </div>
       </div>
 
@@ -163,8 +158,8 @@ export default function SymbolicRegression() {
             {pareto.length > 1 && (
               <div className="symreg-pareto">
                 <h4>Parsimony Pareto Front</h4>
-                <div ref={paretoRef} style={{ position: "relative" }}>
-                  <ChartNavigation containerRef={paretoRef} id="pysr-pareto">
+                <ChartNavigator chartId="pysr-pareto" minHeight={200}>
+                  <div style={{ width: "100%" }}>
                     <ResponsiveContainer width="100%" height={200}>
                     <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
@@ -195,8 +190,8 @@ export default function SymbolicRegression() {
                       </Scatter>
                     </ScatterChart>
                   </ResponsiveContainer>
-                </ChartNavigation>
-                </div>
+                  </div>
+                </ChartNavigator>
               </div>
             )}
 

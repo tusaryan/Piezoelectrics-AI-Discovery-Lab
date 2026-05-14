@@ -190,7 +190,6 @@ export default function ReportGenerator({ predictionHistory, models }: ReportGen
             onChange={() => setIncludeShap(!includeShap)}
           />
           <span>SHAP Analysis Summary</span>
-          <span className="report-badge-future">S7</span>
         </label>
 
         <label className="report-checkbox">

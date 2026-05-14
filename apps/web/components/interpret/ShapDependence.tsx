@@ -7,26 +7,24 @@
  * Color encodes auto-detected interaction feature.
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { Loader2, TrendingDown, Maximize2, Minimize2 } from "lucide-react";
+import { Loader2, TrendingDown } from "lucide-react";
 import { useInterpretStore } from "@/lib/store/interpretStore";
 import InfoTooltip from "./InfoTooltip";
-import { ChartNavigation } from "./ChartNavigation";
+import ChartNavigator from "@/components/ui/ChartNavigator";
 
 export default function ShapDependence() {
   const {
     dependence, dependenceLoading, dependenceError,
     beeswarm, fetchDependence, dependenceFeature,
   } = useInterpretStore();
-  const [expanded, setExpanded] = useState(false);
 
   // Feature dropdown
   const featureOptions = beeswarm?.feature_names ?? [];
   const [selectedFeature, setSelectedFeature] = useState<string | null>(dependenceFeature);
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (beeswarm && !selectedFeature && beeswarm.feature_names.length > 0) {
@@ -65,7 +63,7 @@ export default function ShapDependence() {
   };
 
   return (
-    <div className={`interpret-card ${expanded ? "expanded" : ""}`} id="shap-dependence">
+    <div className="interpret-card" id="shap-dependence">
       <div className="interpret-card-header">
         <div className="interpret-card-title">
           <TrendingDown size={16} />
@@ -91,9 +89,6 @@ export default function ShapDependence() {
             <p><strong>Color:</strong> Auto-detected interaction feature — reveals which other feature modifies this relationship.</p>
             <p>Non-linear patterns indicate complex learned relationships.</p>
           </InfoTooltip>
-          <button className="expand-btn" onClick={() => setExpanded(!expanded)}>
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
         </div>
       </div>
 
@@ -106,8 +101,9 @@ export default function ShapDependence() {
         )}
         {dependenceError && <div className="interpret-error">{dependenceError}</div>}
         {dependence && !dependenceLoading && scatterData.length > 0 && (
-          <div className="dependence-chart-wrapper" ref={wrapperRef}>
-            <ChartNavigation containerRef={wrapperRef} id="shap-dependence">
+          <div className="dependence-chart-wrapper">
+            <ChartNavigator chartId="shap-dependence" minHeight={320}>
+              <div style={{ width: "100%" }}>
               <ResponsiveContainer width="100%" height={320}>
               <ScatterChart margin={{ top: 10, right: 30, bottom: 40, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
@@ -142,7 +138,8 @@ export default function ShapDependence() {
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
-            </ChartNavigation>
+            </div>
+            </ChartNavigator>
             {dependence.interaction_feature && (
               <div className="dependence-interaction-label">
                 Color: <span className="font-mono">{dependence.interaction_feature}</span>

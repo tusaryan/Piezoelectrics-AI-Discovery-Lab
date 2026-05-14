@@ -1,1 +1,1 @@
-"""Piezo.AI — settings module."""
+"""Piezo.AI — Settings Module."""

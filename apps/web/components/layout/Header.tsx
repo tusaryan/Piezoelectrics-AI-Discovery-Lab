@@ -11,6 +11,7 @@ import {
   Linkedin,
 } from "lucide-react";
 import { useIsSM } from "@/lib/hooks/useMediaQuery";
+import { useAppBranding } from "@/lib/hooks/useAppBranding";
 import { APP_CONFIG } from "@/lib/constants";
 
 /**
@@ -45,6 +46,7 @@ export default function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const isSM = useIsSM();
+  const branding = useAppBranding();
   const [mounted, setMounted] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
 
@@ -80,7 +82,7 @@ export default function Header() {
   };
 
   // Get page title from route
-  const pageTitle = PAGE_TITLES[pathname] || APP_CONFIG.name;
+  const pageTitle = PAGE_TITLES[pathname] || branding.name;
 
   // Current theme info
   const currentTheme = (mounted ? theme : "dark") || "dark";
@@ -92,11 +94,27 @@ export default function Header() {
       <div className="header-left">
         {/* Piezo.AI logo — shown on mobile since sidebar is hidden */}
         {isSM && (
-          <div className="header-brand">
-            <div className="header-brand-logo">{APP_CONFIG.logoText}</div>
+          <div className="header-brand" suppressHydrationWarning>
+            <div className="header-brand-logo" suppressHydrationWarning>
+              <img
+                src={branding.logoPath}
+                alt={branding.name}
+                suppressHydrationWarning
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  const parent = (e.target as HTMLElement).parentElement;
+                  if (parent && !parent.querySelector(".header-logo-fallback")) {
+                    const span = document.createElement("span");
+                    span.className = "header-logo-fallback";
+                    span.textContent = branding.logoText;
+                    parent.appendChild(span);
+                  }
+                }}
+              />
+            </div>
           </div>
         )}
-        <h2 className="header-page-title">{pageTitle}</h2>
+        <h2 className="header-page-title" suppressHydrationWarning>{pageTitle}</h2>
       </div>
 
       <div className="header-right">
@@ -104,7 +122,7 @@ export default function Header() {
         {isSM && (
           <div className="header-meta">
             <a
-              href={APP_CONFIG.developer.github}
+              href={branding.developer.github}
               target="_blank"
               rel="noopener noreferrer"
               className="header-meta-link"
@@ -114,7 +132,7 @@ export default function Header() {
               <Github size={15} />
             </a>
             <a
-              href={APP_CONFIG.developer.linkedin}
+              href={branding.developer.linkedin}
               target="_blank"
               rel="noopener noreferrer"
               className="header-meta-link"
@@ -123,7 +141,7 @@ export default function Header() {
             >
               <Linkedin size={15} />
             </a>
-            <span className="header-meta-version">{APP_CONFIG.version}</span>
+            <span className="header-meta-version" suppressHydrationWarning>{branding.version}</span>
           </div>
         )}
 

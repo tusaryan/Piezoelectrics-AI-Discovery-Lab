@@ -195,10 +195,15 @@
   gap: 20px;
 }
 
+.dashboard-col-main {
+  min-width: 0;
+}
+
 .dashboard-col-side {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 
 /* ── Quick Actions ───────────────────────────────────────── */
@@ -315,10 +320,13 @@
 
 .dataset-table-wrapper {
   overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 8px; /* Room for scrollbar */
 }
 
 .dashboard-table {
   width: 100%;
+  min-width: 600px; /* Force scroll on small screens */
   border-collapse: collapse;
   font-size: 13px;
 }

@@ -363,6 +363,7 @@
 .opt-compare-add {
   display: flex;
   gap: 8px;
+  align-items: flex-start;
 }
 
 .opt-single-input input,
@@ -384,10 +385,11 @@
 }
 
 .opt-analyze-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 20px;
+  height: 42px;
   border: none;
   border-radius: 8px;
   background: var(--primary);
@@ -397,6 +399,7 @@
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .opt-analyze-btn:hover:not(:disabled) {
@@ -436,10 +439,52 @@
   display: flex;
 }
 
+/* Add formula + button */
+.opt-compare-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.opt-compare-add-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 0 12px rgba(79, 70, 229, 0.3);
+}
+
+.opt-compare-add-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+
 .opt-compare-input {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+/* The input row with + button should stretch full width */
+.opt-compare-input > .opt-compare-add {
+  align-self: stretch;
+}
+
+/* Compare/analyze button should fit its content */
+.opt-compare-input > .opt-analyze-btn {
+  align-self: flex-start;
 }
 
 .opt-struct-error-banner {
@@ -677,5 +722,13 @@
   }
   .opt-chart-controls {
     flex-wrap: wrap;
+  }
+  .opt-single-input,
+  .opt-compare-add {
+    flex-direction: column;
+  }
+  .opt-analyze-btn {
+    width: 100%;
+    justify-content: center;
   }
 }

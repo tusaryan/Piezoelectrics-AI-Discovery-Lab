@@ -236,6 +236,30 @@
   font-family: var(--font-mono);
 }
 
+/* ---------- Formula Strict Toggle ---------- */
+.formula-strict-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 6px;
+  user-select: none;
+}
+.formula-strict-toggle input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 14px; height: 14px;
+}
+.formula-strict-toggle svg { color: var(--primary); }
+
+.formula-validation-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
 /* ---------- Model Selector ---------- */
 .model-selector-grid {
   display: flex;

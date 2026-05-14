@@ -24,6 +24,11 @@ dependencies = [
 symbolic = [
     "pysr>=1.4.0",
 ]
+gnn = [
+    "torch>=2.0.0",
+    "chgnet>=0.3.0",
+    "matgl>=0.9.0",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",

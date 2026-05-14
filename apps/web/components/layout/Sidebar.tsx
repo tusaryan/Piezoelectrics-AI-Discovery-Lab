@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useIsWideDesktop, useIsSM } from "@/lib/hooks/useMediaQuery";
+import { useAppBranding } from "@/lib/hooks/useAppBranding";
 import { useEffect } from "react";
-import { APP_CONFIG } from "@/lib/constants";
 
 /**
  * Navigation items — maps to the 7 sections defined in §2 of architecture spec.
@@ -39,6 +39,7 @@ export default function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useUIStore();
   const isWideDesktop = useIsWideDesktop();
   const isSM = useIsSM();
+  const branding = useAppBranding();
 
   // Auto-collapse sidebar on narrower screens
   useEffect(() => {
@@ -72,8 +73,22 @@ export default function Sidebar() {
     >
       {/* Brand — pinned top */}
       <div className="sidebar-brand">
-        <div className="sidebar-brand-logo" aria-label={APP_CONFIG.name}>
-          <img src={APP_CONFIG.logoPath} alt="Logo" />
+        <div className="sidebar-brand-logo" aria-label={branding.name} suppressHydrationWarning>
+          <img
+            src={branding.logoPath}
+            alt={branding.name}
+            suppressHydrationWarning
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+              const parent = (e.target as HTMLElement).parentElement;
+              if (parent && !parent.querySelector(".sidebar-logo-fallback")) {
+                const span = document.createElement("span");
+                span.className = "sidebar-logo-fallback";
+                span.textContent = branding.logoText;
+                parent.appendChild(span);
+              }
+            }}
+          />
         </div>
         <AnimatePresence mode="wait">
           {!sidebarCollapsed && (
@@ -83,9 +98,10 @@ export default function Sidebar() {
               animate={{ opacity: 1, width: "auto" }}
               exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.2 }}
+              suppressHydrationWarning
             >
-              <span className="sidebar-brand-name">{APP_CONFIG.name}</span>
-              <span className="sidebar-brand-version">{APP_CONFIG.version}</span>
+              <span className="sidebar-brand-name" suppressHydrationWarning>{branding.name}</span>
+              <span className="sidebar-brand-version" suppressHydrationWarning>{branding.version}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -117,7 +133,7 @@ export default function Sidebar() {
         <div className={`sidebar-footer-content ${sidebarCollapsed ? "collapsed-footer" : ""}`}>
           <div className={`sidebar-footer-links ${sidebarCollapsed ? "stacked" : ""}`}>
             <a
-              href={APP_CONFIG.developer.github}
+              href={branding.developer.github}
               target="_blank"
               rel="noopener noreferrer"
               className="sidebar-footer-link"
@@ -127,7 +143,7 @@ export default function Sidebar() {
               <Github size={16} />
             </a>
             <a
-              href={APP_CONFIG.developer.linkedin}
+              href={branding.developer.linkedin}
               target="_blank"
               rel="noopener noreferrer"
               className="sidebar-footer-link"
@@ -137,7 +153,7 @@ export default function Sidebar() {
               <Linkedin size={16} />
             </a>
           </div>
-          <span className="sidebar-footer-version">{APP_CONFIG.version}</span>
+          <span className="sidebar-footer-version" suppressHydrationWarning>{branding.version}</span>
         </div>
       </div>
 

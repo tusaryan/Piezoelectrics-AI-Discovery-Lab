@@ -24,6 +24,7 @@ from app.modules.prediction.router import router as prediction_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.interpret.router import router as interpret_router
 from app.modules.optimization.router import router as optimization_router
+from app.modules.settings.router import router as settings_router
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
     print(f"📊 Dashboard endpoints: /api/v1/dashboard")
     print(f"🔍 Interpret endpoints: /api/v1/interpret")
     print(f"🧪 Optimization endpoints: /api/v1/optimization")
+    print(f"⚙️  Settings endpoints: /api/v1/settings")
     yield
     # Shutdown
     await engine.dispose()
@@ -70,6 +72,7 @@ app.include_router(prediction_router, prefix="/api/v1/predictions", tags=["predi
 app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(interpret_router, prefix="/api/v1/interpret", tags=["interpret"])
 app.include_router(optimization_router, prefix="/api/v1/optimization", tags=["optimization"])
+app.include_router(settings_router, prefix="/api/v1/settings", tags=["settings"])
 
 
 @app.get("/health")

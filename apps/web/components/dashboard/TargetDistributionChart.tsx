@@ -50,6 +50,8 @@ export default function TargetDistributionChart({ data }: TargetDistributionChar
     fill: TARGET_COLORS[d.target] || "#64748B",
   }));
 
+  const total = data.reduce((a, b) => a + b.count, 0);
+
   return (
     <div className="dashboard-section target-dist">
       <h2 className="section-title">
@@ -58,19 +60,17 @@ export default function TargetDistributionChart({ data }: TargetDistributionChar
       <div className="donut-container">
         <ChartNavigator chartId="target-distribution" minHeight={280}>
           <div style={{ width: "100%", position: "relative" }}>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={260}>
               <RechartsPie>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius="38%"
+                  outerRadius="65%"
                   paddingAngle={4}
                   dataKey="value"
                   stroke="none"
-                  label={({ name, percentage }) => `${name} ${percentage}%`}
-                  labelLine={false}
                 >
                   {chartData.map((entry, idx) => (
                     <Cell key={idx} fill={entry.fill} />
@@ -84,18 +84,20 @@ export default function TargetDistributionChart({ data }: TargetDistributionChar
                     color: "var(--text)",
                   }}
                   formatter={(value: number, name: string) => [
-                    `${value} model${value !== 1 ? "s" : ""}`,
+                    `${value} model${value !== 1 ? "s" : ""} (${chartData.find(c => c.name === name)?.percentage ?? 0}%)`,
                     name,
                   ]}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: "12px", color: "var(--text-muted)" }}
+                  iconType="circle"
+                  iconSize={8}
                 />
               </RechartsPie>
             </ResponsiveContainer>
             {/* Center label */}
             <div className="donut-center">
-              <span className="donut-total">{data.reduce((a, b) => a + b.count, 0)}</span>
+              <span className="donut-total">{total}</span>
               <span className="donut-label">Models</span>
             </div>
           </div>

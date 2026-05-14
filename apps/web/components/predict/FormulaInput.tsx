@@ -57,7 +57,7 @@ export default function FormulaInput() {
         }
       }, 400);
     },
-    [setFormula, setFormulaValidation, setFormulaValidating],
+    [setFormula, setFormulaValidation, setFormulaValidating, strictFormulaMode],
   );
 
   useEffect(() => {

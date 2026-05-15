@@ -295,6 +295,14 @@ export async function addFieldAlias(
   });
 }
 
+export async function removeFieldAlias(
+  fieldName: string, alias: string
+): Promise<{ message: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${fieldName}/aliases/${encodeURIComponent(alias)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function exportFieldSchema(): Promise<Record<string, unknown>> {
   return fetchJson(`${API}/api/v1/settings/fields/export`);
 }

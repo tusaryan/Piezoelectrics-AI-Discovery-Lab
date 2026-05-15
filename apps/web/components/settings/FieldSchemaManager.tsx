@@ -31,6 +31,7 @@ export default function FieldSchemaManager() {
   const {
     fieldSchema, fieldSchemaLoading, fetchFieldSchema,
     addField, removeField, addCategoryValue, removeCategoryValue,
+    addAlias, removeAlias,
     exportSchema, importSchema,
   } = useSettingsStore();
 
@@ -41,6 +42,13 @@ export default function FieldSchemaManager() {
   const [showAddCategory, setShowAddCategory] = useState<string | null>(null);
   const [newCatValue, setNewCatValue] = useState("");
   const [addingCat, setAddingCat] = useState(false);
+
+  // Alias form state
+  const [showAddAlias, setShowAddAlias] = useState<string | null>(null);
+  const [newAliasKey, setNewAliasKey] = useState("");
+  const [newAliasCanonical, setNewAliasCanonical] = useState("");
+  const [addingAlias, setAddingAlias] = useState(false);
+  const [confirmRemoveAlias, setConfirmRemoveAlias] = useState<{ field: string; alias: string } | null>(null);
 
   // Add field form state
   const [newFieldName, setNewFieldName] = useState("");
@@ -177,6 +185,31 @@ export default function FieldSchemaManager() {
     e.target.value = "";
   };
 
+  const handleAddAlias = async (fieldName: string) => {
+    if (!newAliasKey.trim() || !newAliasCanonical.trim()) return;
+    setAddingAlias(true);
+    try {
+      await addAlias(fieldName, newAliasKey.trim(), newAliasCanonical.trim());
+      setStatusMsg({ text: `Alias "${newAliasKey}" → "${newAliasCanonical}" added`, type: "success" });
+      setNewAliasKey(""); setNewAliasCanonical("");
+      setShowAddAlias(null);
+    } catch (e: any) {
+      setStatusMsg({ text: e.message || "Failed to add alias", type: "error" });
+    }
+    setAddingAlias(false);
+  };
+
+  const handleRemoveAlias = async (fieldName: string, alias: string) => {
+    try {
+      await removeAlias(fieldName, alias);
+      setStatusMsg({ text: `Alias "${alias}" removed`, type: "success" });
+      setConfirmRemoveAlias(null);
+    } catch (e: any) {
+      setStatusMsg({ text: e.message || "Cannot remove alias", type: "error" });
+      setConfirmRemoveAlias(null);
+    }
+  };
+
   /* ── Render helpers ─────────────────────── */
 
   const renderFieldRow = (field: FieldDefinition) => {
@@ -305,18 +338,72 @@ export default function FieldSchemaManager() {
               </div>
             )}
 
-            {Object.keys(field.aliases).length > 0 && (
-              <div className="field-schema-aliases">
-                <span className="field-schema-detail-label">Aliases:</span>
+            {/* Aliases section — always show (with add button) */}
+            <div className="field-schema-aliases">
+              <div className="field-schema-cat-header">
+                <span className="field-schema-detail-label">
+                  Aliases ({Object.keys(field.aliases).length})
+                </span>
+                <button
+                  className="field-schema-add-cat-btn"
+                  onClick={() => setShowAddAlias(showAddAlias === field.name ? null : field.name)}
+                >
+                  <Plus size={11} /> Add Alias
+                </button>
+              </div>
+
+              {showAddAlias === field.name && (
+                <div className="field-schema-add-cat-row" style={{ gap: "4px" }}>
+                  <input
+                    className="field-schema-add-cat-input"
+                    value={newAliasKey}
+                    onChange={(e) => setNewAliasKey(e.target.value)}
+                    placeholder="alias_name"
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", padding: "0 2px" }}>→</span>
+                  <input
+                    className="field-schema-add-cat-input"
+                    value={newAliasCanonical}
+                    onChange={(e) => setNewAliasCanonical(e.target.value)}
+                    placeholder={field.data_type === "category" ? "canonical_value" : field.name}
+                    style={{ flex: 1 }}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddAlias(field.name)}
+                  />
+                  <button
+                    className="field-schema-add-cat-confirm"
+                    onClick={() => handleAddAlias(field.name)}
+                    disabled={!newAliasKey.trim() || !newAliasCanonical.trim() || addingAlias}
+                  >
+                    {addingAlias ? "..." : <Plus size={12} />}
+                  </button>
+                </div>
+              )}
+
+              {Object.keys(field.aliases).length > 0 && (
                 <div className="field-schema-alias-list">
                   {Object.entries(field.aliases).map(([alias, canonical]) => (
                     <span key={alias} className="field-schema-alias-tag">
                       {alias} → {canonical}
+                      {confirmRemoveAlias?.field === field.name && confirmRemoveAlias?.alias === alias ? (
+                        <span className="field-schema-cat-confirm">
+                          <button onClick={() => handleRemoveAlias(field.name, alias)} title="Confirm">✓</button>
+                          <button onClick={() => setConfirmRemoveAlias(null)} title="Cancel">✗</button>
+                        </span>
+                      ) : (
+                        <button
+                          className="field-schema-cat-remove"
+                          onClick={() => setConfirmRemoveAlias({ field: field.name, alias })}
+                          title="Remove alias"
+                        >
+                          <X size={8} />
+                        </button>
+                      )}
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {field.default_value && (
               <div className="field-schema-default">

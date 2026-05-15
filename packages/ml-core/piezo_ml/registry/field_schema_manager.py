@@ -515,6 +515,29 @@ def add_alias(field_name: str, alias: str, canonical: str) -> dict[str, Any]:
     return {"message": f"Alias '{alias}' → '{canonical}' added to '{field_name}'"}
 
 
+def remove_alias(field_name: str, alias: str) -> dict[str, Any]:
+    """Remove an alias mapping from a field."""
+    fd = FIELD_SCHEMA.get(field_name)
+    if not fd:
+        return {"error": f"Field '{field_name}' not found"}
+
+    alias = alias.strip().lower()
+    customs = _load_customizations()
+    added_aliases = customs.get("added_aliases", {})
+    field_aliases = added_aliases.get(field_name, {})
+
+    if alias not in field_aliases:
+        return {"error": f"Alias '{alias}' not found for '{field_name}'"}
+
+    del field_aliases[alias]
+    if not field_aliases:
+        del added_aliases[field_name]
+    _save_customizations(customs)
+    refresh_schema()
+
+    return {"message": f"Alias '{alias}' removed from '{field_name}'"}
+
+
 def export_field_schema() -> dict[str, Any]:
     """Export the full field schema as a portable JSON structure."""
     return {

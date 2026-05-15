@@ -88,6 +88,8 @@ interface SettingsState {
   removeField: (name: string) => Promise<void>;
   addCategoryValue: (fieldName: string, value: string) => Promise<void>;
   removeCategoryValue: (fieldName: string, value: string) => Promise<void>;
+  addAlias: (fieldName: string, alias: string, canonical: string) => Promise<void>;
+  removeAlias: (fieldName: string, alias: string) => Promise<void>;
   exportSchema: () => Promise<Record<string, unknown>>;
   importSchema: (data: Record<string, unknown>) => Promise<void>;
 
@@ -351,6 +353,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   removeCategoryValue: async (fieldName, value) => {
     try {
       await api.removeFieldCategory(fieldName, value);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  addAlias: async (fieldName, alias, canonical) => {
+    try {
+      await api.addFieldAlias(fieldName, alias, canonical);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  removeAlias: async (fieldName, alias) => {
+    try {
+      await api.removeFieldAlias(fieldName, alias);
       await get().fetchFieldSchema();
     } catch (e: any) { set({ error: e.message }); throw e; }
   },

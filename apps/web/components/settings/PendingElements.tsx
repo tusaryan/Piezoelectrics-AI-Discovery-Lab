@@ -446,6 +446,9 @@ export default function PendingElements() {
                       </button>
                     )
                   )}
+                  <span className="elem-prop-count" title={`${el.property_count} properties populated`}>
+                    {el.property_count}/{elementRegistry?.total_properties || 27}
+                  </span>
                 </div>
               ))}
             </div>

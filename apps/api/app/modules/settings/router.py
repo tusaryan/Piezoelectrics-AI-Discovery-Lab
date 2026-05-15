@@ -236,6 +236,15 @@ async def add_field_alias(field_name: str, body: schemas.AddAliasRequest):
     return result
 
 
+@router.delete("/fields/{field_name}/aliases/{alias}")
+async def remove_field_alias(field_name: str, alias: str):
+    """Remove an alias mapping from a field."""
+    result = service.remove_field_alias(field_name, alias)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
 # ── Reset ──────────────────────
 
 @router.post("/reset/elements", response_model=schemas.ResetResponse)

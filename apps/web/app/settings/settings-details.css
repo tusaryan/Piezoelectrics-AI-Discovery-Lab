@@ -684,14 +684,24 @@
 .field-schema-cat-confirm button:last-child { color: var(--text-muted); }
 
 /* Aliases */
-.field-schema-aliases { display: flex; flex-direction: column; gap: 4px; }
+.field-schema-aliases { display: flex; flex-direction: column; gap: 6px; }
 .field-schema-alias-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .field-schema-alias-tag {
-  display: inline-flex; padding: 2px 8px; font-size: 10px;
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; font-size: 10px;
   font-family: var(--font-mono); background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 999px;
-  color: #6366F1;
+  color: #6366F1; transition: all 200ms;
 }
+.field-schema-alias-tag:hover { border-color: rgba(99, 102, 241, 0.4); }
+.field-schema-alias-tag .field-schema-cat-remove { opacity: 0; }
+.field-schema-alias-tag:hover .field-schema-cat-remove { opacity: 1; }
+
+/* Element property count indicator */
+.elem-prop-count {
+  font-size: 7px; color: var(--text-muted); font-family: var(--font-mono);
+  margin-top: 1px; opacity: 0.6; transition: opacity 200ms;
+}
+.elem-card:hover .elem-prop-count { opacity: 1; }
 
 /* Footer */
 .field-schema-footer {

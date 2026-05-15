@@ -677,6 +677,12 @@ def add_field_alias(field_name: str, alias: str, canonical: str) -> dict[str, An
     return add_alias(field_name, alias, canonical)
 
 
+def remove_field_alias(field_name: str, alias: str) -> dict[str, Any]:
+    """Remove an alias mapping from a field."""
+    from piezo_ml.registry.field_schema_manager import remove_alias
+    return remove_alias(field_name, alias)
+
+
 def export_field_schema() -> dict[str, Any]:
     """Export the full field schema as portable JSON."""
     from piezo_ml.registry.field_schema_manager import export_field_schema as _export

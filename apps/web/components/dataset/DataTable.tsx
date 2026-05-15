@@ -439,13 +439,13 @@ export default function DataTable({
                       ) : (
                         <input
                           className="cell-edit-input"
-                          type={col.type === "float" || col.type === "int" ? "number" : "text"}
+                          type="text"
+                          inputMode={col.type === "float" || col.type === "int" ? "decimal" : "text"}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={commitEdit}
                           onKeyDown={handleEditKeyDown}
                           autoFocus
-                          step={col.type === "float" ? "any" : undefined}
                         />
                       )
                     ) : col.render ? (

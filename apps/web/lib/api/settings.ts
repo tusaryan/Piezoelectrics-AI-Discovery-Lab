@@ -143,7 +143,8 @@ export async function getLlmProviders(): Promise<LlmProvider[]> {
 export interface ElementInfo {
   symbol: string;
   atomic_number: number;
-  category: string;
+  category: string;       // Primary category (backward compat)
+  categories: string[];   // All categories this element belongs to
   perovskite_site: string;
   is_rare_earth: boolean;
   is_pending: boolean;
@@ -159,6 +160,7 @@ export interface ElementRegistry {
   property_keys: string[];
   default_property_keys: string[];
   user_added_properties: string[];
+  available_categories: { key: string; display: string; name: string; description: string }[];
 }
 
 export async function getElementRegistry(): Promise<ElementRegistry> {

@@ -69,11 +69,13 @@ export default function PipelineConfigurator() {
       ? selectedFields.filter((f) => f !== field)
       : [...selectedFields, field];
     setSelectedFields(next);
-    // Remove strategy entry if field was deselected
+    // Clear strategy entry when field is deselected
     if (isSelected && missingStrategies[field]) {
-      const { [field]: _, ...rest } = missingStrategies;
-      // We can't directly set missingStrategies, but we can clear the field's strategy
       setMissingStrategy(field, "");
+    }
+    // Clear validation issues for deselected fields
+    if (isSelected) {
+      setValidationIssues(validationIssues.filter((i) => i.field !== field));
     }
   };
 
@@ -85,7 +87,12 @@ export default function PipelineConfigurator() {
     if (next.length === 0) return; // At least one target required
     setTargets(next);
     // Ensure targets are also in selected fields
-    setSelectedFields([...new Set([...selectedFields, ...next])]);
+    setSelectedFields([...new Set([...selectedFields.filter((f) => next.includes(f) || !TARGET_FIELDS.includes(f) || f === "formula"), ...next])]);
+    // Clean up missingStrategies for removed targets
+    if (targets.includes(target) && !next.includes(target)) {
+      setMissingStrategy(target, "");
+      setValidationIssues(validationIssues.filter((i) => i.field !== target));
+    }
   };
 
   // Select All / Deselect All targets

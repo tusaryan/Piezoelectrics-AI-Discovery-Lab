@@ -369,6 +369,8 @@ DEFAULT_SUPPORTED_ELEMENTS = frozenset({
     "Cu", "Mn", "Al", "Mg", "Zn",
     "La", "Nd", "Pr", "Sm", "Eu", "Gd", "Ho",
     "O",
+    # S9.5 additions
+    "H", "B", "N", "C", "Co", "Cr", "In", "Si", "Ni",
 })
 
 
@@ -378,35 +380,71 @@ def get_element_registry() -> dict[str, Any]:
         ELEMENT_REGISTRY, PENDING_ELEMENTS, PROPERTY_KEYS,
         A_SITE, B_SITE, DOPANTS, RARE_EARTHS,
     )
+    from piezo_ml.registry.element_classification import (
+        get_element_categories as _get_all_cats,
+        ELEMENT_CATEGORIES,
+    )
 
     customs = _load_custom_additions()
     user_added_elems = set(customs.get("added_elements", []))
     user_added_props = customs.get("added_properties", [])
     elem_categories = customs.get("element_categories", {})  # user-stored categories
 
+    # Build the list of all known category keys (for UI pill rendering)
+    all_category_keys = sorted(ELEMENT_CATEGORIES.keys())
+    # Map internal names to display names
+    category_display: dict[str, str] = {}
+    for ckey, cdef in ELEMENT_CATEGORIES.items():
+        # Convert A_SITE -> A-site, B_SITE -> B-site, etc.
+        display = ckey.replace("_", "-").lower()
+        if display == "a-site":
+            display = "A-site"
+        elif display == "b-site":
+            display = "B-site"
+        elif display == "rare-earth":
+            display = "rare_earth"
+        elif display == "x-site":
+            display = "X-site"
+        elif display == "transition-metal-b":
+            display = "transition_metal_B"
+        category_display[ckey] = display
+
     elements = []
     for symbol, props in sorted(ELEMENT_REGISTRY.items()):
-        # Check user-stored categories first for user-added elements
+        # Build categories list: combine classification-derived + user-stored
+        cats_from_classification = _get_all_cats(symbol)
+        # Convert internal keys to display format
+        display_cats = [category_display.get(c, c.lower()) for c in cats_from_classification]
+
+        # Add user-stored categories that aren't already present
         stored_cats = elem_categories.get(symbol, [])
-        if stored_cats:
-            # Use the first user-selected category as primary
-            cat = stored_cats[0].replace("_", "_")  # already in correct format
-        elif symbol == "O":
-            cat = "anion"
-        elif symbol in A_SITE:
-            cat = "A-site"
-        elif symbol in B_SITE:
-            cat = "B-site"
-        elif symbol in RARE_EARTHS:
-            cat = "rare_earth"
-        elif symbol in DOPANTS:
-            cat = "dopant"
-        else:
-            cat = "other"
+        for sc in stored_cats:
+            if sc not in display_cats:
+                display_cats.append(sc)
+
+        # Fallback for uncategorized
+        if not display_cats:
+            if symbol == "O":
+                display_cats = ["anion"]
+            elif symbol in A_SITE:
+                display_cats = ["A-site"]
+            elif symbol in B_SITE:
+                display_cats = ["B-site"]
+            elif symbol in RARE_EARTHS:
+                display_cats = ["rare_earth"]
+            elif symbol in DOPANTS:
+                display_cats = ["dopant"]
+            else:
+                display_cats = ["other"]
+
+        # Primary category (first in list, for backward compat)
+        primary_cat = display_cats[0] if display_cats else "other"
+
         elements.append({
             "symbol": symbol,
             "atomic_number": props.get("atomic_number", 0),
-            "category": cat,
+            "category": primary_cat,
+            "categories": display_cats,
             "perovskite_site": props.get("perovskite_site", ""),
             "is_rare_earth": props.get("is_rare_earth", False),
             "is_pending": False,
@@ -425,6 +463,10 @@ def get_element_registry() -> dict[str, Any]:
         "property_keys": all_props,
         "default_property_keys": list(DEFAULT_PROPERTY_KEYS),
         "user_added_properties": user_added_props,
+        "available_categories": [
+            {"key": k, "display": category_display.get(k, k), "name": v["name"], "description": v["description"]}
+            for k, v in ELEMENT_CATEGORIES.items()
+        ],
     }
 
 
@@ -681,7 +723,7 @@ def reset_elements_and_properties() -> dict[str, Any]:
         actions.append(f"Removed {len(removed_props)} user-added properties: {', '.join(removed_props)}")
 
     # Reset customizations file
-    _save_custom_additions({"added_elements": [], "added_properties": []})
+    _save_custom_additions({"added_elements": [], "added_properties": [], "element_categories": {}})
 
     return {"success": True, "message": "Elements and properties reset to defaults",
             "actions_taken": actions}

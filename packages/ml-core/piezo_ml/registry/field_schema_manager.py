@@ -90,7 +90,7 @@ DEFAULT_FIELD_SCHEMA: dict[str, FieldDefinition] = {
         is_target=True,
         is_input=True,
         range_min=0,
-        range_max=3000,
+        range_max=None,
     ),
     "tc": FieldDefinition(
         name="tc",
@@ -99,7 +99,7 @@ DEFAULT_FIELD_SCHEMA: dict[str, FieldDefinition] = {
         is_target=True,
         is_input=True,
         range_min=-50,
-        range_max=1500,
+        range_max=None,
     ),
     "vickers_hardness": FieldDefinition(
         name="vickers_hardness",
@@ -108,7 +108,7 @@ DEFAULT_FIELD_SCHEMA: dict[str, FieldDefinition] = {
         is_target=True,
         is_input=True,
         range_min=0,
-        range_max=2000,
+        range_max=None,
     ),
 
     # ── Numeric input fields ──
@@ -137,7 +137,7 @@ DEFAULT_FIELD_SCHEMA: dict[str, FieldDefinition] = {
         data_type="float",
         description="Sintering temperature (°C)",
         range_min=0,
-        range_max=2000,
+        range_max=None,
     ),
     "filler_wt_pct": FieldDefinition(
         name="filler_wt_pct",

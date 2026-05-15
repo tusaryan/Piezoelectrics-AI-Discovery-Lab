@@ -53,7 +53,11 @@ export default function PendingElements() {
     };
   }, [undoAction]);
 
-  const categories = ["A-site", "B-site", "dopant", "rare_earth"];
+  // Dynamic categories from backend (fallback to defaults)
+  const availableCategories = elementRegistry?.available_categories || [];
+  const categories = availableCategories.length > 0
+    ? availableCategories.map((c: any) => c.display)
+    : ["A-site", "B-site", "dopant", "rare_earth", "X-site", "interstitial", "network_former"];
 
   const startUndoCountdown = (type: string, key: string) => {
     // Clear previous
@@ -229,6 +233,10 @@ export default function PendingElements() {
     "dopant": "#F59E0B",
     "rare_earth": "#8B5CF6",
     "anion": "#EF4444",
+    "X-site": "#EC4899",
+    "interstitial": "#14B8A6",
+    "network_former": "#F97316",
+    "transition_metal_B": "#06B6D4",
     "other": "#6B7280",
   };
 
@@ -388,7 +396,7 @@ export default function PendingElements() {
                   <span className="elem-number">{el.atomic_number}</span>
                   <span className="elem-symbol-lg">{el.symbol}</span>
                   <div className="elem-cat-badge-wrap"
-                    onMouseEnter={() => el.category === "other" ? setHoveredCategory(el.symbol) : null}
+                    onMouseEnter={() => setHoveredCategory(el.symbol)}
                     onMouseLeave={() => setHoveredCategory(null)}
                   >
                     <span
@@ -397,9 +405,26 @@ export default function PendingElements() {
                     >
                       {el.category}
                     </span>
-                    {el.category === "other" && hoveredCategory === el.symbol && (
+                    {(el as any).categories?.length > 1 && (
+                      <span
+                        className="elem-cat-badge elem-cat-badge-more"
+                        style={{ background: "rgba(255,255,255,0.08)", color: "var(--text-secondary)", fontSize: "0.6rem", padding: "1px 4px" }}
+                      >
+                        +{(el as any).categories.length - 1}
+                      </span>
+                    )}
+                    {hoveredCategory === el.symbol && (el as any).categories?.length > 1 && (
                       <div className="elem-cat-tooltip">
-                        Not classified into A-site, B-site, dopant, or rare_earth
+                        {(el as any).categories.map((c: string, i: number) => (
+                          <span key={c} style={{ color: categoryColors[c] || "#6B7280" }}>
+                            {c}{i < (el as any).categories.length - 1 ? ", " : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(el as any).categories?.length === 1 && el.category === "other" && hoveredCategory === el.symbol && (
+                      <div className="elem-cat-tooltip">
+                        Not classified into any standard category
                       </div>
                     )}
                   </div>

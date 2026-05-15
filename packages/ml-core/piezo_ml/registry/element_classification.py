@@ -44,7 +44,7 @@ ELEMENT_CATEGORIES: dict[str, ElementCategory] = {
     "DOPANT": {
         "name": "Dopant / modifier elements",
         "description": "Small amounts for property tuning: acceptor/donor dopants, sintering aids",
-        "elements": frozenset({"Cu", "Mn", "Al", "Mg", "Zn", "C", "N"}),
+        "elements": frozenset({"Cu", "Mn", "Al", "Mg", "Zn", "C", "N", "Co", "Cr", "Ni", "In", "B", "Si"}),
     },
     "RARE_EARTH": {
         "name": "Rare earth elements",
@@ -55,6 +55,21 @@ ELEMENT_CATEGORIES: dict[str, ElementCategory] = {
         "name": "Anion",
         "description": "Oxygen — the universal anion in oxide piezoelectrics",
         "elements": frozenset({"O"}),
+    },
+    "X_SITE": {
+        "name": "X-site / anion",
+        "description": "Non-oxygen anions that substitute on the X-site in perovskite or related structures",
+        "elements": frozenset({"N"}),
+    },
+    "INTERSTITIAL": {
+        "name": "Interstitial elements",
+        "description": "Small atoms that occupy interstitial sites in crystal lattices",
+        "elements": frozenset({"H", "C", "B"}),
+    },
+    "NETWORK_FORMER": {
+        "name": "Network former",
+        "description": "Elements that form network structures in glasses and glass-ceramics",
+        "elements": frozenset({"Si", "B"}),
     },
     "TRANSITION_METAL_B": {
         "name": "Transition metal B-site",
@@ -69,6 +84,9 @@ B_SITE_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["B_SITE"]["elements"]
 DOPANT_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["DOPANT"]["elements"]
 RARE_EARTH_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["RARE_EARTH"]["elements"]
 ANION_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["ANION"]["elements"]
+X_SITE_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["X_SITE"]["elements"]
+INTERSTITIAL_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["INTERSTITIAL"]["elements"]
+NETWORK_FORMER_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["NETWORK_FORMER"]["elements"]
 TRANSITION_METAL_B_ELEMENTS: frozenset[str] = ELEMENT_CATEGORIES["TRANSITION_METAL_B"]["elements"]
 
 # ---------------------------------------------------------------------------
@@ -92,11 +110,20 @@ PEROVSKITE_SITES: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 def get_element_category(symbol: str) -> str | None:
-    """Return the category name for an element."""
+    """Return the first/primary category name for an element."""
     for cat_key, cat_def in ELEMENT_CATEGORIES.items():
         if symbol in cat_def["elements"]:
             return cat_key
     return None
+
+
+def get_element_categories(symbol: str) -> list[str]:
+    """Return ALL category names an element belongs to."""
+    cats = []
+    for cat_key, cat_def in ELEMENT_CATEGORIES.items():
+        if symbol in cat_def["elements"]:
+            cats.append(cat_key)
+    return cats
 
 
 def get_perovskite_site(symbol: str) -> str:
@@ -162,7 +189,13 @@ COORDINATION_NUMBERS: dict[str, int] = {
     **{s: 6 for s in B_SITE_ELEMENTS},
     # Anion: 2-fold (binds to 2 B-site cations)
     **{s: 2 for s in ANION_ELEMENTS},
+    # X-site anions: 2-fold like oxygen
+    **{s: 2 for s in X_SITE_ELEMENTS},
     # Dopants / non-perovskite: default 6
     **{s: 6 for s in DOPANT_ELEMENTS},
     **{s: 6 for s in RARE_EARTH_ELEMENTS},
+    # Interstitial: default 4 (tetrahedral interstitial)
+    **{s: 4 for s in INTERSTITIAL_ELEMENTS},
+    # Network formers: default 4 (tetrahedral coordination)
+    **{s: 4 for s in NETWORK_FORMER_ELEMENTS},
 }

@@ -98,7 +98,8 @@ class ElementInfo(BaseModel):
     """Element in the registry."""
     symbol: str
     atomic_number: int = 0
-    category: str = ""  # A-site, B-site, dopant, rare_earth, anion
+    category: str = ""  # Primary category (backward compat)
+    categories: list[str] = Field(default_factory=list)  # All categories
     perovskite_site: str = ""
     is_rare_earth: bool = False
     is_pending: bool = False
@@ -124,6 +125,7 @@ class ElementRegistryResponse(BaseModel):
     property_keys: list[str] = Field(default_factory=list)
     default_property_keys: list[str] = Field(default_factory=list)
     user_added_properties: list[str] = Field(default_factory=list)
+    available_categories: list[dict] = Field(default_factory=list)
 
 
 class BootstrapResult(BaseModel):

@@ -21,6 +21,8 @@ SUPPORTED_ELEMENTS: frozenset[str] = frozenset(
         "Cu", "Mn", "Al", "Mg", "Zn",
         "La", "Nd", "Pr", "Sm", "Eu", "Gd", "Ho",
         "O",
+        # S9.5 additions: new elements for expanded material space
+        "H", "B", "N", "C", "Co", "Cr", "In", "Si", "Ni",
     }
 )
 
@@ -29,8 +31,8 @@ REGISTRY_DATA_PATH = Path(__file__).with_name("element_registry_data.json")
 
 RARE_EARTHS = {"La", "Nd", "Pr", "Sm", "Eu", "Gd", "Ho"}
 A_SITE = {"K", "Na", "Li", "Ba", "Ca", "Sr", "Ag", "Bi", "Pb"}
-B_SITE = {"Nb", "Ta", "Ti", "Zr", "Hf", "Sb", "W", "Mo", "Sn", "Sc", "Fe"}
-DOPANTS = {"Cu", "Mn", "Al", "Mg", "Zn"}
+B_SITE = {"Nb", "Ta", "Ti", "Zr", "Hf", "Sb", "W", "Mo", "Sn", "Sc", "Fe", "Cr", "Ni", "Co", "In"}
+DOPANTS = {"Cu", "Mn", "Al", "Mg", "Zn", "C", "N", "B", "Si", "Co", "Cr", "Ni", "In"}
 
 PROPERTY_KEYS: tuple[str, ...] = (
     "atomic_number",
@@ -192,11 +194,28 @@ def _load_or_bootstrap_registry() -> dict[str, dict[str, Any]]:
     pending_registry = bootstrap_pending_elements()
     registry = _load_registry_file()
     registry.update(pending_registry)
-    missing = SUPPORTED_ELEMENTS - set(registry.keys())
+
+    # Include user-added elements from customizations file (T3: persistence fix)
+    custom_path = Path(__file__).resolve().parents[3] / "resources" / ".settings-customizations.json"
+    user_added: set[str] = set()
+    if custom_path.exists():
+        try:
+            with open(custom_path, "r", encoding="utf-8") as f:
+                customs = json.load(f)
+                user_added = set(customs.get("added_elements", []))
+        except Exception:
+            pass
+
+    # All elements to load = default SUPPORTED + user-added
+    all_elements = SUPPORTED_ELEMENTS | user_added
+    missing = all_elements - set(registry.keys())
     if missing:
         for symbol in sorted(missing):
-            registry[symbol] = _build_from_sources(symbol)
-    return {symbol: registry[symbol] for symbol in sorted(SUPPORTED_ELEMENTS)}
+            try:
+                registry[symbol] = _build_from_sources(symbol)
+            except Exception:
+                pass  # skip elements that can't be bootstrapped
+    return {symbol: registry[symbol] for symbol in sorted(all_elements) if symbol in registry}
 
 
 ELEMENT_REGISTRY: dict[str, dict[str, Any]] = _load_or_bootstrap_registry()

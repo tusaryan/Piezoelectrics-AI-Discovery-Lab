@@ -35,6 +35,10 @@ interface SettingsState {
   gnnStatus: api.GnnStatus | null;
   gnnLoading: boolean;
 
+  // Field Schema
+  fieldSchema: api.FieldDefinition[] | null;
+  fieldSchemaLoading: boolean;
+
   // Error
   error: string | null;
 
@@ -77,6 +81,16 @@ interface SettingsState {
 
   // Actions — GNN
   fetchGnnStatus: () => Promise<void>;
+
+  // Actions — Field Schema
+  fetchFieldSchema: () => Promise<void>;
+  addField: (data: Parameters<typeof api.addUserField>[0]) => Promise<void>;
+  removeField: (name: string) => Promise<void>;
+  addCategoryValue: (fieldName: string, value: string) => Promise<void>;
+  removeCategoryValue: (fieldName: string, value: string) => Promise<void>;
+  exportSchema: () => Promise<Record<string, unknown>>;
+  importSchema: (data: Record<string, unknown>) => Promise<void>;
+
   fetchAll: () => Promise<void>;
 }
 
@@ -98,6 +112,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   modelsLoading: false,
   gnnStatus: null,
   gnnLoading: false,
+  fieldSchema: null,
+  fieldSchemaLoading: false,
   error: null,
 
   fetchSystemEnv: async () => {
@@ -302,6 +318,56 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     finally { set({ gnnLoading: false }); }
   },
 
+  fetchFieldSchema: async () => {
+    set({ fieldSchemaLoading: true, error: null });
+    try {
+      const data = await api.getFieldSchema();
+      set({ fieldSchema: data.fields });
+    } catch (e: any) { set({ error: e.message }); }
+    finally { set({ fieldSchemaLoading: false }); }
+  },
+
+  addField: async (data) => {
+    try {
+      await api.addUserField(data);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  removeField: async (name) => {
+    try {
+      await api.removeUserField(name);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  addCategoryValue: async (fieldName, value) => {
+    try {
+      await api.addFieldCategory(fieldName, value);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  removeCategoryValue: async (fieldName, value) => {
+    try {
+      await api.removeFieldCategory(fieldName, value);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  exportSchema: async () => {
+    try {
+      return await api.exportFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  importSchema: async (data) => {
+    try {
+      await api.importFieldSchema(data);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
   fetchAll: async () => {
     const s = get();
     await Promise.allSettled([
@@ -312,6 +378,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       s.fetchElements(),
       s.fetchModels(),
       s.fetchGnnStatus(),
+      s.fetchFieldSchema(),
     ]);
   },
 }));

@@ -24,7 +24,8 @@ _COMPOSITE_SENTINEL_FIELDS = {"matrix_type", "particle_morphology", "surface_tre
 # Strategies that make sense for each field type
 NUMERIC_STRATEGIES = ("knn", "mean", "median", "mode", "drop")
 CATEGORICAL_STRATEGIES = ("mode", "drop")
-TARGET_STRATEGIES = ("drop",)  # Target fields: only drop (can't impute a label)
+# Target fields now support full imputation — the user decides
+TARGET_STRATEGIES = ("knn", "mean", "median", "mode", "drop")
 
 
 @dataclass

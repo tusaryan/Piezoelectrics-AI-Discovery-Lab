@@ -213,6 +213,100 @@ export async function removeCustomProperty(propertyKey: string): Promise<{ messa
   });
 }
 
+// ── Field Schema Manager ──────────────────────
+
+export interface FieldDefinition {
+  name: string;
+  data_type: string;
+  description: string;
+  is_target: boolean;
+  is_input: boolean;
+  is_required: boolean;
+  is_composite_field: boolean;
+  category_values: string[];
+  aliases: Record<string, string>;
+  range_min: number | null;
+  range_max: number | null;
+  default_value: string | null;
+  is_user_added: boolean;
+  added_at: string | null;
+}
+
+export interface FieldSchemaResponse {
+  fields: FieldDefinition[];
+}
+
+export async function getFieldSchema(): Promise<FieldSchemaResponse> {
+  return fetchJson(`${API}/api/v1/settings/fields`);
+}
+
+export async function addUserField(data: {
+  name: string;
+  data_type: string;
+  description?: string;
+  is_target?: boolean;
+  is_input?: boolean;
+  is_composite_field?: boolean;
+  category_values?: string[];
+  range_min?: number | null;
+  range_max?: number | null;
+  default_value?: string | null;
+}): Promise<{ message: string; field_name: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeUserField(name: string): Promise<{ message: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${name}`, {
+    method: "DELETE",
+  });
+}
+
+export async function addFieldCategory(
+  fieldName: string, value: string
+): Promise<{ message: string; value: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${fieldName}/categories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
+}
+
+export async function removeFieldCategory(
+  fieldName: string, value: string
+): Promise<{ message: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${fieldName}/categories/${value}`, {
+    method: "DELETE",
+  });
+}
+
+export async function addFieldAlias(
+  fieldName: string, alias: string, canonical: string
+): Promise<{ message: string }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${fieldName}/aliases`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ alias, canonical }),
+  });
+}
+
+export async function exportFieldSchema(): Promise<Record<string, unknown>> {
+  return fetchJson(`${API}/api/v1/settings/fields/export`);
+}
+
+export async function importFieldSchema(
+  schemaData: Record<string, unknown>
+): Promise<{ message: string; fields_imported: number; categories_imported: number; aliases_imported: number }> {
+  return fetchJson(`${API}/api/v1/settings/fields/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schema_data: schemaData }),
+  });
+}
+
 // ── Reset ──────────────────────
 
 export interface ResetResult {

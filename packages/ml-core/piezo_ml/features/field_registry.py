@@ -1,34 +1,32 @@
+"""
+Piezo.AI — Feature Field Registry
+===================================
+Backward-compatible shim — delegates to field_schema_manager.
+
+All field definitions now live in piezo_ml.registry.field_schema_manager.
+This module re-exports the same tuple names and helper functions so
+existing imports across the ML pipeline continue to work unchanged.
+"""
+
 from __future__ import annotations
 
-TARGET_FIELDS: tuple[str, ...] = ("d33", "tc", "vickers_hardness")
+from piezo_ml.registry.field_schema_manager import (
+    get_target_fields,
+    get_base_input_fields,
+    get_categorical_fields as _get_cat_fields,
+    get_numeric_fields as _get_num_fields,
+)
+
+TARGET_FIELDS: tuple[str, ...] = get_target_fields()
+
 BASE_INPUT_FIELDS: tuple[str, ...] = (
     "formula",
-    "qm",
-    "kp",
-    "relative_density_pct",
-    "sintering_temp_c",
-    "sintering_method",
-    "ceramic_type",
-    "fabrication_method",
-    "matrix_type",
-    "filler_wt_pct",
-    "particle_morphology",
-    "particle_size_nm",
-    "surface_treatment",
+    *get_base_input_fields(),
 )
 
-CATEGORICAL_FIELDS: tuple[str, ...] = (
-    "sintering_method",
-    "ceramic_type",
-    "fabrication_method",
-    "matrix_type",
-    "particle_morphology",
-    "surface_treatment",
-)
+CATEGORICAL_FIELDS: tuple[str, ...] = _get_cat_fields()
 
-NUMERIC_FIELDS: tuple[str, ...] = tuple(
-    f for f in BASE_INPUT_FIELDS if f not in CATEGORICAL_FIELDS and f != "formula"
-)
+NUMERIC_FIELDS: tuple[str, ...] = _get_num_fields()
 
 
 def get_trainable_targets(columns: list[str]) -> list[str]:

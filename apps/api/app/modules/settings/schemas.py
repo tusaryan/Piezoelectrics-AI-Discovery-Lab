@@ -150,6 +150,57 @@ class RemoveElementRequest(BaseModel):
     symbol: str = Field(..., min_length=1, max_length=3)
 
 
+# ── Field Schema Manager ──────────────────────
+class FieldDefinitionResponse(BaseModel):
+    """A single field definition from the schema."""
+    name: str
+    data_type: str  # float | int | string | category
+    description: str = ""
+    is_target: bool = False
+    is_input: bool = True
+    is_required: bool = False
+    is_composite_field: bool = False
+    category_values: list[str] = Field(default_factory=list)
+    aliases: dict[str, str] = Field(default_factory=dict)
+    range_min: Optional[float] = None
+    range_max: Optional[float] = None
+    default_value: Optional[str] = None
+    is_user_added: bool = False
+    added_at: Optional[str] = None
+
+
+class AddFieldRequest(BaseModel):
+    """Add a new user-defined field."""
+    name: str = Field(..., min_length=1, max_length=100,
+        description="Snake_case field name, e.g., 'dielectric_constant'")
+    data_type: str = Field(..., description="float | int | string | category")
+    description: str = ""
+    is_target: bool = False
+    is_input: bool = True
+    is_required: bool = False
+    is_composite_field: bool = False
+    category_values: list[str] = Field(default_factory=list)
+    range_min: Optional[float] = None
+    range_max: Optional[float] = None
+    default_value: Optional[str] = None
+
+
+class AddCategoryRequest(BaseModel):
+    """Add a category value to an existing field."""
+    value: str = Field(..., min_length=1, max_length=100)
+
+
+class AddAliasRequest(BaseModel):
+    """Add an alias mapping for a field."""
+    alias: str = Field(..., min_length=1, max_length=100)
+    canonical: str = Field(..., min_length=1, max_length=100)
+
+
+class FieldSchemaImportRequest(BaseModel):
+    """Import field schema customizations."""
+    schema_data: dict = Field(..., description="Exported schema JSON data")
+
+
 # ── Model Library ──────────────────────
 class SettingsModelInfo(BaseModel):
     """Model info for settings library."""

@@ -1,10 +1,11 @@
 """
 Piezo.AI — Central Field Options Registry
 ==========================================
-SINGLE SOURCE OF TRUTH for categorical field allowed values.
+Backward-compatible shim that delegates to field_schema_manager.
 
-This module centralizes ALL allowed values for categorical fields
-used across the entire platform (API, ML-Core, Frontend).
+All field definitions, categories, and validation now live in
+field_schema_manager.py. This module re-exports the same API so
+existing imports continue to work unchanged.
 
 Usage:
     from piezo_ml.registry.field_options_registry import (
@@ -18,6 +19,16 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from piezo_ml.registry.field_schema_manager import (
+    FIELD_SCHEMA,
+    get_target_fields,
+    get_numeric_fields as _get_numeric_fields,
+    get_categorical_fields as _get_cat_fields,
+    get_all_material_fields,
+    get_category_values,
+    is_valid_value,
+)
+
 
 class FieldOptionDefinition(TypedDict):
     """Definition for a categorical field's allowed values."""
@@ -27,84 +38,37 @@ class FieldOptionDefinition(TypedDict):
 
 
 # ---------------------------------------------------------------------------
-# Central categorical field options registry
+# Build CATEGORICAL_OPTIONS dynamically from field_schema_manager
 # ---------------------------------------------------------------------------
-# All allowed values for every categorical field in the platform.
-# Used by: API schemas, ML preprocessing, formula validation, frontend dropdowns.
 
-CATEGORICAL_OPTIONS: dict[str, FieldOptionDefinition] = {
-    "sintering_method": {
-        "values": [
-            "conventional", "hot_press", "sps", "rtgg", "tgg",
-            "two_step", "cold_sinter", "microwave", "flash",
-        ],
-        "description": "Sintering technique used for ceramic fabrication",
-        "examples": ["conventional", "hot_press", "sps"],
-    },
-    "ceramic_type": {
-        "values": ["soft", "hard", "composite"],
-        "description": "PZT ceramic type classification based on doping",
-        "examples": ["soft", "hard"],
-    },
-    "fabrication_method": {
-        "values": [
-            "conventional", "hot_press", "sps", "rtgg", "tgg", "two_step",
-            "electrospinning", "solvent_cast", "cold_sinter", "hot_compression",
-            "3d_print", "tape_casting", "screen_printing", "injection_molding",
-        ],
-        "description": "Primary ceramic or composite fabrication technique",
-        "examples": ["conventional", "solvent_cast", "electrospinning"],
-    },
-    "matrix_type": {
-        "values": [
-            "none", "pvdf", "p_vdf_trfe", "pvdf_trfe", "pvdf_hfp",
-            "pvdf_hfp_ctrfe", "epoxy", "silicone", "polyimide", "pdms",
-        ],
-        "description": "Polymer matrix for composite materials (none=bulk ceramic)",
-        "examples": ["none", "pvdf", "pvdf_hfp"],
-    },
-    "particle_morphology": {
-        "values": [
-            "none", "spherical", "rod", "cube", "nanoblock",
-            "fiber", "platelet", "whisker", "irregular",
-        ],
-        "description": "Shape/geometry of ceramic filler particles",
-        "examples": ["spherical", "fiber", "platelet"],
-    },
-    "surface_treatment": {
-        "values": [
-            "none", "untreated", "silane", "plasma", "acid",
-            "peg", "dopamine", "fluorinated", "kh550", "kh560",
-        ],
-        "description": "Surface modification applied to filler particles",
-        "examples": ["untreated", "silane", "plasma"],
-    },
-}
+def _build_categorical_options() -> dict[str, FieldOptionDefinition]:
+    """Build the CATEGORICAL_OPTIONS dict from the central field schema."""
+    opts: dict[str, FieldOptionDefinition] = {}
+    for name, fd in FIELD_SCHEMA.items():
+        if fd.data_type == "category":
+            opts[name] = {
+                "values": list(fd.category_values),
+                "description": fd.description,
+                "examples": fd.category_values[:3] if fd.category_values else [],
+            }
+    return opts
+
+
+CATEGORICAL_OPTIONS: dict[str, FieldOptionDefinition] = _build_categorical_options()
 
 
 # ---------------------------------------------------------------------------
-# Numeric fields (for reference and validation)
+# Derived tuples — delegated to field_schema_manager
 # ---------------------------------------------------------------------------
 
 NUMERIC_FIELDS: tuple[str, ...] = (
-    "d33", "tc", "vickers_hardness",
-    "qm", "kp", "relative_density_pct", "sintering_temp_c",
-    "filler_wt_pct", "particle_size_nm",
+    *get_target_fields(),
+    *_get_numeric_fields(),
 )
 
-# Target fields (can be used as ML training targets)
-TARGET_FIELDS: tuple[str, ...] = ("d33", "tc", "vickers_hardness")
+TARGET_FIELDS: tuple[str, ...] = get_target_fields()
 
-# All material fields (for CRUD and mapping)
-ALL_MATERIAL_FIELDS: tuple[str, ...] = (
-    "formula",
-    "d33", "tc", "vickers_hardness",
-    "qm", "kp", "relative_density_pct", "sintering_temp_c",
-    "sintering_method", "ceramic_type", "fabrication_method",
-    "matrix_type", "filler_wt_pct", "particle_morphology",
-    "particle_size_nm", "surface_treatment",
-    "source_doi", "source_notes",
-)
+ALL_MATERIAL_FIELDS: tuple[str, ...] = get_all_material_fields()
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +77,7 @@ ALL_MATERIAL_FIELDS: tuple[str, ...] = (
 
 def get_field_options(field_name: str) -> list[str]:
     """Get allowed values for a categorical field."""
-    return CATEGORICAL_OPTIONS.get(field_name, {}).get("values", [])
+    return get_category_values(field_name)
 
 
 def get_all_fields() -> list[str]:
@@ -123,9 +87,9 @@ def get_all_fields() -> list[str]:
 
 def is_valid_categorical_value(field_name: str, value: str) -> bool:
     """Check if a value is valid for a given categorical field."""
-    return value in CATEGORICAL_OPTIONS.get(field_name, {}).get("values", [])
+    return is_valid_value(field_name, value)
 
 
 def get_categorical_fields() -> list[str]:
     """Get list of all categorical field names."""
-    return list(CATEGORICAL_OPTIONS.keys())
+    return list(_get_cat_fields())

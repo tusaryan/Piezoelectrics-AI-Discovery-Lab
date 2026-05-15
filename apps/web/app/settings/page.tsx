@@ -10,13 +10,15 @@ import AppConfig from "@/components/settings/AppConfig";
 import AiManagement from "@/components/settings/AiManagement";
 import DangerZone from "@/components/settings/DangerZone";
 import GnnConfig from "@/components/settings/GnnConfig";
+import FieldSchemaManager from "@/components/settings/FieldSchemaManager";
 
-type Tab = "overview" | "models" | "elements" | "ai" | "config" | "advanced";
+type Tab = "overview" | "models" | "elements" | "schema" | "ai" | "config" | "advanced";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "models", label: "Models" },
   { id: "elements", label: "Elements" },
+  { id: "schema", label: "Schema" },
   { id: "ai", label: "AI / LLM" },
   { id: "config", label: "Configuration" },
   { id: "advanced", label: "Advanced" },
@@ -88,6 +90,10 @@ export default function SettingsPage() {
 
         {activeTab === "elements" && (
           <PendingElements />
+        )}
+
+        {activeTab === "schema" && (
+          <FieldSchemaManager />
         )}
 
         {activeTab === "ai" && (

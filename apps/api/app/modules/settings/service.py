@@ -597,6 +597,56 @@ def remove_custom_property(property_key: str) -> dict[str, Any]:
     return {"message": f"Property '{property_key}' removed"}
 
 
+# ── Field Schema ──────────────────────
+
+def get_field_schema() -> dict[str, Any]:
+    """Get the complete field schema from the central manager."""
+    from piezo_ml.registry.field_schema_manager import get_field_schema_dicts
+    return {"fields": get_field_schema_dicts()}
+
+
+def add_user_field(field_data: dict[str, Any]) -> dict[str, Any]:
+    """Add a new user-defined field."""
+    from piezo_ml.registry.field_schema_manager import add_user_field as _add
+    return _add(field_data)
+
+
+def remove_user_field(name: str) -> dict[str, Any]:
+    """Remove a user-added field."""
+    from piezo_ml.registry.field_schema_manager import remove_user_field as _remove
+    return _remove(name)
+
+
+def add_field_category(field_name: str, value: str) -> dict[str, Any]:
+    """Add a category value to a field."""
+    from piezo_ml.registry.field_schema_manager import add_category_value
+    return add_category_value(field_name, value)
+
+
+def remove_field_category(field_name: str, value: str) -> dict[str, Any]:
+    """Remove a user-added category value."""
+    from piezo_ml.registry.field_schema_manager import remove_category_value
+    return remove_category_value(field_name, value)
+
+
+def add_field_alias(field_name: str, alias: str, canonical: str) -> dict[str, Any]:
+    """Add an alias mapping for a field."""
+    from piezo_ml.registry.field_schema_manager import add_alias
+    return add_alias(field_name, alias, canonical)
+
+
+def export_field_schema() -> dict[str, Any]:
+    """Export the full field schema as portable JSON."""
+    from piezo_ml.registry.field_schema_manager import export_field_schema as _export
+    return _export()
+
+
+def import_field_schema(data: dict[str, Any]) -> dict[str, Any]:
+    """Import field customizations from exported schema."""
+    from piezo_ml.registry.field_schema_manager import import_field_schema as _import
+    return _import(data)
+
+
 # ── Reset ──────────────────────
 
 def reset_elements_and_properties() -> dict[str, Any]:
@@ -645,7 +695,12 @@ def reset_all_settings() -> dict[str, Any]:
     elem_result = reset_elements_and_properties()
     actions.extend(elem_result.get("actions_taken", []))
 
-    # 2. Restore .env to defaults
+    # 2. Reset field schema customizations
+    from piezo_ml.registry.field_schema_manager import reset_field_schema
+    field_result = reset_field_schema()
+    actions.append(field_result.get("message", "Field schema reset"))
+
+    # 3. Restore .env to defaults
     if DEFAULT_ENV_BACKUP_PATH.exists():
         shutil.copy2(DEFAULT_ENV_BACKUP_PATH, ENV_PATH)
         actions.append("Restored .env to original defaults")
@@ -655,7 +710,7 @@ def reset_all_settings() -> dict[str, Any]:
     else:
         actions.append("Warning: No default .env backup found — .env unchanged")
 
-    # 3. Clear customizations
+    # 4. Clear customizations
     if CUSTOM_ADDITIONS_PATH.exists():
         os.remove(CUSTOM_ADDITIONS_PATH)
         actions.append("Cleared settings customizations file")

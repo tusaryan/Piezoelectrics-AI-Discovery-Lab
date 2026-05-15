@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, ChevronDown, AlertTriangle, Zap, CheckSquare, Square, Layers } from "lucide-react";
+import { Database, ChevronDown, AlertTriangle, Zap, CheckSquare, Square, Layers, X } from "lucide-react";
 import { useTrainingStore } from "@/lib/store/trainingStore";
 import { listDatasets, type DatasetSummary } from "@/lib/api/datasets";
 import { validateDataset, type FieldIssue } from "@/lib/api/training";
@@ -61,13 +61,20 @@ export default function PipelineConfigurator() {
     setJobPhase("configuring");
   };
 
-  // Toggle field selection
+  // Toggle field selection — also clean up missing strategy if deselected
   const toggleField = (field: string) => {
     if (field === "formula") return; // Always selected
-    const next = selectedFields.includes(field)
+    const isSelected = selectedFields.includes(field);
+    const next = isSelected
       ? selectedFields.filter((f) => f !== field)
       : [...selectedFields, field];
     setSelectedFields(next);
+    // Remove strategy entry if field was deselected
+    if (isSelected && missingStrategies[field]) {
+      const { [field]: _, ...rest } = missingStrategies;
+      // We can't directly set missingStrategies, but we can clear the field's strategy
+      setMissingStrategy(field, "");
+    }
   };
 
   // Toggle target selection
@@ -210,43 +217,61 @@ export default function PipelineConfigurator() {
           </div>
 
           {/* Missing Value Strategies */}
-          {validationIssues.length > 0 && (
-            <div className="config-section">
-              <h3 className="config-section-title">
-                <AlertTriangle size={16} /> Missing Value Handling
-              </h3>
-              <p className="config-hint">
-                {validationIssues.length} field(s) have missing or sentinel values.
-                Choose a strategy for each:
-              </p>
-              <div className="strategy-grid">
-                {validationIssues.map((issue) => (
-                  <div key={issue.field} className="strategy-row">
-                    <div className="strategy-info">
-                      <span className="strategy-field">{issue.field}</span>
-                      <span className="strategy-count">
-                        {issue.count}/{issue.total} missing
-                      </span>
+          {validationIssues.length > 0 && (() => {
+            // Only show issues for currently selected fields
+            const activeIssues = validationIssues.filter(i => selectedFields.includes(i.field));
+            if (activeIssues.length === 0) return null;
+            return (
+              <div className="config-section">
+                <h3 className="config-section-title">
+                  <AlertTriangle size={16} /> Missing Value Handling
+                </h3>
+                <p className="config-hint">
+                  {activeIssues.length} field(s) have missing or sentinel values.
+                  Choose a strategy for each:
+                </p>
+                <div className="strategy-grid">
+                  {activeIssues.map((issue) => (
+                    <div key={issue.field} className="strategy-row">
+                      <div className="strategy-info">
+                        <span className="strategy-field">{issue.field}</span>
+                        <span className="strategy-count">
+                          {issue.count}/{issue.total} missing
+                        </span>
+                      </div>
+                      <div className="strategy-controls">
+                        <select
+                          className="strategy-select"
+                          value={missingStrategies[issue.field] || issue.default_strategy}
+                          onChange={(e) => setMissingStrategy(issue.field, e.target.value)}
+                        >
+                          {(issue.allowed_strategies?.length > 0
+                            ? issue.allowed_strategies
+                            : Object.keys(STRATEGY_LABELS)
+                          ).map((key) => (
+                            <option key={key} value={key}>
+                              {STRATEGY_LABELS[key] || key}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="strategy-remove-btn"
+                          onClick={() => {
+                            // Remove this field from selected fields
+                            setSelectedFields(selectedFields.filter(f => f !== issue.field));
+                            setMissingStrategy(issue.field, "");
+                          }}
+                          title={`Remove ${issue.field} from training`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     </div>
-                    <select
-                      className="strategy-select"
-                      value={missingStrategies[issue.field] || issue.default_strategy}
-                      onChange={(e) => setMissingStrategy(issue.field, e.target.value)}
-                    >
-                      {(issue.allowed_strategies?.length > 0
-                        ? issue.allowed_strategies
-                        : Object.keys(STRATEGY_LABELS)
-                      ).map((key) => (
-                        <option key={key} value={key}>
-                          {STRATEGY_LABELS[key] || key}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </>
       )}
     </div>

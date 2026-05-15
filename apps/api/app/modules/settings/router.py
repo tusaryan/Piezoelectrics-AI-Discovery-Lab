@@ -167,6 +167,75 @@ async def remove_custom_property(property_key: str):
     return result
 
 
+# ── Field Schema Manager ──────────────────────
+
+@router.get("/fields")
+async def get_field_schema():
+    """Get complete field schema (all fields, types, categories, aliases)."""
+    return service.get_field_schema()
+
+
+@router.post("/fields")
+async def add_user_field(body: schemas.AddFieldRequest):
+    """Add a new user-defined field to the schema."""
+    result = service.add_user_field(body.model_dump())
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+# Static routes MUST come before /{field_name} to avoid path param conflicts
+@router.get("/fields/export")
+async def export_field_schema():
+    """Export the full field schema as portable JSON."""
+    return service.export_field_schema()
+
+
+@router.post("/fields/import")
+async def import_field_schema(body: schemas.FieldSchemaImportRequest):
+    """Import field customizations from exported schema."""
+    result = service.import_field_schema(body.schema_data)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/fields/{field_name}")
+async def remove_user_field(field_name: str):
+    """Remove a user-added field from the schema."""
+    result = service.remove_user_field(field_name)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/fields/{field_name}/categories")
+async def add_field_category(field_name: str, body: schemas.AddCategoryRequest):
+    """Add a category value to an existing categorical field."""
+    result = service.add_field_category(field_name, body.value)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/fields/{field_name}/categories/{value}")
+async def remove_field_category(field_name: str, value: str):
+    """Remove a user-added category value from a field."""
+    result = service.remove_field_category(field_name, value)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/fields/{field_name}/aliases")
+async def add_field_alias(field_name: str, body: schemas.AddAliasRequest):
+    """Add an alias mapping for a field."""
+    result = service.add_field_alias(field_name, body.alias, body.canonical)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
 # ── Reset ──────────────────────
 
 @router.post("/reset/elements", response_model=schemas.ResetResponse)

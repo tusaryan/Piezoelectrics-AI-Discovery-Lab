@@ -213,6 +213,31 @@
   flex-shrink: 0;
 }
 
+.strategy-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.strategy-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 200ms;
+}
+
+.strategy-remove-btn:hover {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* ---------- Algorithm Selector ---------- */
 .algorithm-selector {
   background: var(--card);

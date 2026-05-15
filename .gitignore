@@ -115,3 +115,5 @@ apps/resources/*
 coverage/
 .nyc_output/
 /.nvm
+resources/.field-customizations.json
+resources/.settings-customizations.json

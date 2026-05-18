@@ -18,7 +18,7 @@ import {
 import type { DashboardModel } from "@/lib/api/dashboard";
 import { getParsedDatasetUrl } from "@/lib/api/dashboard";
 import { useDashboardStore } from "@/lib/store/dashboardStore";
-import { APP_CONFIG } from "@/lib/constants";
+
 
 interface ModelLibraryProps {
   models: DashboardModel[];
@@ -121,7 +121,7 @@ export default function ModelLibrary({ models }: ModelLibraryProps) {
 
   function handleDownloadModel(model: DashboardModel) {
     // Download model .joblib file via direct path or API
-    const url = `${APP_CONFIG.api.baseUrl}/api/v1/dashboard/models/${model.id}/model-file`;
+    const url = `/api/v1/dashboard/models/${model.id}/model-file`;
     const a = document.createElement("a");
     a.href = url;
     a.download = `${model.display_name}_model.joblib`;

@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
+import { useUIStore } from "@/lib/store/uiStore";
 import {
   getMaterials,
   bulkUpdateMaterials,
@@ -103,6 +104,7 @@ export default function DatasetExplorer() {
     setActiveDataset,
     enterWizardAtStep,
   } = useDatasetStore();
+  const strictMode = useUIStore((s) => s.strictFormulaMode);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -267,7 +269,7 @@ export default function DatasetExplorer() {
             particle_morphology: row.particle_morphology,
             particle_size_nm: row.particle_size_nm,
             surface_treatment: row.surface_treatment,
-          });
+          }, strictMode);
         } catch (err) {
           errors.push(err instanceof Error ? err.message : "Failed to add new row");
         }
@@ -280,7 +282,7 @@ export default function DatasetExplorer() {
       const deletes = Array.from(state.pendingDeletes);
 
       if (updates.length > 0 || deletes.length > 0) {
-        const result = await bulkUpdateMaterials(activeDatasetId, updates, deletes);
+        const result = await bulkUpdateMaterials(activeDatasetId, updates, deletes, strictMode);
         if (result.errors?.length) {
           errors.push(...withUidErrorDetails(result.errors, materials));
         }

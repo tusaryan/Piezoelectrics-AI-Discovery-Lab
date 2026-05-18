@@ -23,6 +23,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
+import { useUIStore } from "@/lib/store/uiStore";
 import {
   applyMapping,
   getBackendFields,
@@ -62,6 +63,8 @@ export default function ColumnMappingStep() {
     setActiveDataset,
     setWizardStep,
   } = useDatasetStore();
+
+  const strictMode = useUIStore((s) => s.strictFormulaMode);
 
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -150,7 +153,7 @@ export default function ColumnMappingStep() {
     setLocalError(null);
 
     try {
-      const result = await applyMapping(activeDatasetId, columnMapping);
+      const result = await applyMapping(activeDatasetId, columnMapping, strictMode);
       setActiveDataset(result);
       setIsMappingSaving(false);
       setWizardStep("review");

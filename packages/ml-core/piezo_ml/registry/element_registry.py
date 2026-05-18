@@ -70,7 +70,23 @@ def _safe_float(value: Any) -> float | None:
     if value is None:
         return None
     try:
-        return float(value)
+        import math
+        f = float(value)
+        return None if math.isnan(f) else f
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_int(value: Any) -> int | None:
+    """Safely convert to int, returning None for NaN/None/invalid."""
+    if value is None:
+        return None
+    try:
+        import math
+        f = float(value)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        return int(f)
     except (TypeError, ValueError):
         return None
 
@@ -105,10 +121,10 @@ def _extract_valence_electrons(pmg: Element) -> int | None:
     if valence is None:
         return None
     if isinstance(valence, tuple):
-        if len(valence) == 2:
-            return int(valence[0])
-        return int(valence[0]) if valence else None
-    return int(valence)
+        if len(valence) >= 1:
+            return _safe_int(valence[0])
+        return None
+    return _safe_int(valence)
 
 
 def _estimate_coordination_number(symbol: str) -> int:
@@ -126,17 +142,23 @@ def _build_from_sources(symbol: str) -> dict[str, Any]:
     pmg = Element(symbol)
     mendeleev_obj = mendeleev_element(symbol) if mendeleev_element else None
 
-    oxidation_states = []
-    m_oxidation_states = _read_attr(mendeleev_obj, "oxidation_states") if mendeleev_obj else None
-    if m_oxidation_states:
-        oxidation_states = sorted(set(int(x) for x in m_oxidation_states))
-    elif pmg.common_oxidation_states:
-        oxidation_states = sorted(set(int(x) for x in pmg.common_oxidation_states))
+    oxidation_states: list[int] = []
+    try:
+        m_oxidation_states = _read_attr(mendeleev_obj, "oxidation_states") if mendeleev_obj else None
+        if m_oxidation_states:
+            oxidation_states = sorted(set(v for x in m_oxidation_states if (v := _safe_int(x)) is not None))
+        elif pmg.common_oxidation_states:
+            oxidation_states = sorted(set(v for x in pmg.common_oxidation_states if (v := _safe_int(x)) is not None))
+    except Exception:
+        pass  # gracefully fall back to empty
 
     ionization_energy_ev = None
-    ionenergies = _read_attr(mendeleev_obj, "ionenergies") if mendeleev_obj else None
-    if ionenergies:
-        ionization_energy_ev = _safe_float(ionenergies.get(1))
+    try:
+        ionenergies = _read_attr(mendeleev_obj, "ionenergies") if mendeleev_obj else None
+        if ionenergies:
+            ionization_energy_ev = _safe_float(ionenergies.get(1))
+    except Exception:
+        pass
 
     data = {
         "atomic_number": int(pmg.Z),
@@ -152,8 +174,8 @@ def _build_from_sources(symbol: str) -> dict[str, Any]:
         "electron_affinity_ev": _safe_float(_read_attr(mendeleev_obj, "electron_affinity")),
         "ionization_energy_ev": ionization_energy_ev,
         "valence_electrons": _extract_valence_electrons(pmg),
-        "group": int(pmg.group) if pmg.group is not None else None,
-        "period": int(pmg.row),
+        "group": _safe_int(pmg.group),
+        "period": _safe_int(pmg.row),
         "block": str(pmg.block),
         "density_g_cm3": _safe_float(getattr(pmg, "density_of_solid", None)),
         "specific_heat_j_gk": _safe_float(_read_attr(mendeleev_obj, "specific_heat_capacity")),
@@ -196,7 +218,8 @@ def _load_or_bootstrap_registry() -> dict[str, dict[str, Any]]:
     registry.update(pending_registry)
 
     # Include user-added elements from customizations file (T3: persistence fix)
-    custom_path = Path(__file__).resolve().parents[3] / "resources" / ".settings-customizations.json"
+    # packages/ml-core/piezo_ml/registry/element_registry.py → parents[4] = project root
+    custom_path = Path(__file__).resolve().parents[4] / "resources" / ".settings-customizations.json"
     user_added: set[str] = set()
     if custom_path.exists():
         try:

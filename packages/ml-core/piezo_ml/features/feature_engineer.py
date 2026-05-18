@@ -79,6 +79,8 @@ class FeatureEngineer:
         for prop in WEIGHTED_PROPERTIES:
             values: list[tuple[float, float]] = []
             for symbol, fraction in fractions.items():
+                if symbol not in ELEMENT_REGISTRY:
+                    raise ValueError(f"Unknown element parsed: '{symbol}'")
                 raw = ELEMENT_REGISTRY[symbol].get(prop)
                 num = _numeric_or_none(raw)
                 if num is not None:
@@ -107,6 +109,8 @@ class FeatureEngineer:
         for symbol, amount in element_amounts.items():
             if symbol == "O":
                 continue
+            if symbol not in ELEMENT_REGISTRY:
+                raise ValueError(f"Unknown element parsed: '{symbol}'")
             props = ELEMENT_REGISTRY[symbol]
             radius = _numeric_or_none(props.get("ionic_radius_pm"))
             if radius is None:

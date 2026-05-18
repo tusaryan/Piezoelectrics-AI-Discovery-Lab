@@ -17,6 +17,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { useDatasetStore } from "@/lib/store/datasetStore";
+import { useUIStore } from "@/lib/store/uiStore";
 import {
   getQualityReport,
   bulkUpdateMaterials,
@@ -63,6 +64,7 @@ export default function ReviewIssuesStep() {
     discardChanges,
     setWizardStep,
   } = useDatasetStore();
+  const strictMode = useUIStore((s) => s.strictFormulaMode);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -95,7 +97,11 @@ export default function ReviewIssuesStep() {
   useEffect(() => {
     if (!activeDatasetId) return;
     getMaterials(activeDatasetId, { page: 1, page_size: 5000, sort_by: "uid", sort_order: "asc" })
-      .then((res) => setMaterials(res.items))
+      .then((res) => {
+        setMaterials(res.items);
+        // Also populate store materials so editCell can find original rows for diff comparison
+        useDatasetStore.getState().setMaterials(res.items, res.total, 1, res.total_pages);
+      })
       .catch(() => setMaterials([]));
   }, [activeDatasetId]);
 
@@ -125,6 +131,8 @@ export default function ReviewIssuesStep() {
       { key: "tc", label: "Tc", width: 80, type: "float", editable: true, sortable: true },
       { key: "vickers_hardness", label: "Hardness", width: 100, type: "float", editable: true, sortable: true },
       { key: "sintering_temp_c", label: "Sint.Temp", width: 90, type: "float", editable: true, sortable: true },
+      { key: "sintering_method", label: "Sint.Method", width: 120, type: "string", editable: true },
+      { key: "ceramic_type", label: "Ceramic Type", width: 100, type: "string", editable: true },
       { key: "fabrication_method", label: "Fabrication", width: 110, type: "string", editable: true },
       { key: "matrix_type", label: "Matrix", width: 100, type: "string", editable: true },
       { key: "filler_wt_pct", label: "Filler%", width: 80, type: "float", editable: true, sortable: true },
@@ -183,15 +191,20 @@ export default function ReviewIssuesStep() {
       );
       const deletes = Array.from(state.pendingDeletes);
 
-      const result = await bulkUpdateMaterials(activeDatasetId, updates, deletes);
+      const result = await bulkUpdateMaterials(activeDatasetId, updates, deletes, strictMode);
       discardChanges();
+
+      // Reload materials from DB (so table reflects saved values)
+      const matResult = await getMaterials(activeDatasetId, { page: 1, page_size: 5000, sort_by: "uid", sort_order: "asc" });
+      setMaterials(matResult.items);
+      useDatasetStore.getState().setMaterials(matResult.items, matResult.total, 1, matResult.total_pages);
 
       // Reload quality report
       const report = await getQualityReport(activeDatasetId);
       setQualityReport(report);
       if (result.errors?.length) {
-        setSaveError("Some edits were rejected and reverted.");
-        setSaveErrorDetails(withUidErrorDetails(result.errors, materials));
+        setSaveError("Some edits had issues.");
+        setSaveErrorDetails(withUidErrorDetails(result.errors, matResult.items));
       }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Save failed");
@@ -199,7 +212,7 @@ export default function ReviewIssuesStep() {
     } finally {
       setIsSaving(false);
     }
-  }, [activeDatasetId, discardChanges, materials, setQualityReport]);
+  }, [activeDatasetId, discardChanges, setQualityReport]);
 
   const targetColumnsPresent = useMemo(() => {
     const present = new Set<string>();

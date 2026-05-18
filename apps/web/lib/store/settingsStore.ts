@@ -86,12 +86,14 @@ interface SettingsState {
   fetchFieldSchema: () => Promise<void>;
   addField: (data: Parameters<typeof api.addUserField>[0]) => Promise<void>;
   removeField: (name: string) => Promise<void>;
+  updateField: (fieldName: string, updates: Parameters<typeof api.updateFieldProperties>[1]) => Promise<void>;
   addCategoryValue: (fieldName: string, value: string) => Promise<void>;
   removeCategoryValue: (fieldName: string, value: string) => Promise<void>;
   addAlias: (fieldName: string, alias: string, canonical: string) => Promise<void>;
   removeAlias: (fieldName: string, alias: string) => Promise<void>;
   exportSchema: () => Promise<Record<string, unknown>>;
   importSchema: (data: Record<string, unknown>) => Promise<void>;
+  saveToCodebase: () => Promise<{ message: string; summary: string[] }>;
 
   fetchAll: () => Promise<void>;
 }
@@ -343,6 +345,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     } catch (e: any) { set({ error: e.message }); throw e; }
   },
 
+  updateField: async (fieldName, updates) => {
+    try {
+      await api.updateFieldProperties(fieldName, updates);
+      await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
   addCategoryValue: async (fieldName, value) => {
     try {
       await api.addFieldCategory(fieldName, value);
@@ -381,6 +390,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       await api.importFieldSchema(data);
       await get().fetchFieldSchema();
+    } catch (e: any) { set({ error: e.message }); throw e; }
+  },
+
+  saveToCodebase: async () => {
+    try {
+      return await api.saveFieldSchemaToCodebase();
     } catch (e: any) { set({ error: e.message }); throw e; }
   },
 

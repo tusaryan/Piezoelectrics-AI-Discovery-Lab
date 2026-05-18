@@ -191,6 +191,15 @@ async def export_field_schema():
     return service.export_field_schema()
 
 
+@router.post("/fields/save-to-codebase")
+async def save_field_schema_to_codebase():
+    """Generate a migration file for committing field customizations to the codebase."""
+    result = service.save_field_schema_to_codebase()
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
 @router.post("/fields/import")
 async def import_field_schema(body: schemas.FieldSchemaImportRequest):
     """Import field customizations from exported schema."""
@@ -204,6 +213,15 @@ async def import_field_schema(body: schemas.FieldSchemaImportRequest):
 async def remove_user_field(field_name: str):
     """Remove a user-added field from the schema."""
     result = service.remove_user_field(field_name)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.patch("/fields/{field_name}")
+async def update_field_properties(field_name: str, body: schemas.UpdateFieldRequest):
+    """Update properties of an existing field (description, range, flags)."""
+    result = service.update_field(field_name, body.model_dump(exclude_none=True))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result

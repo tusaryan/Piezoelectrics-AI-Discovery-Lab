@@ -205,14 +205,28 @@ pz_find_python() {
 }
 
 # ── Ensure venv exists with compatible Python ──
-# Creates or re-creates the venv if the Python version is incompatible.
+# Creates or re-creates the venv if the Python version is incompatible
+# or if the venv's Python binary is a broken symlink.
 pz_ensure_venv() {
     # Ensure we have a valid Python command
     if [ -z "${_PZ_PYTHON_CMD:-}" ]; then
         pz_setup_python_local || return 1
     fi
 
+    local need_create=false
+
     if [ ! -f "$_PZ_VENV_DIR/bin/activate" ]; then
+        need_create=true
+    elif [ ! -x "$_PZ_VENV_DIR/bin/python" ] || ! "$_PZ_VENV_DIR/bin/python" --version &>/dev/null; then
+        # Python binary is missing, a broken symlink, or not executable
+        local target
+        target=$(readlink "$_PZ_VENV_DIR/bin/python" 2>/dev/null || echo "unknown")
+        pz_warn "Existing .venv has a broken Python binary (-> $target). Recreating..."
+        rm -rf "$_PZ_VENV_DIR"
+        need_create=true
+    fi
+
+    if [ "$need_create" = true ]; then
         pz_log "Creating virtual environment at $_PZ_VENV_DIR..."
         "$_PZ_PYTHON_CMD" -m venv "$_PZ_VENV_DIR" || return 1
         pz_success "Virtual environment created"
@@ -237,12 +251,42 @@ pz_ensure_venv() {
 }
 
 # ── Activate venv ────────────────────────────
+# Activates the venv, auto-repairing if the Python binary is broken.
 pz_activate_venv() {
-    if [ -f "$_PZ_VENV_DIR/bin/activate" ]; then
+    if [ ! -f "$_PZ_VENV_DIR/bin/activate" ]; then
+        return 1
+    fi
+
+    # Check if the venv's Python binary is actually functional before activating
+    if [ ! -x "$_PZ_VENV_DIR/bin/python" ] || ! "$_PZ_VENV_DIR/bin/python" --version &>/dev/null; then
+        pz_warn "Detected broken venv (Python binary is a dangling symlink)."
+        pz_log "Auto-repairing virtual environment..."
+        pz_ensure_venv || return 1
+        # After recreation, need to reinstall packages
         source "$_PZ_VENV_DIR/bin/activate"
+        pz_log "Reinstalling Python packages into repaired venv..."
+        pip install --upgrade pip --quiet 2>/dev/null || true
+        pip install 'setuptools>=75.0' wheel --quiet 2>/dev/null || true
+        local install_fail=false
+        for pkg_spec in "packages/db" "packages/ml-core[symbolic]" "apps/api[dev]"; do
+            pz_log "  Installing $pkg_spec..."
+            if pip install -e "$pkg_spec" 2>&1 | tail -3; then
+                pz_success "  $pkg_spec installed"
+            else
+                pz_err "  Failed to install $pkg_spec"
+                install_fail=true
+            fi
+        done
+        if [ "$install_fail" = true ]; then
+            pz_warn "Some packages failed to reinstall. Run: bash scripts/dev.sh setup"
+        else
+            pz_success "Virtual environment repaired and packages reinstalled"
+        fi
         return 0
     fi
-    return 1
+
+    source "$_PZ_VENV_DIR/bin/activate"
+    return 0
 }
 
 # ── Install a package in editable mode ──────

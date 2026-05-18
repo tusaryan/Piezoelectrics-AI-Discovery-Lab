@@ -4,9 +4,7 @@
  * HTTP client for all settings endpoints.
  */
 
-import { APP_CONFIG } from "../constants";
-
-const API = APP_CONFIG.api.baseUrl;
+const API = "";
 
 // ── Helpers ──────────────────────
 
@@ -267,6 +265,26 @@ export async function removeUserField(name: string): Promise<{ message: string }
   });
 }
 
+export async function updateFieldProperties(
+  fieldName: string,
+  updates: Partial<{
+    description: string;
+    range_min: number | null;
+    range_max: number | null;
+    is_target: boolean;
+    is_input: boolean;
+    is_required: boolean;
+    is_composite_field: boolean;
+    default_value: string | null;
+  }>
+): Promise<{ message: string; updated_keys: string[] }> {
+  return fetchJson(`${API}/api/v1/settings/fields/${fieldName}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+}
+
 export async function addFieldCategory(
   fieldName: string, value: string
 ): Promise<{ message: string; value: string }> {
@@ -305,6 +323,16 @@ export async function removeFieldAlias(
 
 export async function exportFieldSchema(): Promise<Record<string, unknown>> {
   return fetchJson(`${API}/api/v1/settings/fields/export`);
+}
+
+export async function saveFieldSchemaToCodebase(): Promise<{
+  message: string;
+  migration_path: string;
+  summary: string[];
+}> {
+  return fetchJson(`${API}/api/v1/settings/fields/save-to-codebase`, {
+    method: "POST",
+  });
 }
 
 export async function importFieldSchema(

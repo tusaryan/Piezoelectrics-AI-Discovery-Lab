@@ -28,7 +28,8 @@ import {
 } from "@/lib/api/dashboard";
 import { useDatasetStore } from "@/lib/store/datasetStore";
 import { useUIStore } from "@/lib/store/uiStore";
-import { APP_CONFIG } from "@/lib/constants";
+
+
 
 function formatExactTime(isoStr: string): string {
   const d = new Date(isoStr);
@@ -90,7 +91,7 @@ export default function DatasetList() {
   }
 
   function handleDownload(id: string, name: string) {
-    const url = `${APP_CONFIG.api.baseUrl}/api/v1/datasets/${id}/materials?page=1&page_size=10000`;
+    const url = `/api/v1/datasets/${id}/materials?page=1&page_size=10000`;
     fetch(url)
       .then((res) => res.json())
       .then((data) => {

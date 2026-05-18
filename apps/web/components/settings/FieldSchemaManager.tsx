@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Database, Plus, Trash2, RefreshCw, RotateCcw, X, ChevronDown,
   ChevronRight, Download, Upload, Tag, Hash, Type, Layers, Info,
-  AlertCircle, Search, UserPlus,
+  AlertCircle, Search, UserPlus, Pencil, Save, Check,
 } from "lucide-react";
 import { useSettingsStore } from "@/lib/store/settingsStore";
 import type { FieldDefinition } from "@/lib/api/settings";
@@ -30,9 +30,10 @@ const TYPE_ICONS: Record<string, typeof Hash> = {
 export default function FieldSchemaManager() {
   const {
     fieldSchema, fieldSchemaLoading, fetchFieldSchema,
-    addField, removeField, addCategoryValue, removeCategoryValue,
+    addField, removeField, updateField,
+    addCategoryValue, removeCategoryValue,
     addAlias, removeAlias,
-    exportSchema, importSchema,
+    exportSchema, importSchema, saveToCodebase,
   } = useSettingsStore();
 
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -65,6 +66,13 @@ export default function FieldSchemaManager() {
   // Confirm states
   const [confirmRemoveField, setConfirmRemoveField] = useState<string | null>(null);
   const [confirmRemoveCat, setConfirmRemoveCat] = useState<{ field: string; value: string } | null>(null);
+
+  // Inline editing state for field properties
+  const [editingFieldProps, setEditingFieldProps] = useState<string | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editRangeMin, setEditRangeMin] = useState("");
+  const [editRangeMax, setEditRangeMax] = useState("");
+  const [savingFieldEdit, setSavingFieldEdit] = useState(false);
 
   useEffect(() => { fetchFieldSchema(); }, [fetchFieldSchema]);
 
@@ -185,6 +193,15 @@ export default function FieldSchemaManager() {
     e.target.value = "";
   };
 
+  const handleSaveToCodebase = async () => {
+    try {
+      const result = await saveToCodebase();
+      setStatusMsg({ text: result.message, type: "success" });
+    } catch (e: any) {
+      setStatusMsg({ text: e.message || "Save to codebase failed", type: "error" });
+    }
+  };
+
   const handleAddAlias = async (fieldName: string) => {
     if (!newAliasKey.trim() || !newAliasCanonical.trim()) return;
     setAddingAlias(true);
@@ -270,15 +287,95 @@ export default function FieldSchemaManager() {
 
         {isExpanded && (
           <div className="field-schema-details">
-            {field.description && (
-              <p className="field-schema-desc">{field.description}</p>
-            )}
-
-            {(field.range_min !== null || field.range_max !== null) && (
-              <div className="field-schema-range">
-                <span className="field-schema-detail-label">Range:</span>
-                {field.range_min !== null ? field.range_min : "−∞"} — {field.range_max !== null ? field.range_max : "∞"}
+            {/* Editable description & range */}
+            {editingFieldProps === field.name ? (
+              <div className="field-schema-edit-props">
+                <div className="field-schema-edit-row">
+                  <label className="field-schema-detail-label">Description</label>
+                  <input
+                    className="field-schema-add-input"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    placeholder="Field description..."
+                  />
+                </div>
+                {(field.data_type === "float" || field.data_type === "int") && (
+                  <div className="field-schema-edit-row" style={{ display: "flex", gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <label className="field-schema-detail-label">Min</label>
+                      <input
+                        type="number" className="field-schema-add-input"
+                        value={editRangeMin} onChange={(e) => setEditRangeMin(e.target.value)}
+                        placeholder="−∞"
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label className="field-schema-detail-label">Max</label>
+                      <input
+                        type="number" className="field-schema-add-input"
+                        value={editRangeMax} onChange={(e) => setEditRangeMax(e.target.value)}
+                        placeholder="∞"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <button
+                    className="elem-add-btn"
+                    disabled={savingFieldEdit}
+                    onClick={async () => {
+                      setSavingFieldEdit(true);
+                      try {
+                        const updates: Record<string, unknown> = {};
+                        if (editDesc !== (field.description || "")) updates.description = editDesc;
+                        if (field.data_type === "float" || field.data_type === "int") {
+                          const minVal = editRangeMin === "" ? null : parseFloat(editRangeMin);
+                          const maxVal = editRangeMax === "" ? null : parseFloat(editRangeMax);
+                          if (minVal !== field.range_min) updates.range_min = minVal;
+                          if (maxVal !== field.range_max) updates.range_max = maxVal;
+                        }
+                        if (Object.keys(updates).length > 0) {
+                          await updateField(field.name, updates);
+                          setStatusMsg({ text: `"${field.name}" updated`, type: "success" });
+                        }
+                        setEditingFieldProps(null);
+                      } catch (e: any) {
+                        setStatusMsg({ text: e.message || "Update failed", type: "error" });
+                      }
+                      setSavingFieldEdit(false);
+                    }}
+                  >
+                    <Check size={12} /> {savingFieldEdit ? "Saving..." : "Save"}
+                  </button>
+                  <button className="btn-ghost btn-sm" onClick={() => setEditingFieldProps(null)}>Cancel</button>
+                </div>
               </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <p className="field-schema-desc" style={{ margin: 0, flex: 1 }}>
+                    {field.description || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No description</span>}
+                  </p>
+                  <button
+                    className="field-schema-add-cat-btn"
+                    onClick={() => {
+                      setEditingFieldProps(field.name);
+                      setEditDesc(field.description || "");
+                      setEditRangeMin(field.range_min != null ? String(field.range_min) : "");
+                      setEditRangeMax(field.range_max != null ? String(field.range_max) : "");
+                    }}
+                    title="Edit field properties"
+                  >
+                    <Pencil size={10} /> Edit
+                  </button>
+                </div>
+                {(field.range_min !== null || field.range_max !== null) && (
+                  <div className="field-schema-range">
+                    <span className="field-schema-detail-label">Range:</span>
+                    {field.range_min !== null ? field.range_min : "−∞"} — {field.range_max !== null ? field.range_max : "∞"}
+                  </div>
+                )}
+              </>
             )}
 
             {field.data_type === "category" && (
@@ -433,6 +530,13 @@ export default function FieldSchemaManager() {
           </p>
         </div>
         <div className="settings-section-header-actions">
+          <button
+            className="settings-reset-btn-text"
+            onClick={handleSaveToCodebase}
+            title="Generate migration file for committing customizations"
+          >
+            <Save size={13} /> Save to Codebase
+          </button>
           <button
             className="settings-reset-btn-text"
             onClick={handleExport}

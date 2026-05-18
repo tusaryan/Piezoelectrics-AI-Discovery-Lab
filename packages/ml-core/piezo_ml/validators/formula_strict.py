@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 
 
 # Allowed characters in a strict formula
-_ALLOWED_CHARS = re.compile(r"^[A-Za-z0-9.()\-{} ]+$")
+# Includes "/" for fractional coefficients like Mn1/3, Sb2/3, Sc1/2
+_ALLOWED_CHARS = re.compile(r"^[A-Za-z0-9.()\[\]\-{} /]+$")
 
 # Standard element token: uppercase letter followed by optional one lowercase
 _ELEMENT_PATTERN = re.compile(r"[A-Z][a-z]?")
@@ -103,8 +104,8 @@ def _check_brackets(formula: str) -> list[str]:
     """
     errors: list[str] = []
     stack: list[str] = []
-    openers = {"(": ")", "{": "}"}
-    closers = {")": "(", "}": "{"}
+    openers = {"(": ")", "{": "}", "[": "]"}
+    closers = {")": "(", "}": "{", "]": "["}
 
     for i, char in enumerate(formula):
         if char in openers:

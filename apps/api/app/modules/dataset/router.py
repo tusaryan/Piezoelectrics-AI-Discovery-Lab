@@ -106,7 +106,7 @@ async def apply_column_mapping(
     and runs formula validation.
     """
     try:
-        result = await service.apply_column_mapping(dataset_id, body.mapping, db)
+        result = await service.apply_column_mapping(dataset_id, body.mapping, db, body.strict_mode)
         logger.info("[MAP] dataset=%s → %d fields mapped, %d rows, composite=%s",
                     dataset_id[:8], len(body.mapping), result.total_rows, result.has_composite_fields)
         return result
@@ -281,7 +281,7 @@ async def add_material(
 ):
     """Add a new material row to the dataset with auto-assigned uid."""
     try:
-        result = await service.add_material(dataset_id, body.model_dump(), db)
+        result = await service.add_material(dataset_id, body.model_dump(exclude={"strict_mode"}), db, body.strict_mode)
         logger.info("[ADD_ROW] dataset=%s formula=%s → uid=%d", dataset_id[:8], body.formula, result.uid)
         return result
     except ValueError as e:
@@ -298,9 +298,9 @@ async def update_material(
 ):
     """Update a single material row."""
     # Only send non-None fields
-    update_data = body.model_dump(exclude_unset=True)
+    update_data = body.model_dump(exclude_unset=True, exclude={"strict_mode"})
     try:
-        return await service.update_material(dataset_id, material_id, update_data, db)
+        return await service.update_material(dataset_id, material_id, update_data, db, body.strict_mode)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -312,10 +312,9 @@ async def bulk_update_materials(
     db: AsyncSession = Depends(get_db),
 ):
     """Bulk update and/or delete materials."""
-    updates = [{"id": u.id, "updates": u.updates} for u in body.updates]
-    logger.info("[BULK] dataset=%s → %d updates, %d deletes", dataset_id[:8], len(updates), len(body.deletes))
+    logger.info("[BULK] dataset=%s → %d updates, %d deletes", dataset_id[:8], len(body.updates), len(body.deletes))
     result = await service.bulk_update_materials(
-        dataset_id, updates, body.deletes, db,
+        dataset_id, body.updates, body.deletes, db, body.strict_mode,
     )
     if result.errors:
         for err in result.errors:

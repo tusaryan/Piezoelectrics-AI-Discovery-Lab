@@ -29,9 +29,15 @@ export default function TrainingTerminal() {
   const logs = useTrainingStore((s) => s.logs);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  // Auto-scroll terminal container to bottom (without scrolling the main page)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (bottomRef.current && bottomRef.current.parentElement) {
+      const parent = bottomRef.current.parentElement;
+      // Use requestAnimationFrame to ensure the DOM has updated
+      requestAnimationFrame(() => {
+        parent.scrollTop = parent.scrollHeight;
+      });
+    }
   }, [logs.length]);
 
   return (

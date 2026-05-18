@@ -4,9 +4,7 @@
  * HTTP calls for the prediction pipeline.
  */
 
-import { APP_CONFIG } from "@/lib/constants";
-
-const BASE = `${APP_CONFIG.api.baseUrl}/api/v1/predictions`;
+const BASE = "/api/v1/predictions";
 
 /* ---------- Types ---------- */
 

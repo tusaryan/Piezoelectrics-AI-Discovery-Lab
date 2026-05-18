@@ -2,8 +2,7 @@
  * Optimization API Client — typed HTTP functions for structural analysis & NSGA-II.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const BASE = `${API_BASE}/api/v1/optimization`;
+const BASE = "/api/v1/optimization";
 
 // ---------- Types ----------
 

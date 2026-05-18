@@ -4,9 +4,7 @@
  * HTTP calls for dashboard stats, model management, and report generation.
  */
 
-import { APP_CONFIG } from "@/lib/constants";
-
-const BASE = `${APP_CONFIG.api.baseUrl}/api/v1/dashboard`;
+const BASE = "/api/v1/dashboard";
 
 /* ---------- Types ---------- */
 

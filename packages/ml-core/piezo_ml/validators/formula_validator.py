@@ -53,8 +53,8 @@ class FormulaValidationResult:
         }
 
 
-def extract_elements(formula: str) -> set[str]:
-    parser = FormulaParser()
+def extract_elements(formula: str, strict_mode: bool = False) -> set[str]:
+    parser = FormulaParser(strict_mode=strict_mode)
     parsed = parser.parse(formula)
     return set(parsed.elements.keys())
 
@@ -63,8 +63,8 @@ def extract_elements(formula: str) -> set[str]:
 # Validation
 # ---------------------------------------------------------------------------
 
-def validate_formula(formula: str) -> FormulaValidationResult:
-    parser = FormulaParser()
+def validate_formula(formula: str, strict_mode: bool = False) -> FormulaValidationResult:
+    parser = FormulaParser(strict_mode=strict_mode)
     parsed = parser.parse(formula)
     return FormulaValidationResult(
         formula=parsed.formula,
@@ -79,6 +79,7 @@ def validate_formula(formula: str) -> FormulaValidationResult:
 
 def validate_formulas_batch(
     formulas: list[str],
+    strict_mode: bool = False,
 ) -> list[FormulaValidationResult]:
     """
     Validate a batch of formulas.
@@ -89,4 +90,4 @@ def validate_formulas_batch(
     Returns:
         List of FormulaValidationResult in same order as input.
     """
-    return [validate_formula(f) for f in formulas]
+    return [validate_formula(f, strict_mode=strict_mode) for f in formulas]

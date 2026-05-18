@@ -198,6 +198,18 @@ class AddAliasRequest(BaseModel):
     canonical: str = Field(..., min_length=1, max_length=100)
 
 
+class UpdateFieldRequest(BaseModel):
+    """Update properties of an existing field (all optional)."""
+    description: Optional[str] = None
+    range_min: Optional[float] = None
+    range_max: Optional[float] = None
+    is_target: Optional[bool] = None
+    is_input: Optional[bool] = None
+    is_required: Optional[bool] = None
+    is_composite_field: Optional[bool] = None
+    default_value: Optional[str] = None
+
+
 class FieldSchemaImportRequest(BaseModel):
     """Import field schema customizations."""
     schema_data: dict = Field(..., description="Exported schema JSON data")

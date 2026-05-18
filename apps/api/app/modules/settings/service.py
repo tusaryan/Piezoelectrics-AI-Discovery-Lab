@@ -654,9 +654,15 @@ def add_user_field(field_data: dict[str, Any]) -> dict[str, Any]:
 
 
 def remove_user_field(name: str) -> dict[str, Any]:
-    """Remove a user-added field."""
+    """Remove a user-added field from the schema."""
     from piezo_ml.registry.field_schema_manager import remove_user_field as _remove
     return _remove(name)
+
+
+def update_field(field_name: str, updates: dict[str, Any]) -> dict[str, Any]:
+    """Update properties of an existing field."""
+    from piezo_ml.registry.field_schema_manager import update_field_properties
+    return update_field_properties(field_name, updates)
 
 
 def add_field_category(field_name: str, value: str) -> dict[str, Any]:
@@ -693,6 +699,12 @@ def import_field_schema(data: dict[str, Any]) -> dict[str, Any]:
     """Import field customizations from exported schema."""
     from piezo_ml.registry.field_schema_manager import import_field_schema as _import
     return _import(data)
+
+
+def save_field_schema_to_codebase() -> dict[str, Any]:
+    """Generate a migration file for committing customizations to the codebase."""
+    from piezo_ml.registry.field_schema_manager import save_to_codebase
+    return save_to_codebase()
 
 
 # ── Reset ──────────────────────

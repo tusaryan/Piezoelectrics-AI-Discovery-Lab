@@ -303,6 +303,14 @@ def _build_field_schema() -> dict[str, FieldDefinition]:
             fd.is_user_added = True
             schema[field_name] = fd
 
+    # Apply field property overrides (T10: edit existing fields)
+    for field_name, overrides in customs.get("field_overrides", {}).items():
+        if field_name in schema:
+            fd = schema[field_name]
+            for key, value in overrides.items():
+                if hasattr(fd, key):
+                    setattr(fd, key, value)
+
     return schema
 
 
@@ -445,6 +453,35 @@ def remove_user_field(name: str) -> dict[str, Any]:
     return {"message": f"Field '{name}' removed"}
 
 
+def update_field_properties(field_name: str, updates: dict[str, Any]) -> dict[str, Any]:
+    """Update properties of any field (both built-in and user-added).
+
+    Supported update keys: description, range_min, range_max,
+    is_target, is_input, is_required, is_composite_field, default_value.
+    """
+    fd = FIELD_SCHEMA.get(field_name)
+    if not fd:
+        return {"error": f"Field '{field_name}' not found"}
+
+    ALLOWED_KEYS = {
+        "description", "range_min", "range_max",
+        "is_target", "is_input", "is_required",
+        "is_composite_field", "default_value",
+    }
+    filtered = {k: v for k, v in updates.items() if k in ALLOWED_KEYS}
+    if not filtered:
+        return {"error": "No valid update keys provided"}
+
+    customs = _load_customizations()
+    overrides = customs.setdefault("field_overrides", {})
+    field_overrides = overrides.setdefault(field_name, {})
+    field_overrides.update(filtered)
+    _save_customizations(customs)
+    refresh_schema()
+
+    return {"message": f"Field '{field_name}' updated", "updated_keys": list(filtered.keys())}
+
+
 def add_category_value(field_name: str, value: str) -> dict[str, Any]:
     """Add a new category value to an existing categorical field."""
     fd = FIELD_SCHEMA.get(field_name)
@@ -575,3 +612,62 @@ def reset_field_schema() -> dict[str, Any]:
         FIELD_CUSTOMIZATIONS_PATH.unlink()
     refresh_schema()
     return {"message": "Field schema reset to defaults"}
+
+
+def save_to_codebase() -> dict[str, Any]:
+    """Save current customizations summary for manual codebase integration.
+
+    Instead of auto-modifying Python source (fragile), this exports a
+    structured diff of what needs to be merged into DEFAULT_FIELD_SCHEMA.
+    The user can review and commit the changes.
+    """
+    customs = _load_customizations()
+    added_fields = customs.get("added_fields", {})
+    added_categories = customs.get("added_categories", {})
+    added_aliases = customs.get("added_aliases", {})
+    field_overrides = customs.get("field_overrides", {})
+
+    if not any([added_fields, added_categories, added_aliases, field_overrides]):
+        return {"error": "No customizations to save — schema matches defaults"}
+
+    # Build a human-readable migration file
+    migration_path = PROJECT_ROOT / "resources" / "field-schema-migration.json"
+    migration_data = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "description": "Customizations to merge into DEFAULT_FIELD_SCHEMA in field_schema_manager.py",
+        "added_fields": added_fields,
+        "added_categories": added_categories,
+        "added_aliases": added_aliases,
+        "field_overrides": field_overrides,
+        "instructions": (
+            "To make these changes permanent:\n"
+            "1. Add new fields to DEFAULT_FIELD_SCHEMA dict in field_schema_manager.py\n"
+            "2. Append new category values to the relevant FieldDefinition.category_values lists\n"
+            "3. Add new alias entries to the relevant FieldDefinition.aliases dicts\n"
+            "4. Apply field_overrides to the relevant FieldDefinition attributes\n"
+            "5. Delete resources/.field-customizations.json after merging\n"
+            "6. Restart the server"
+        ),
+    }
+
+    migration_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(migration_path, "w", encoding="utf-8") as f:
+        json.dump(migration_data, f, indent=2)
+
+    summary_parts = []
+    if added_fields:
+        summary_parts.append(f"{len(added_fields)} new field(s)")
+    if added_categories:
+        total_cats = sum(len(v) for v in added_categories.values())
+        summary_parts.append(f"{total_cats} new category value(s)")
+    if added_aliases:
+        total_aliases = sum(len(v) for v in added_aliases.values())
+        summary_parts.append(f"{total_aliases} new alias(es)")
+    if field_overrides:
+        summary_parts.append(f"{len(field_overrides)} field override(s)")
+
+    return {
+        "message": f"Migration file saved: {', '.join(summary_parts)}",
+        "migration_path": str(migration_path),
+        "summary": summary_parts,
+    }

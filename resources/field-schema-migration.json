@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-05-15T13:39:08.920361+00:00",
+  "description": "Customizations to merge into DEFAULT_FIELD_SCHEMA in field_schema_manager.py",
+  "added_fields": {},
+  "added_categories": {
+    "sintering_method": [
+      "microwave_assisted"
+    ]
+  },
+  "added_aliases": {},
+  "field_overrides": {},
+  "instructions": "To make these changes permanent:\n1. Add new fields to DEFAULT_FIELD_SCHEMA dict in field_schema_manager.py\n2. Append new category values to the relevant FieldDefinition.category_values lists\n3. Add new alias entries to the relevant FieldDefinition.aliases dicts\n4. Apply field_overrides to the relevant FieldDefinition attributes\n5. Delete resources/.field-customizations.json after merging\n6. Restart the server"
+}

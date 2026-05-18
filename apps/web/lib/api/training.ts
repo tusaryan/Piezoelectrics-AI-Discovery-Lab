@@ -4,9 +4,7 @@
  * HTTP calls for the training pipeline.
  */
 
-import { APP_CONFIG } from "@/lib/constants";
-
-const BASE = `${APP_CONFIG.api.baseUrl}/api/v1/training`;
+const BASE = "/api/v1/training";
 
 /* ---------- Types ---------- */
 

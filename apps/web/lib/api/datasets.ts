@@ -7,9 +7,7 @@
  * Endpoints are defined in apps/api/app/modules/dataset/router.py
  */
 
-import { APP_CONFIG } from "@/lib/constants";
-
-const BASE = `${APP_CONFIG.api.baseUrl}/api/v1/datasets`;
+const BASE = "/api/v1/datasets";
 
 /* ---------- Types ---------- */
 
@@ -190,10 +188,11 @@ export function uploadCSV(
 export function applyMapping(
   datasetId: string,
   mapping: Record<string, string>,
+  strictMode?: boolean,
 ) {
   return apiFetch<DatasetDetail>(`${BASE}/${datasetId}/map`, {
     method: "POST",
-    body: JSON.stringify({ mapping }),
+    body: JSON.stringify({ mapping, strict_mode: strictMode || false }),
   });
 }
 
@@ -263,10 +262,11 @@ export function getMaterials(
 export function addMaterial(
   datasetId: string,
   data: Partial<MaterialRow>,
+  strictMode?: boolean,
 ) {
   return apiFetch<MaterialRow>(`${BASE}/${datasetId}/materials`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, strict_mode: strictMode || false }),
   });
 }
 
@@ -274,10 +274,11 @@ export function updateMaterial(
   datasetId: string,
   materialId: string,
   data: Partial<MaterialRow>,
+  strictMode?: boolean,
 ) {
   return apiFetch<MaterialRow>(
     `${BASE}/${datasetId}/materials/${materialId}`,
-    { method: "PATCH", body: JSON.stringify(data) },
+    { method: "PATCH", body: JSON.stringify({ ...data, strict_mode: strictMode || false }) },
   );
 }
 
@@ -285,10 +286,11 @@ export function bulkUpdateMaterials(
   datasetId: string,
   updates: { id: string; updates: Record<string, unknown> }[],
   deletes: string[],
+  strictMode?: boolean,
 ) {
   return apiFetch<BulkUpdateResult>(`${BASE}/${datasetId}/materials/bulk`, {
     method: "POST",
-    body: JSON.stringify({ updates, deletes }),
+    body: JSON.stringify({ updates, deletes, strict_mode: strictMode || false }),
   });
 }
 

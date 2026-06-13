@@ -1,5 +1,5 @@
 # ============================================
-# Piezo.AI v2.1.0 — .gitignore
+# Piezo.AI v2.2.0 — .gitignore
 # ============================================
 
 # ==================== OS ====================
@@ -90,6 +90,9 @@ AI-Assisted Discovery of New Lead-Free Piezoelectrics.md
 
 # ==================== Legacy ====================
 old-codebase/
+old-v2/
+old-readme.md
+old-comprehensive.readme
 add_column.py
 
 # ==================== Security and Environment ====================
@@ -117,3 +120,7 @@ coverage/
 /.nvm
 resources/.field-customizations.json
 resources/.settings-customizations.json
+resources/.julia-depot/
+resources/optimization-cache/
+resources/shap-cache/
+resources/reports/

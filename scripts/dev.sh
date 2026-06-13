@@ -308,7 +308,7 @@ cmd_start() {
     # Start backend using venv's uvicorn
     pz_log "Starting FastAPI backend on port 8000..."
     cd "$ROOT_DIR/apps/api"
-    "$_PZ_VENV_DIR/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 --reload \
+    "$_PZ_VENV_DIR/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 --env-file "$ROOT_DIR/.env" --reload \
         --reload-dir "$ROOT_DIR/apps/api" \
         --reload-dir "$ROOT_DIR/packages" > >(tee -a "$session_log") 2>&1 &
     BACKEND_PID=$!
@@ -353,23 +353,51 @@ cmd_start() {
         SHUTDOWN_IN_PROGRESS=true
         echo -e "\n\n${YELLOW}Shutting down...${NC}"
 
+        # Kill entire process groups (not just PIDs) to catch all child
+        # processes: SHAP subprocesses, XGBoost threads, Julia, etc.
         for pid_var in BACKEND_PID FRONTEND_PID; do
             local pid="${!pid_var}"
             if [ -n "$pid" ]; then
-                kill "$pid" 2>/dev/null
-                sleep 1
-                kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
-                echo -e "  ${GREEN}✓${NC} Stopped PID $pid"
+                # Try to get the process group ID
+                local pgid
+                pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+                if [ -n "$pgid" ] && [ "$pgid" != "0" ]; then
+                    # Kill the entire process group
+                    kill -- -"$pgid" 2>/dev/null || true
+                    sleep 1
+                    # Force kill if still alive
+                    kill -9 -- -"$pgid" 2>/dev/null || true
+                else
+                    # Fallback: kill just the PID
+                    kill "$pid" 2>/dev/null || true
+                    sleep 1
+                    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
+                fi
+                echo -e "  ${GREEN}✓${NC} Stopped PID $pid (and children)"
             fi
         done
 
         # Cleanup stale processes on ports
         for port in 8000 3000; do
             if lsof -Pi :"$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
-                kill -9 "$(lsof -Pi :"$port" -sTCP:LISTEN -t)" 2>/dev/null || true
+                local stale_pids
+                stale_pids=$(lsof -Pi :"$port" -sTCP:LISTEN -t 2>/dev/null)
+                for sp in $stale_pids; do
+                    kill -9 "$sp" 2>/dev/null || true
+                done
                 echo -e "  ${GREEN}✓${NC} Cleaned up stale process on port $port"
             fi
         done
+
+        # Kill any remaining Python/SHAP/Julia processes from our venv
+        if [ -n "${_PZ_VENV_DIR:-}" ]; then
+            local venv_procs
+            venv_procs=$(pgrep -f "$_PZ_VENV_DIR" 2>/dev/null || true)
+            if [ -n "$venv_procs" ]; then
+                echo "$venv_procs" | xargs kill -9 2>/dev/null || true
+                echo -e "  ${GREEN}✓${NC} Killed remaining venv processes"
+            fi
+        fi
 
         pz_db_stop_docker
         echo -e "${GREEN}All services stopped.${NC}"

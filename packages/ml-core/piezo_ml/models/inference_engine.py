@@ -193,9 +193,18 @@ class InferenceEngine:
         base.update({f"frac_{k}": v for k, v in engineered.element_fractions.items()})
         base.update(engineered.weighted_features)
 
-        # Composite features
+        # Composite and categorical features
         comp = encode_composite_params(composite_params)
         base.update(comp)
+
+        # Additional non-composite numeric parameters (like qm, kp)
+        if composite_params:
+            for k, v in composite_params.items():
+                if k not in base:
+                    try:
+                        base[k] = float(v) if v is not None else 0.0
+                    except (ValueError, TypeError):
+                        pass
 
         # Align to training feature columns from metadata
         feature_cols = loaded.metadata.get("feature_columns", [])

@@ -17,6 +17,22 @@ import {
   fetchPresets,
 } from "@/lib/api/optimization";
 
+/** Classify structural analysis errors into user-friendly messages. */
+function _classifyStructuralError(e: unknown, context: string): string {
+  if (!(e instanceof Error)) return `Structural ${context} failed unexpectedly.`;
+  const raw = e.message;
+  if (raw.includes("socket hang up") || raw.includes("ECONNRESET") || raw.includes("Failed to fetch")) {
+    return `Server crashed during structural ${context}. The formula may have caused a parser error. Check terminal logs and try a simpler formula.`;
+  }
+  if (raw.includes("TimeoutError") || raw.includes("AbortError")) {
+    return `Structural ${context} timed out. The formula may be too complex. Try a simpler composition.`;
+  }
+  if (raw.includes("Internal Server Error")) {
+    return `Backend error during structural ${context}. Check terminal logs for details.`;
+  }
+  return raw;
+}
+
 interface OptimizationState {
   // Models
   models: OptimizationModel[];
@@ -168,7 +184,8 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
         structuralLoading: false,
       }));
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Analysis failed";
+      const msg = _classifyStructuralError(e, `analysis of "${formula}"`);
+      console.error("[Structure Analysis]", msg, e);
       set({ structuralLoading: false, structuralError: msg });
     }
   },
@@ -179,7 +196,8 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
       const results = await runStructuralComparison(formulas);
       set({ structuralResults: results, structuralLoading: false });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Comparison failed";
+      const msg = _classifyStructuralError(e, `comparison of ${formulas.length} formulas`);
+      console.error("[Structure Comparison]", msg, e);
       set({ structuralLoading: false, structuralError: msg });
     }
   },
@@ -221,24 +239,44 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
   setNGenerations: (n) => set({ nGenerations: n }),
 
   runOptimization: async () => {
-    const { selectedModelIds, objectives, popSize, nGenerations, activePreset } =
+    const { selectedModelIds, objectives, popSize, nGenerations, activePreset, models } =
       get();
 
-    // Filter to only selected targets with models
+    // Filter to only selected targets with models (exclude empty "Skip" values)
     const activeModelIds: Record<string, string> = {};
     const activeObjectives: Record<string, ObjectiveConfig> = {};
+    const skippedTargets: string[] = [];
+
     for (const [target, modelId] of Object.entries(selectedModelIds)) {
-      if (modelId) {
+      if (modelId && modelId.trim() !== "") {
         activeModelIds[target] = modelId;
         if (objectives[target]) {
           activeObjectives[target] = objectives[target];
         }
+      } else {
+        skippedTargets.push(target);
       }
     }
 
-    if (Object.keys(activeModelIds).length === 0) {
-      set({ optimizationError: "Select at least one model to optimize" });
+    // Determine all known targets from loaded models
+    const allKnownTargets = [...new Set(models.map((m) => m.target))];
+    const selectedCount = Object.keys(activeModelIds).length;
+
+    if (selectedCount === 0) {
+      const reason = allKnownTargets.length === 0
+        ? "No trained models available. Train at least one model in the Train section before running optimization."
+        : `All ${allKnownTargets.length} target(s) are set to \u201CSkip\u201D. Select at least one surrogate model (${allKnownTargets.join(", ")}) to run optimization.`;
+      console.error("[Optimization] Cannot run:", reason);
+      set({ optimizationError: reason });
       return;
+    }
+
+    // Log skipped targets for user awareness
+    if (skippedTargets.length > 0) {
+      console.info(
+        `[Optimization] Running with ${selectedCount} model(s). Skipped targets: ${skippedTargets.join(", ")}. ` +
+        `Optimization will proceed using only: ${Object.keys(activeModelIds).join(", ")}.`
+      );
     }
 
     set({
@@ -259,7 +297,27 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
       });
 
       if (result.error) {
+        console.error("[Optimization] Backend returned error:", result.error);
         set({ optimizationLoading: false, optimizationError: result.error });
+        return;
+      }
+
+      if (result.solutions.length === 0) {
+        const msg = "Optimization completed but found no valid Pareto-optimal solutions. " +
+          "This may happen with very restrictive objective ranges or insufficient model accuracy. " +
+          "Try widening the target ranges or training models with more data.";
+        console.warn("[Optimization]", msg);
+        set({
+          optimizationLoading: false,
+          optimizationError: msg,
+          convergence: result.convergence,
+          optimizationStats: {
+            n_generations_run: result.n_generations_run,
+            n_evaluations: result.n_evaluations,
+            duration_seconds: result.duration_seconds,
+            targets_optimized: result.targets_optimized,
+          },
+        });
         return;
       }
 
@@ -275,7 +333,26 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
         },
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Optimization failed";
+      let msg: string;
+      if (e instanceof Error) {
+        const raw = e.message;
+        if (raw.includes("socket hang up") || raw.includes("ECONNRESET") || raw.includes("Failed to fetch")) {
+          msg = "The optimization server crashed or became unresponsive. " +
+            "This usually happens when the model files are too large or the computation exceeded server memory. " +
+            "Try reducing Population Size or Generations, or restart the backend server.";
+        } else if (raw.includes("TimeoutError") || raw.includes("AbortError") || raw.includes("aborted")) {
+          msg = "Optimization timed out after 5 minutes. " +
+            "Try reducing Population Size or Generations for faster convergence.";
+        } else if (raw.includes("Internal Server Error")) {
+          msg = "The backend encountered an internal error during optimization. " +
+            "Check the terminal logs for details. Common causes: corrupted model files, missing feature columns, or incompatible model formats.";
+        } else {
+          msg = raw;
+        }
+      } else {
+        msg = "An unexpected error occurred during optimization.";
+      }
+      console.error("[Optimization] Failed:", msg, e);
       set({ optimizationLoading: false, optimizationError: msg });
     }
   },

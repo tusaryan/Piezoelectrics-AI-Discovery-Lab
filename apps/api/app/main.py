@@ -43,8 +43,39 @@ async def lifespan(app: FastAPI):
     print(f"🔍 Interpret endpoints: /api/v1/interpret")
     print(f"🧪 Optimization endpoints: /api/v1/optimization")
     print(f"⚙️  Settings endpoints: /api/v1/settings")
+
+    # ── Startup DB hygiene: purge models with invalid metrics ──
+    # Models with NaN/Inf r2_score or rmse crash JSON serialization and
+    # break the entire app. This auto-cleanup ensures a clean boot.
+    try:
+        from app.core.database import async_session_factory
+        from sqlalchemy import text
+        async with async_session_factory() as db:
+            result = await db.execute(text(
+                "DELETE FROM trained_models "
+                "WHERE r2_score = 'NaN' OR rmse = 'NaN' "
+                "   OR r2_score IS NULL OR rmse IS NULL "
+                "   OR r2_score = 'Infinity' OR rmse = 'Infinity' "
+                "   OR r2_score = '-Infinity' OR rmse = '-Infinity' "
+                "RETURNING id, target, algorithm, r2_score, rmse"
+            ))
+            deleted = result.fetchall()
+            await db.commit()
+            if deleted:
+                print(f"🧹 Startup cleanup: removed {len(deleted)} model(s) with invalid metrics:")
+                for row in deleted:
+                    print(f"   🗑️  {row[2]}/{row[1]} (id={str(row[0])[:8]}…) — r2={row[3]}, rmse={row[4]}")
+            else:
+                print("✅ Startup check: all models have valid metrics")
+    except Exception as e:
+        print(f"⚠️  Startup DB cleanup skipped: {e}")
+
     yield
-    # Shutdown
+    # Shutdown — kill all background processes before closing DB
+    from app.modules.interpret.service import kill_all_background_tasks as kill_shap_tasks
+    from app.modules.optimization.service import kill_all_background_tasks as kill_optim_tasks
+    kill_shap_tasks()
+    kill_optim_tasks()
     await engine.dispose()
     print("🛑 Piezo.AI API shutting down...")
 

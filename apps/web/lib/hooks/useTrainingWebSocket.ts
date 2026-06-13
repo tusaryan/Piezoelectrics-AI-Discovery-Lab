@@ -114,6 +114,19 @@ export function useTrainingWebSocket(jobId: string | null) {
 
     ws.onclose = () => {
       wsRef.current = null;
+      // If the WS closes while still in "training" phase, the complete message
+      // was likely lost (e.g. ECONNRESET). Transition to completed so the UI
+      // doesn't stay stuck showing "Stop Training" forever.
+      const currentPhase = useTrainingStore.getState().jobPhase;
+      if (currentPhase === "training") {
+        setJobPhase("completed");
+        addLog({
+          type: "log",
+          level: "warning",
+          message: "Connection to training stream lost — training likely completed. Check results.",
+          timestamp: new Date().toISOString(),
+        });
+      }
     };
 
     ws.onerror = () => {

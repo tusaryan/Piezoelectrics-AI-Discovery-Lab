@@ -160,21 +160,33 @@ class TrainingOrchestrator:
             # Only apply strategies for fields that are actually selected
             # (prevents non-selected targets like vickers_hardness from
             # dropping all rows via "drop" strategy)
-            relevant_fields = set(config.selected_fields) | set(config.targets)
+            # Exclude targets from global imputation/drop so they can be handled independently per-target
+            relevant_fields = set(config.selected_fields) - set(config.targets)
             filtered_strategies = {
                 k: v for k, v in strategies.items() if k in relevant_fields
             }
             if filtered_strategies:
                 train_df, mv_report = apply_missing_value_strategies(train_df, filtered_strategies)
                 strat_str = ", ".join(f"{k}={v}" for k, v in mv_report.applied_strategies.items())
-                _log("info", f"Train strategies: {strat_str}")
+                _log("info", f"Train strategies applied: {strat_str}")
                 if mv_report.dropped_rows:
-                    _log("info", f"Train: dropped {mv_report.dropped_rows} rows via drop strategy")
+                    _log("info", f"Train: dropped {mv_report.dropped_rows} rows globally via drop strategy")
 
-        # Test set policy: drop rows with missing required values (no imputation)
-        required_cols = ["formula"] + config.targets
+        # Test set policy: drop rows with missing required values (only formula required globally)
+        # Targets will be dropped independently later.
+        required_cols = ["formula"]
         test_df, test_log = self._loader.apply_test_set_policy(test_df, required_cols)
         _log("info", test_log)
+
+        # ------ Dynamic Strategy Evaluation (Physics & Chemistry-Informed) ------
+        # If multiple targets are selected, evaluate post-drop intersection size.
+        if len(config.targets) > 1:
+            intersection_df = train_df.dropna(subset=config.targets)
+            _log("info", f"Multi-Target Strategy: Post-drop intersection yields {len(intersection_df)} rows.")
+            if len(intersection_df) < 400:
+                _log("info", f"Strategy Selected: Phase 1 (Decoupled Independent Training). Maximizing {len(train_df)} rows for independent physics learning.")
+            else:
+                _log("info", "Strategy Selected: Phase 2 threshold met (>= 400 rows). Future runs will trigger Regressor Chaining to explicitly map target trade-offs.")
 
         cum += STAGE_WEIGHTS["imputing"]
         _progress(cum, "Imputation complete")
@@ -224,6 +236,60 @@ class TrainingOrchestrator:
         all_features, all_parsed = self._engineer.engineer_dataframe(cleaned_full)
         # Also append composite features to full artifact
         _append_composite_features(all_features, cleaned_full, COMPOSITE_FEATURE_COLUMNS, encode_composite_row)
+        # ------ 5c. Append other selected numeric features ------
+        # If the user selected fields like qm, kp, they must be added to feature vectors
+        # Do NOT append fields that were already handled by the composite encoder
+        handled_composite_fields = {
+            "matrix_type", "filler_wt_pct", "particle_morphology",
+            "particle_size_nm", "surface_treatment", "fabrication_method",
+            "sintering_temp_c", "relative_density_pct", "sintering_method",
+            "ceramic_type"
+        }
+        
+        additional_features = [
+            f for f in config.selected_fields 
+            if f not in config.targets 
+            and f not in feature_vectors.columns 
+            and f in train_df.columns 
+            and f not in ("uid", "formula")
+            and f not in handled_composite_fields
+        ]
+        
+        if additional_features:
+            _log("info", f"Appending additional selected features: {additional_features}")
+            for col in additional_features:
+                feature_vectors[col] = 0.0
+                test_features[col] = 0.0
+                all_features[col] = 0.0
+                
+                # Map by UID for train
+                uid_to_val_train = {int(row["uid"]): pd.to_numeric(row[col], errors="coerce") for _, row in train_df.iterrows()}
+                for idx, row in feature_vectors.iterrows():
+                    val = uid_to_val_train.get(int(row["uid"]))
+                    feature_vectors.at[idx, col] = val if pd.notna(val) else 0.0
+                
+                # Map by UID for test
+                uid_to_val_test = {int(row["uid"]): pd.to_numeric(row[col], errors="coerce") for _, row in test_df.iterrows()}
+                for idx, row in test_features.iterrows():
+                    val = uid_to_val_test.get(int(row["uid"]))
+                    test_features.at[idx, col] = val if pd.notna(val) else 0.0
+                    
+                # Map by UID for all (artifacts)
+                uid_to_val_all = {int(row["uid"]): pd.to_numeric(row[col], errors="coerce") for _, row in cleaned_full.iterrows()}
+                for idx, row in all_features.iterrows():
+                    val = uid_to_val_all.get(int(row["uid"]))
+                    all_features.at[idx, col] = val if pd.notna(val) else 0.0
+                    
+                # Warn user if the field contained non-numeric strings that got silently dropped
+                non_numeric_count = pd.to_numeric(cleaned_full[col], errors="coerce").isna().sum()
+                if non_numeric_count > 0:
+                    _log("warning", f"Field '{col}' contained {non_numeric_count} non-numeric/string values which were coerced to 0.0 for training.")
+
+        # Check for user-selected fields that were completely dropped because they don't exist in the CSV
+        missing_from_df = [f for f in config.selected_fields if f not in df.columns]
+        if missing_from_df:
+            _log("warning", f"The following selected fields were DROPPED because they were not found in the dataset: {missing_from_df}")
+
         artifact = save_parsed_dataset_artifacts(
             dataset_id=config.dataset_id,
             source_frame=cleaned_full,
@@ -237,7 +303,6 @@ class TrainingOrchestrator:
         _progress(cum, "Feature engineering complete")
 
         # Align train_df/test_df to only rows that survived parsing
-        # (some rows may have been skipped due to invalid formulas)
         if "uid" in feature_vectors.columns:
             train_uids = set(feature_vectors["uid"].values)
             train_df = train_df[train_df["uid"].isin(train_uids)].reset_index(drop=True)
@@ -255,6 +320,9 @@ class TrainingOrchestrator:
 
         # Prepare feature columns (exclude uid, formula)
         feature_cols = [c for c in feature_vectors.columns if c not in ("uid", "formula")]
+        _log("info", f"Final feature vector contains {len(feature_cols)} columns (used for training):")
+        _log("info", f"Columns: {', '.join(feature_cols[:20])}" + ("..." if len(feature_cols) > 20 else ""))
+        
         train_weight = STAGE_WEIGHTS["training"] / max(len(config.targets), 1)
 
         results: list[TrainingResult] = []
@@ -281,15 +349,44 @@ class TrainingOrchestrator:
             X_test = test_features[feature_cols].values
             y_test = pd.to_numeric(test_df[target], errors="coerce").values
 
-            # Drop NaN targets
+            # Drop NaN targets independently
+            initial_train_len = len(y_train)
+            initial_test_len = len(y_test)
+            
             train_mask = ~np.isnan(y_train)
             test_mask = ~np.isnan(y_test)
             X_train, y_train = X_train[train_mask], y_train[train_mask]
             X_test, y_test = X_test[test_mask], y_test[test_mask]
+            
+            dropped_train = initial_train_len - len(y_train)
+            dropped_test = initial_test_len - len(y_test)
+            
+            if dropped_train > 0 or dropped_test > 0:
+                _log("info", f"[{target}] Dropped rows missing target: {dropped_train} in train, {dropped_test} in test.")
+            _log("info", f"[{target}] Final dataset size: {len(y_train)} train rows, {len(y_test)} test rows.")
 
             if len(X_train) == 0 or len(X_test) == 0:
                 _log("error", f"Insufficient data for {target} after filtering — skipping")
                 continue
+                
+            # Save the exact parsed train/test datasets for this target so the user can verify correctness
+            from pathlib import Path
+            import os
+            
+            try:
+                train_export = pd.DataFrame(X_train, columns=feature_cols)
+                train_export[f"TARGET_{target}"] = y_train
+                train_export_path = Path(artifact.artifact_dir) / f"{target}_train_data.csv"
+                train_export.to_csv(train_export_path, index=False)
+                
+                test_export = pd.DataFrame(X_test, columns=feature_cols)
+                test_export[f"TARGET_{target}"] = y_test
+                test_export_path = Path(artifact.artifact_dir) / f"{target}_test_data.csv"
+                test_export.to_csv(test_export_path, index=False)
+                
+                _log("info", f"Saved exact training dataset for '{target}' to: {train_export_path.name}")
+            except Exception as e:
+                _log("warning", f"Failed to save parsed dataset artifacts for {target}: {str(e)}")
 
             # Auto-tune if mode is "auto"
             if config.mode == "auto":
@@ -305,7 +402,17 @@ class TrainingOrchestrator:
                 algorithm=algorithm, target=target, hyperparameters=hyper,
                 cancel_event=self.cancel_event, log_callback=_log,
             )
-            result = trainer.train(X_train, y_train, X_test, y_test, feature_cols)
+            try:
+                result = trainer.train(X_train, y_train, X_test, y_test, feature_cols)
+            except ValueError as e:
+                # Model produced invalid metrics (NaN/Inf) — skip this target
+                # but continue training the rest. The user sees a clear error.
+                _log("error", str(e))
+                _log("warning",
+                     f"⚠️ Skipping '{target}' — model will NOT be saved. "
+                     f"Other targets will continue training normally.")
+                continue
+
             result.n_train = len(X_train)
             result.n_test = len(X_test)
             results.append(result)

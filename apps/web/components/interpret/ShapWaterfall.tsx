@@ -19,11 +19,7 @@ export default function ShapWaterfall() {
   } = useInterpretStore();
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    if (selectedModelId && !waterfall && !waterfallLoading) {
-      fetchWaterfall(0);
-    }
-  }, [selectedModelId, waterfall, waterfallLoading, fetchWaterfall]);
+  // Removed auto-fetch useEffect to prevent heavy load on mount
 
   const navigateSample = (delta: number) => {
     if (!waterfall) return;
@@ -127,7 +123,13 @@ export default function ShapWaterfall() {
         )}
         {!waterfall && !waterfallLoading && !waterfallError && (
           <div className="interpret-empty">
-            Select a model to see feature contributions
+            {selectedModelId ? (
+              <button className="btn btn-primary" onClick={() => fetchWaterfall(0)}>
+                Load SHAP Waterfall
+              </button>
+            ) : (
+              "Select a model to see feature contributions"
+            )}
           </div>
         )}
       </div>

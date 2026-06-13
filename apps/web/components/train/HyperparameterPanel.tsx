@@ -145,14 +145,10 @@ function AlgoParams({
                   <input
                     type="number"
                     className="hyperparam-number"
-                    min={def.min ?? undefined}
-                    max={def.max ?? undefined}
-                    step={def.step ?? undefined}
+                    step="any"
                     value={Number(val)}
                     onChange={(e) => {
-                      let v = Number(e.target.value);
-                      if (def.min != null) v = Math.max(def.min, v);
-                      if (def.max != null) v = Math.min(def.max, v);
+                      const v = Number(e.target.value);
                       handleChange(name, v);
                     }}
                   />

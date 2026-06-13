@@ -14,11 +14,7 @@ export default function PhysicsValidation() {
     useInterpretStore();
   const [showDetails, setShowDetails] = useState(false);
 
-  useEffect(() => {
-    if (selectedModelId && !physics && !physicsLoading) {
-      fetchPhysicsValidation();
-    }
-  }, [selectedModelId, physics, physicsLoading, fetchPhysicsValidation]);
+  // Removed auto-fetch useEffect to prevent heavy load on mount
 
   const scoreColor = (score: number) => {
     if (score >= 80) return "var(--success)";
@@ -146,7 +142,13 @@ export default function PhysicsValidation() {
         )}
         {!physics && !physicsLoading && !physicsError && (
           <div className="interpret-empty">
-            Select a model to validate physics alignment
+            {selectedModelId ? (
+              <button className="btn btn-primary" onClick={() => fetchPhysicsValidation()}>
+                Run Physics Validation
+              </button>
+            ) : (
+              "Select a model to validate physics alignment"
+            )}
           </div>
         )}
       </div>

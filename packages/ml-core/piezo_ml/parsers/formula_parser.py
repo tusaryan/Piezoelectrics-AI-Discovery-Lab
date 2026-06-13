@@ -66,6 +66,36 @@ def _parse_single_phase(phase_formula: str) -> dict[str, float]:
     return {symbol: float(amount) for symbol, amount in parsed.items()}
 
 
+def parse_phase_mixture(formula: str) -> dict[str, float]:
+    phases = _split_top_level_phases(formula)
+    
+    totals: dict[str, float] = {}
+    for phase in phases:
+        multiplier, body = _extract_multiplier(phase)
+        
+        if body.startswith("(") and body.endswith(")"):
+            depth = 0
+            fully_enclosed = True
+            for i, char in enumerate(body):
+                if char == '(': depth += 1
+                elif char == ')': depth -= 1
+                if depth == 0 and i < len(body) - 1:
+                    fully_enclosed = False
+                    break
+            if fully_enclosed:
+                inner_body = body[1:-1].strip()
+                inner_elements = parse_phase_mixture(inner_body)
+                for sym, amt in inner_elements.items():
+                    totals[sym] = totals.get(sym, 0.0) + multiplier * amt
+                continue
+                
+        parsed = _parse_single_phase(body)
+        for sym, amt in parsed.items():
+            totals[sym] = totals.get(sym, 0.0) + multiplier * amt
+            
+    return totals
+
+
 class FormulaParser:
     def __init__(self, strict_mode: bool = False) -> None:
         self.strict_mode = strict_mode
@@ -106,14 +136,7 @@ class FormulaParser:
         result.warnings.extend(warnings)
 
         try:
-            phases = _split_top_level_phases(normalized)
-            totals: dict[str, float] = {}
-            for phase in phases:
-                multiplier, phase_formula = _extract_multiplier(phase)
-                parsed = _parse_single_phase(phase_formula)
-                for symbol, amount in parsed.items():
-                    totals[symbol] = totals.get(symbol, 0.0) + multiplier * amount
-            result.elements = totals
+            result.elements = parse_phase_mixture(normalized)
         except Exception as exc:
             result.is_valid = False
             result.error = str(exc)

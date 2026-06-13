@@ -14,7 +14,7 @@ type TabKey = "optimization" | "structural";
 
 export default function OptimizationLabPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("optimization");
-  const { solutions, optimizationError } = useOptimizationStore();
+  const { solutions, optimizationError, optimizationStats, clearOptimization } = useOptimizationStore();
 
   return (
     <div className="page-container">
@@ -61,7 +61,36 @@ export default function OptimizationLabPage() {
           <div className="opt-results-col">
             {optimizationError && (
               <div className="opt-error-banner">
-                <span>⚠️ {optimizationError}</span>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flex: 1 }}>
+                  <span style={{ fontSize: "16px", flexShrink: 0 }}>⚠️</span>
+                  <span style={{ lineHeight: 1.5 }}>{optimizationError}</span>
+                </div>
+                <button
+                  className="opt-error-dismiss"
+                  onClick={() => clearOptimization()}
+                  title="Dismiss"
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--text-secondary)", fontSize: "18px", padding: "0 4px",
+                    lineHeight: 1, flexShrink: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {optimizationStats && solutions.length > 0 && (
+              <div className="opt-stats-bar" style={{
+                display: "flex", gap: "16px", padding: "8px 14px",
+                background: "var(--card)", borderRadius: "8px", fontSize: "12px",
+                color: "var(--text-secondary)", border: "1px solid var(--border)",
+                marginBottom: "12px", flexWrap: "wrap",
+              }}>
+                <span>✅ <strong>{solutions.length}</strong> solutions</span>
+                <span>🎯 Targets: <strong>{optimizationStats.targets_optimized.join(", ")}</strong></span>
+                <span>🧬 <strong>{optimizationStats.n_generations_run}</strong> generations</span>
+                <span>⏱️ <strong>{optimizationStats.duration_seconds.toFixed(1)}s</strong></span>
               </div>
             )}
 

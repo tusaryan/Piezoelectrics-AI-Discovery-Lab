@@ -18,6 +18,7 @@ import ChartNavigator from "@/components/ui/ChartNavigator";
 
 export default function ShapDependence() {
   const {
+    selectedModelId,
     dependence, dependenceLoading, dependenceError,
     beeswarm, fetchDependence, dependenceFeature,
   } = useInterpretStore();
@@ -28,13 +29,12 @@ export default function ShapDependence() {
 
   useEffect(() => {
     if (beeswarm && !selectedFeature && beeswarm.feature_names.length > 0) {
-      // Auto-select most important feature and fetch
+      // Auto-select most important feature but DO NOT fetch automatically
       const topIdx = beeswarm.mean_abs_shap.indexOf(Math.max(...beeswarm.mean_abs_shap));
       const topFeat = beeswarm.feature_names[topIdx];
       setSelectedFeature(topFeat);
-      fetchDependence(topFeat);
     }
-  }, [beeswarm, selectedFeature, fetchDependence]);
+  }, [beeswarm, selectedFeature]);
 
   const handleFeatureChange = (feat: string) => {
     setSelectedFeature(feat);
@@ -149,7 +149,15 @@ export default function ShapDependence() {
         )}
         {!dependence && !dependenceLoading && !dependenceError && (
           <div className="interpret-empty">
-            {selectedFeature ? "Click a feature to analyze" : "Select a feature from the dropdown"}
+            {selectedModelId && selectedFeature ? (
+              <button className="btn btn-primary" onClick={() => fetchDependence(selectedFeature)}>
+                Load Dependence Plot for {selectedFeature}
+              </button>
+            ) : selectedModelId && featureOptions.length === 0 ? (
+              "Run SHAP Beeswarm first to load features"
+            ) : (
+              "Select a model and feature to analyze"
+            )}
           </div>
         )}
       </div>

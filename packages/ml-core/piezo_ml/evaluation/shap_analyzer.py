@@ -75,8 +75,13 @@ def _safe_shap_import():
 class ShapAnalyzer:
     """Compute SHAP values for trained ML models."""
 
+    # KernelExplainer is O(n*m²) and can take minutes for large feature sets.
+    # Auto-cap samples when KernelExplainer is needed (stacking/voting models).
+    KERNEL_MAX_SAMPLES = 50
+
     def __init__(self) -> None:
         self._shap = _safe_shap_import()
+        self._explainer_type: str = "unknown"  # set during _create_explainer
 
     def _create_explainer(
         self, model: Any, X: pd.DataFrame | np.ndarray,
@@ -95,6 +100,8 @@ class ShapAnalyzer:
         )
         if model_name in tree_types:
             try:
+                self._explainer_type = "TreeExplainer"
+                logger.info(f"[SHAP] Using TreeExplainer for {model_name} (fast)")
                 return shap.TreeExplainer(model)
             except Exception as e:
                 logger.warning(f"TreeExplainer failed for {model_name}: {e}")
@@ -107,11 +114,19 @@ class ShapAnalyzer:
         if model_name not in complex_types:
             # Try Explainer (auto-detect) — skipped for complex ensembles
             try:
+                self._explainer_type = "AutoExplainer"
+                logger.info(f"[SHAP] Using auto Explainer for {model_name}")
                 return shap.Explainer(model, X)
             except Exception as e:
                 logger.warning(f"Auto Explainer failed: {e}")
 
         # --- Fallback: KernelExplainer with safe predict wrapper ---
+        self._explainer_type = "KernelExplainer"
+        n_features = X.shape[1] if hasattr(X, 'shape') else len(X.columns)
+        logger.info(
+            f"[SHAP] Using KernelExplainer for {model_name} "
+            f"({n_features} features). This is slow — ~1-2s per sample."
+        )
         return self._create_kernel_explainer(shap, model, X)
 
     def _create_kernel_explainer(
@@ -170,13 +185,38 @@ class ShapAnalyzer:
         max_samples: int = 200,
     ) -> BeeswarmData:
         """Compute SHAP values for beeswarm plot (global importance)."""
+        model_name = type(model).__name__
+        n_features = len(X.columns)
+
+        # For complex ensembles (Stacking/Voting), auto-reduce samples
+        # because KernelExplainer is O(n*m²) — extremely slow.
+        complex_types = (
+            "StackingRegressor", "StackingClassifier",
+            "VotingRegressor", "VotingClassifier",
+        )
+        effective_max = max_samples
+        if model_name in complex_types:
+            effective_max = min(max_samples, self.KERNEL_MAX_SAMPLES)
+            if effective_max < max_samples:
+                logger.info(
+                    f"[SHAP] Auto-reduced max_samples from {max_samples} to {effective_max} "
+                    f"for {model_name} (KernelExplainer is slow with {n_features} features). "
+                    f"Estimated time: ~{effective_max * 2}s"
+                )
+
         # Subsample if too large
-        if len(X) > max_samples:
-            X_sample = X.sample(n=max_samples, random_state=42)
+        if len(X) > effective_max:
+            X_sample = X.sample(n=effective_max, random_state=42)
         else:
             X_sample = X.copy()
 
+        logger.info(
+            f"[SHAP] Computing beeswarm: {model_name}, "
+            f"{len(X_sample)} samples × {n_features} features"
+        )
+
         explainer = self._create_explainer(model, X_sample)
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             shap_values = explainer(X_sample)
@@ -189,6 +229,11 @@ class ShapAnalyzer:
         sv_list = sv.tolist()
         fv_list = X_sample.values.tolist()
         mean_abs = np.abs(sv).mean(axis=0).tolist()
+
+        logger.info(
+            f"[SHAP] Beeswarm complete: {len(X_sample)} samples, "
+            f"{len(feature_names)} features, explainer={self._explainer_type}"
+        )
 
         return BeeswarmData(
             feature_names=feature_names,

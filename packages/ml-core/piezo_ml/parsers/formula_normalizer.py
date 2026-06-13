@@ -90,5 +90,5 @@ def normalize_formula(formula: str) -> tuple[str, list[str]]:
         normalized = DESCRIPTIVE_TEXT.sub("", normalized).strip()
         warnings.append(f"Descriptive text removed: {match.group()}")
 
-    normalized = normalized.strip("-").strip()
+    normalized = normalized.strip("-").strip().replace(" ", "")
     return normalized, warnings

@@ -2,11 +2,16 @@
 Interpret Router — REST endpoints for SHAP, Physics Validation, and PySR.
 
 DUMB PIPE: validates requests, delegates to InterpretService.
+
+Key change: SHAP beeswarm runs in a background subprocess with result caching.
+POST /shap/beeswarm → starts background task, returns immediately
+GET  /shap/beeswarm/status/{model_id} → poll for completion
 """
 
 from __future__ import annotations
 
 import logging
+import traceback
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -59,26 +64,74 @@ async def list_models(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.post("/shap/beeswarm", response_model=ShapBeeswarmResponse)
+@router.post("/shap/beeswarm")
 async def shap_beeswarm(
     req: ShapBeeswarmRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Compute SHAP beeswarm (global feature importance)."""
+    """Start SHAP beeswarm computation (background) or return cached result.
+
+    Returns immediately with one of:
+    - Full result (if cached)
+    - {"status": "computing"} (if started/running in background)
+    - {"status": "error", "error": "..."} (if failed)
+    """
+    logger.info(
+        f"[SHAP Beeswarm] Request for model_id={req.model_id[:8]}…, "
+        f"max_samples={req.max_samples}"
+    )
     try:
         service = InterpretService(db)
-        result = await service.run_shap_beeswarm(
+        result = await service.start_beeswarm_background(
             model_id=req.model_id,
             max_samples=req.max_samples,
         )
-        return ShapBeeswarmResponse(**result)
+
+        if result.get("status") == "completed":
+            logger.info(f"[SHAP Beeswarm] Returning cached result for {req.model_id[:8]}…")
+            return result["result"]  # Return full ShapBeeswarmResponse-compatible dict
+
+        # Return status (computing/starting)
+        return result
+
     except FileNotFoundError as e:
+        logger.error(f"[SHAP Beeswarm] File not found: {e}")
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
+        logger.error(f"[SHAP Beeswarm] Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    except MemoryError:
+        logger.error(f"[SHAP Beeswarm] MEMORY ERROR for model {req.model_id[:8]}…")
+        raise HTTPException(
+            status_code=503,
+            detail="Server ran out of memory during SHAP computation.",
+        )
     except Exception as e:
-        logger.error(f"SHAP beeswarm error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"SHAP analysis failed: {str(e)}")
+        error_type = type(e).__name__
+        logger.error(f"[SHAP Beeswarm] {error_type}: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"SHAP beeswarm failed ({error_type}): {str(e)}",
+        )
+
+
+@router.get("/shap/beeswarm/status/{model_id}")
+async def shap_beeswarm_status(
+    model_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Poll status of a background SHAP beeswarm computation.
+
+    Returns:
+    - {"status": "not_started"}
+    - {"status": "computing", "n_samples": ..., "n_features": ...}
+    - {"status": "completed", "result": { full beeswarm data }}
+    - {"status": "error", "error": "..."}
+    """
+    service = InterpretService(db)
+    status = await service.get_beeswarm_status(model_id)
+    return status
 
 
 @router.post("/shap/waterfall", response_model=ShapWaterfallResponse)
@@ -99,7 +152,8 @@ async def shap_waterfall(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"SHAP waterfall error: {e}", exc_info=True)
+        logger.error(f"[SHAP Waterfall] {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"SHAP analysis failed: {str(e)}")
 
 
@@ -121,7 +175,8 @@ async def shap_dependence(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"SHAP dependence error: {e}", exc_info=True)
+        logger.error(f"[SHAP Dependence] {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"SHAP analysis failed: {str(e)}")
 
 
@@ -140,7 +195,8 @@ async def physics_validation(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Physics validation error: {e}", exc_info=True)
+        logger.error(f"[Physics Validation] {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Physics validation failed: {str(e)}",
         )
@@ -166,7 +222,8 @@ async def symbolic_regression(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Symbolic regression error: {e}", exc_info=True)
+        logger.error(f"[Symbolic Regression] {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Symbolic regression failed: {str(e)}",
         )

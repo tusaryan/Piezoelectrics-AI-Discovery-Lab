@@ -34,6 +34,19 @@ COMPOSITE_CATEGORICAL_ENCODINGS: dict[str, dict[str, int]] = {
         "conventional": 0, "hot_press": 1, "sps": 2, "rtgg": 3,
         "tgg": 4, "two_step": 5, "electrospinning": 6,
         "solvent_cast": 7, "cold_sinter": 8, "hot_compression": 9,
+        "3d_print": 10, "tape_casting": 11, "screen_printing": 12, "injection_molding": 13,
+        "bridgman": 14, "flux_growth": 15, "hydrothermal": 16, "sputtering": 17,
+        "czochralski": 18, "solid_state": 19, "sol_gel": 20, "solution_cast": 21,
+        "spin_coating": 22, "3d_printing": 23, "none": 24,
+    },
+    "sintering_method": {
+        "none": 0, "conventional": 1, "hot_press": 2, "sps": 3, "rtgg": 4, "tgg": 5,
+        "two_step": 6, "cold_sinter": 7, "microwave": 8, "flash": 9,
+        "spark_plasma": 10, "hot_pressing": 11, "cold_sintering": 12,
+        "liquid_phase": 13,
+    },
+    "ceramic_type": {
+        "none": 0, "soft": 1, "hard": 2, "composite": 3, "single_crystal": 4,
     },
 }
 
@@ -45,6 +58,8 @@ COMPOSITE_FEATURE_COLUMNS: list[str] = [
     "particle_morphology_encoded",
     "surface_treatment_encoded",
     "fabrication_method_encoded",
+    "sintering_method_encoded",
+    "ceramic_type_encoded",
     "sintering_temp_c",
     "relative_density_pct",
 ]
@@ -95,7 +110,8 @@ def encode_composite_row(row) -> dict[str, float]:
     for field in [
         "matrix_type", "filler_wt_pct", "particle_morphology",
         "particle_size_nm", "surface_treatment", "fabrication_method",
-        "sintering_temp_c", "relative_density_pct",
+        "sintering_temp_c", "relative_density_pct", "sintering_method",
+        "ceramic_type",
     ]:
         val = row.get(field)
         if val is not None and str(val).lower() not in ("nan", ""):

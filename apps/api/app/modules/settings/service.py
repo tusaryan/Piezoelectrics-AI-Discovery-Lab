@@ -203,6 +203,8 @@ def get_app_config() -> dict[str, str]:
         "MODEL_ARTIFACTS_PATH", "TRAINING_ARTIFACTS_PATH",
         "ENABLE_COMPOSITE_MODULE", "ENABLE_HARDNESS_MODULE",
         "ENABLE_GNN_MODULE",
+        "ML_OPTUNA_TRIALS", "ML_MAX_TREES", "ML_MAX_SVR_C",
+        "ML_MAX_ANN_ITER", "ML_MAX_DEPTH"
     ]
     return {k: env.get(k, "") for k in safe_keys}
 

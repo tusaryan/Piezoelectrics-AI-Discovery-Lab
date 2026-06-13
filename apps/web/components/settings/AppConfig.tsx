@@ -29,6 +29,11 @@ const FIELD_INFO: Record<string, string> = {
   ENABLE_GNN_MODULE: "Enable GNN/CHGNet crystal analysis (requires heavy deps). Values: true or false",
   MODEL_ARTIFACTS_PATH: "Directory for trained model files. Example: ./resources/trained-models",
   TRAINING_ARTIFACTS_PATH: "Directory for training artifacts. Example: ./resources/training-artifacts",
+  ML_OPTUNA_TRIALS: "Number of auto-tuning iterations. Higher = better accuracy but slower. Leave blank for default (20). Recommended: 10 - 50.",
+  ML_MAX_TREES: "Maximum estimators/trees for XGBoost, Random Forest, LightGBM, and Stacking. Leave blank for default (3000). Recommended: 500 - 5000.",
+  ML_MAX_SVR_C: "Maximum regularization parameter (C) for Support Vector Regression models. Leave blank for default (4000.0).",
+  ML_MAX_ANN_ITER: "Maximum number of training epochs for Neural Networks. Leave blank for default (4000).",
+  ML_MAX_DEPTH: "Maximum depth limit for Decision Trees and base estimators. Leave blank for default (100).",
 };
 
 const BOOL_FIELDS = new Set(["ENABLE_COMPOSITE_MODULE", "ENABLE_HARDNESS_MODULE", "ENABLE_GNN_MODULE"]);
@@ -199,6 +204,17 @@ export default function AppConfig() {
         { key: "TRAINING_ARTIFACTS_PATH", label: "Training Artifacts", placeholder: "./resources/training-artifacts" },
       ],
     },
+    {
+      title: "ML Hyperparameter Limits",
+      desc: "Set the global upper boundaries for auto-tuning and UI slider ranges. Leave blank to use factory defaults.",
+      fields: [
+        { key: "ML_OPTUNA_TRIALS", label: "Auto-Tune Trials", placeholder: "20" },
+        { key: "ML_MAX_TREES", label: "Max Trees/Estimators", placeholder: "3000" },
+        { key: "ML_MAX_SVR_C", label: "Max SVR C-Value", placeholder: "4000.0" },
+        { key: "ML_MAX_ANN_ITER", label: "Max ANN Epochs", placeholder: "4000" },
+        { key: "ML_MAX_DEPTH", label: "Max Tree Depth", placeholder: "100" },
+      ],
+    },
   ];
 
   const currentLogoPath = localConfig["APP_LOGO_PATH"] || "/piezo-ai-logo.png";
@@ -279,7 +295,31 @@ export default function AppConfig() {
         <div className="config-groups">
           {groups.map((group) => (
             <div key={group.title} className="config-group">
-              <h4 className="config-group-title">{group.title}</h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <h4 className="config-group-title" style={{ margin: 0 }}>{group.title}</h4>
+                {group.title === "ML Hyperparameter Limits" && (
+                  <button 
+                    onClick={() => {
+                      setLocalConfig(prev => ({
+                        ...prev,
+                        "ML_OPTUNA_TRIALS": "",
+                        "ML_MAX_TREES": "",
+                        "ML_MAX_SVR_C": "",
+                        "ML_MAX_ANN_ITER": "",
+                        "ML_MAX_DEPTH": ""
+                      }));
+                      setHasChanges(true);
+                    }}
+                    style={{ 
+                      fontSize: "11px", padding: "4px 10px", borderRadius: "4px", 
+                      background: "var(--border)", color: "var(--text)", border: "none", cursor: "pointer"
+                    }}
+                    title="Clear values to restore factory defaults"
+                  >
+                    Reset to Defaults
+                  </button>
+                )}
+              </div>
               {"desc" in group && group.desc && (
                 <p className="config-group-desc">{group.desc}</p>
               )}

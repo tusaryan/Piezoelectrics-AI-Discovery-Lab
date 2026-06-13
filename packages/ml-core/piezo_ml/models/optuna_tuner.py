@@ -23,13 +23,27 @@ class OptunaTuner:
         self,
         algorithm: str,
         target: str,
-        n_trials: int = 30,
+        n_trials: int | None = None,
         cancel_event: threading.Event | None = None,
         log_callback: Callable[[str, str], None] | None = None,
     ) -> None:
+        import os
+        from piezo_ml.models.algorithm_registry import reload_registry_limits
+        
+        # Refresh all dynamic limits across the system from .env
+        reload_registry_limits()
+        
         self.algorithm = algorithm
         self.target = target
-        self.n_trials = n_trials
+        
+        if n_trials is not None:
+            self.n_trials = n_trials
+        else:
+            try:
+                self.n_trials = int(os.environ.get("ML_OPTUNA_TRIALS", 20))
+            except ValueError:
+                self.n_trials = 20
+                
         self.cancel_event = cancel_event
         self.log_callback = log_callback
 
@@ -83,7 +97,6 @@ class OptunaTuner:
             elif pdef.type == "float":
                 params[name] = trial.suggest_float(
                     name, float(pdef.min_val or 0.0), float(pdef.max_val or 1.0),
-                    step=float(pdef.step) if pdef.step else None,
                 )
             elif pdef.type == "select" and pdef.options:
                 params[name] = trial.suggest_categorical(name, pdef.options)

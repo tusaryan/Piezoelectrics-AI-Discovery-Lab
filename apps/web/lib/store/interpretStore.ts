@@ -14,12 +14,29 @@ import type {
 import {
   fetchInterpretModels,
   runShapBeeswarm,
+  fetchBeeswarmStatus,
   runShapWaterfall,
   runShapDependence,
   runPhysicsValidation,
   runSymbolicRegression,
   installPySRBackend as apiInstallPySRBackend,
 } from "@/lib/api/interpret";
+
+/** Classify interpretability errors into user-friendly messages. */
+function _classifyInterpretError(e: unknown, context: string): string {
+  if (!(e instanceof Error)) return `${context} failed unexpectedly.`;
+  const raw = e.message;
+  if (raw.includes("socket hang up") || raw.includes("ECONNRESET") || raw.includes("Failed to fetch")) {
+    return `Server crashed during ${context}. The model may be incompatible or too large. Check terminal logs and try again.`;
+  }
+  if (raw.includes("TimeoutError") || raw.includes("AbortError")) {
+    return `${context} timed out. The computation may need more time or the model is too complex.`;
+  }
+  if (raw.includes("Internal Server Error")) {
+    return `Backend error during ${context}. Check terminal logs for details.`;
+  }
+  return raw;
+}
 
 interface InterpretState {
   // Models
@@ -57,6 +74,7 @@ interface InterpretState {
   // Actions
   loadModels: () => Promise<void>;
   selectModel: (id: string) => void;
+  checkCachedBeeswarm: (modelId: string) => Promise<void>;
   fetchBeeswarm: () => Promise<void>;
   fetchWaterfall: (sampleIndex?: number) => Promise<void>;
   fetchDependence: (featureName: string) => Promise<void>;
@@ -112,6 +130,7 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
     set({
       selectedModelId: id,
       beeswarm: null,
+      beeswarmLoading: false,
       beeswarmError: null,
       waterfall: null,
       waterfallError: null,
@@ -124,6 +143,31 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
       waterfallSampleIndex: 0,
       dependenceFeature: null,
     });
+    // Auto-check if beeswarm was previously computed (cached on server)
+    get().checkCachedBeeswarm(id);
+  },
+
+  checkCachedBeeswarm: async (modelId: string) => {
+    try {
+      const status = await fetchBeeswarmStatus(modelId);
+      if (status.status === "completed" && status.result) {
+        // Only apply if user hasn't switched models while we were checking
+        if (get().selectedModelId === modelId) {
+          set({ beeswarm: status.result, beeswarmLoading: false });
+          console.info("[Interpret] Loaded cached beeswarm for", modelId.slice(0, 8));
+        }
+      } else if (status.status === "computing") {
+        // A background computation is running — show loading state and start polling
+        if (get().selectedModelId === modelId) {
+          set({ beeswarmLoading: true, beeswarmError: null });
+          console.info("[Interpret] Beeswarm still computing for", modelId.slice(0, 8), "— will poll...");
+          // Start polling
+          get().fetchBeeswarm();
+        }
+      }
+    } catch {
+      // Silently ignore cache check failures
+    }
   },
 
   fetchBeeswarm: async () => {
@@ -132,9 +176,14 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
     set({ beeswarmLoading: true, beeswarmError: null });
     try {
       const result = await runShapBeeswarm(selectedModelId);
-      set({ beeswarm: result, beeswarmLoading: false });
+      // Only apply if user hasn't switched models while we were computing
+      if (get().selectedModelId === selectedModelId) {
+        set({ beeswarm: result, beeswarmLoading: false });
+      }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "SHAP analysis failed";
+      if (get().selectedModelId !== selectedModelId) return; // stale
+      const msg = _classifyInterpretError(e, "SHAP beeswarm analysis");
+      console.error("[Interpret] Beeswarm failed:", msg, e);
       set({ beeswarmError: msg, beeswarmLoading: false });
     }
   },
@@ -148,7 +197,8 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
       const result = await runShapWaterfall(selectedModelId, idx);
       set({ waterfall: result, waterfallLoading: false });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Waterfall failed";
+      const msg = _classifyInterpretError(e, "SHAP waterfall analysis");
+      console.error("[Interpret] Waterfall failed:", msg, e);
       set({ waterfallError: msg, waterfallLoading: false });
     }
   },
@@ -161,7 +211,8 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
       const result = await runShapDependence(selectedModelId, featureName);
       set({ dependence: result, dependenceLoading: false });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Dependence failed";
+      const msg = _classifyInterpretError(e, `SHAP dependence for '${featureName}'`);
+      console.error("[Interpret] Dependence failed:", msg, e);
       set({ dependenceError: msg, dependenceLoading: false });
     }
   },
@@ -174,7 +225,8 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
       const result = await runPhysicsValidation(selectedModelId);
       set({ physics: result, physicsLoading: false });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Physics validation failed";
+      const msg = _classifyInterpretError(e, "physics validation");
+      console.error("[Interpret] Physics validation failed:", msg, e);
       set({ physicsError: msg, physicsLoading: false });
     }
   },
@@ -187,7 +239,8 @@ export const useInterpretStore = create<InterpretState>((set, get) => ({
       const result = await runSymbolicRegression(selectedModelId, opts);
       set({ symbolicRegression: result, symRegLoading: false });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Symbolic regression failed";
+      const msg = _classifyInterpretError(e, "symbolic regression");
+      console.error("[Interpret] Symbolic regression failed:", msg, e);
       set({ symRegError: msg, symRegLoading: false });
     }
   },

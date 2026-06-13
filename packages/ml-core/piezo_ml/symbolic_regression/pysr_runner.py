@@ -45,11 +45,26 @@ class SymbolicRegressionResult:
 
 
 def _check_pysr_available() -> bool:
-    """Check if PySR and Julia are available."""
+    """Check if PySR and Julia are available.
+
+    Uses importlib.util.find_spec() to avoid importing pysr (which initializes Julia
+    and can crash with EPERM on macOS if ~/.julia has restricted permissions).
+    """
     try:
-        import pysr  # noqa: F401
+        import importlib.util
+        spec = importlib.util.find_spec("pysr")
+        if spec is None:
+            return False
+
+        # Check if Julia binary exists
+        import shutil
+        if shutil.which("julia") is None:
+            logger.warning("PySR found but Julia binary not in PATH")
+            return False
+
         return True
-    except ImportError:
+    except Exception as e:
+        logger.warning(f"PySR availability check failed: {e}")
         return False
 
 
@@ -116,6 +131,22 @@ class PySRRunner:
         timeout_seconds: int,
     ) -> SymbolicRegressionResult:
         """Internal PySR execution."""
+        # Fix Julia depot path on macOS before importing PySR
+        import platform
+        if platform.system() == "Darwin":
+            julia_default = os.path.expanduser("~/.julia")
+            try:
+                os.listdir(julia_default)
+            except (PermissionError, OSError):
+                local_depot = os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)),
+                    "..", "..", "..", "..", "resources", ".julia-depot"
+                )
+                local_depot = os.path.abspath(local_depot)
+                os.makedirs(local_depot, exist_ok=True)
+                os.environ["JULIA_DEPOT_PATH"] = local_depot
+                logger.info(f"[PySR] Redirected Julia depot to {local_depot}")
+
         from pysr import PySRRegressor
 
         feature_names = list(X.columns)

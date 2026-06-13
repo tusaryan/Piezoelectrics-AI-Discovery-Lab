@@ -116,21 +116,91 @@ export async function fetchInterpretModels(): Promise<InterpretModel[]> {
   return res.json();
 }
 
+export interface BeeswarmStatusResponse {
+  status: "not_started" | "starting" | "loading_model" | "computing" | "completed" | "error";
+  result?: ShapBeeswarmResult;
+  error?: string;
+  n_samples?: number;
+  n_features?: number;
+}
+
+export async function fetchBeeswarmStatus(
+  modelId: string,
+): Promise<BeeswarmStatusResponse> {
+  const res = await fetch(`${BASE}/shap/beeswarm/status/${modelId}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to check beeswarm status: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function runShapBeeswarm(
   modelId: string,
   maxSamples = 200,
 ): Promise<ShapBeeswarmResult> {
-  const res = await fetch(`${BASE}/shap/beeswarm`, {
+  // Step 1: Start the background task (returns immediately)
+  const startRes = await fetch(`${BASE}/shap/beeswarm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_id: modelId, max_samples: maxSamples }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(15_000),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `SHAP beeswarm failed: ${res.statusText}`);
+  if (!startRes.ok) {
+    const err = await startRes.json().catch(() => ({}));
+    throw new Error(err.detail || `SHAP beeswarm failed: ${startRes.statusText}`);
   }
-  return res.json();
+
+  const startData = await startRes.json();
+
+  // If the result was cached, it comes back as the full response directly
+  if (startData.feature_names && startData.shap_values) {
+    return startData as ShapBeeswarmResult;
+  }
+
+  // If completed status with result embedded
+  if (startData.status === "completed" && startData.result) {
+    return startData.result as ShapBeeswarmResult;
+  }
+
+  // If error
+  if (startData.status === "error") {
+    throw new Error(startData.error || "SHAP beeswarm computation failed");
+  }
+
+  // Step 2: Poll for completion
+  const POLL_INTERVAL = 3000;
+  const MAX_POLL_TIME = 300_000; // 5 minutes max
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < MAX_POLL_TIME) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+
+    const status = await fetchBeeswarmStatus(modelId);
+
+    if (status.status === "completed" && status.result) {
+      return status.result;
+    }
+
+    if (status.status === "error") {
+      throw new Error(
+        status.error || "SHAP beeswarm computation failed in background"
+      );
+    }
+
+    // Still computing — continue polling
+    if (status.n_samples && status.n_features) {
+      console.info(
+        `[SHAP] Computing beeswarm: ${status.n_samples} samples × ${status.n_features} features...`
+      );
+    }
+  }
+
+  throw new Error(
+    "SHAP beeswarm computation timed out after 5 minutes. " +
+    "The result may still complete in the background — try refreshing the page."
+  );
 }
 
 export async function runShapWaterfall(

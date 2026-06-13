@@ -310,6 +310,8 @@ async def _persist_completed_job(
     db: AsyncSession, job: TrainingJob, active,
 ) -> None:
     """Persist training results to DB after worker completes."""
+    import math
+
     results = active.results
     job.status = "completed"
     job.started_at = job.started_at or job.created_at
@@ -323,6 +325,19 @@ async def _persist_completed_job(
     job.artifact_dir = results.get("artifact_dir")
 
     for model_data in results.get("models", []):
+        r2_val = model_data.get("r2")
+        rmse_val = model_data.get("rmse")
+
+        # ── Defense-in-depth: never save models with NaN/Inf metrics ──
+        if r2_val is None or rmse_val is None:
+            print(f"[Persist] ⚠️ Skipping model {model_data.get('target')}/{model_data.get('algorithm')}: "
+                  f"r2={r2_val}, rmse={rmse_val} — metrics are None")
+            continue
+        if math.isnan(r2_val) or math.isinf(r2_val) or math.isnan(rmse_val) or math.isinf(rmse_val):
+            print(f"[Persist] ⚠️ Skipping model {model_data.get('target')}/{model_data.get('algorithm')}: "
+                  f"r2={r2_val}, rmse={rmse_val} — invalid metrics (NaN/Inf)")
+            continue
+
         ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         display = f"{model_data['algorithm']}_{model_data['target']}_{ts}"
         tm = TrainedModel(
@@ -331,8 +346,8 @@ async def _persist_completed_job(
             dataset_id=job.dataset_id,
             target=model_data["target"],
             algorithm=model_data["algorithm"],
-            r2_score=model_data["r2"],
-            rmse=model_data["rmse"],
+            r2_score=r2_val,
+            rmse=rmse_val,
             hyperparameters=model_data["hyperparameters"],
             feature_version="v4",
             feature_dim=model_data.get("feature_dim", 0),

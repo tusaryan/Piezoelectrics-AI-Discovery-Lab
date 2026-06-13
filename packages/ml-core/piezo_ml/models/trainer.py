@@ -78,10 +78,44 @@ class ModelTrainer:
         rmse = float(math.sqrt(mean_squared_error(y_test, y_pred)))
         duration = time.time() - start
 
+        # ── Validate metrics: reject models with NaN/Inf ──
+        # This happens when training data is too sparse (e.g. 76/99 missing
+        # values) and the test set has too few valid samples to compute
+        # meaningful metrics. Such models must NOT be saved.
+        if math.isnan(r2) or math.isinf(r2):
+            msg = (
+                f"Model rejected for '{self.target}' ({self.algorithm}): "
+                f"R² is {r2} — not a valid number. "
+                f"This typically means the training data is too sparse "
+                f"(train={len(X_train)}, test={len(X_test)} samples). "
+                f"Add more data for this target or adjust missing-value strategies."
+            )
+            self._log("error", msg)
+            raise ValueError(msg)
+
+        if math.isnan(rmse) or math.isinf(rmse):
+            msg = (
+                f"Model rejected for '{self.target}' ({self.algorithm}): "
+                f"RMSE is {rmse} — not a valid number. "
+                f"This typically means the training data is too sparse "
+                f"(train={len(X_train)}, test={len(X_test)} samples). "
+                f"Add more data for this target or adjust missing-value strategies."
+            )
+            self._log("error", msg)
+            raise ValueError(msg)
+
         importances = self._extract_importances(model, feature_names)
 
         self._log("success",
                   f"{self.algorithm} for {self.target}: R²={r2:.4f}, RMSE={rmse:.2f} ({duration:.1f}s)")
+        
+        # Explicitly log the exact parameters that generated this score
+        import json
+        try:
+            param_str = json.dumps(self.hyperparameters)
+            self._log("info", f"Final Configuration: {param_str}")
+        except Exception:
+            self._log("info", f"Final Configuration: {self.hyperparameters}")
 
         return TrainingResult(
             target=self.target, algorithm=self.algorithm, model=model,

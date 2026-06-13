@@ -293,6 +293,22 @@ export default function DataTable({
     [deletedIds],
   );
 
+  const [inputPageSize, setInputPageSize] = useState(String(useExternal ? (externalPageSize ?? pageSize) : pageSize));
+  
+  useEffect(() => {
+    setInputPageSize(String(useExternal ? (externalPageSize ?? pageSize) : pageSize));
+  }, [useExternal, externalPageSize, pageSize]);
+
+  const commitPageSize = useCallback(() => {
+    let val = parseInt(inputPageSize, 10);
+    if (isNaN(val) || val < 1) val = 25;
+    if (val > 750) val = 750;
+    setInputPageSize(String(val));
+    if (val !== (useExternal ? externalPageSize : pageSize)) {
+      handlePageSizeChange(val);
+    }
+  }, [inputPageSize, useExternal, externalPageSize, pageSize, handlePageSizeChange]);
+
   /* ---------- Render ---------- */
 
   if (data.length === 0) {
@@ -547,15 +563,26 @@ export default function DataTable({
           <div className="pagination-right">
             <label className="page-size-label">
               Show
-              <select
-                className="page-size-select"
-                value={useExternal ? (externalPageSize ?? pageSize) : pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              >
+              <input
+                type="number"
+                min={1}
+                max={750}
+                list="page-size-opts"
+                className="page-size-input"
+                value={inputPageSize}
+                onChange={(e) => setInputPageSize(e.target.value)}
+                onBlur={commitPageSize}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitPageSize();
+                }}
+                title="Enter rows per page (max 750)"
+                style={{ width: "66px", marginLeft: "4px", marginRight: "4px", padding: "2px 4px", borderRadius: "4px", border: "1px solid var(--border)", background: "var(--bg-elevated)", color: "var(--text-main)" }}
+              />
+              <datalist id="page-size-opts">
                 {pageSizeOptions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s} />
                 ))}
-              </select>
+              </datalist>
               / page
             </label>
           </div>

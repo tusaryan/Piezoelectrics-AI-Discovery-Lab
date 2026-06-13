@@ -7,10 +7,73 @@ default, step, description, impact, recommended), and a build_model factory.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Any
 
 from piezo_ml.models.platform_utils import get_safe_n_jobs
+
+# ---------------------------------------------------------------------------
+# Global environment limits (configurable via Settings UI / .env)
+# ---------------------------------------------------------------------------
+from pathlib import Path
+
+def reload_registry_limits() -> None:
+    """Dynamically re-read limits from .env and update ALGORITHM_REGISTRY parameter constraints."""
+    current_dir = Path(__file__).resolve().parent
+    env_path = None
+    # Search up to 5 directories up for the .env file
+    for _ in range(5):
+        if (current_dir / ".env").exists():
+            env_path = current_dir / ".env"
+            break
+        current_dir = current_dir.parent
+
+    if env_path:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    if "=" in line:
+                        key, val = line.split("=", 1)
+                        os.environ[key.strip()] = val.strip().strip("'\"")
+
+    def _get_max(env_key: str, default: float) -> float:
+        try:
+            val = os.environ.get(env_key)
+            if val is not None and val != "":
+                return float(val)
+        except ValueError:
+            pass
+        return float(default)
+
+    max_trees = int(_get_max("ML_MAX_TREES", 3000))
+    max_svr_c = float(_get_max("ML_MAX_SVR_C", 4000.0))
+    max_ann_iter = int(_get_max("ML_MAX_ANN_ITER", 4000))
+    max_depth = int(_get_max("ML_MAX_DEPTH", 100))
+
+    # Dynamically update the in-memory parameter boundaries
+    _XGBOOST_PARAMS["n_estimators"].max_val = max_trees
+    _XGBOOST_PARAMS["max_depth"].max_val = max_depth
+    _RF_PARAMS["n_estimators"].max_val = max_trees
+    _RF_PARAMS["max_depth"].max_val = max_depth
+    _SVR_PARAMS["C"].max_val = max_svr_c
+    _LIGHTGBM_PARAMS["n_estimators"].max_val = max_trees
+    _LIGHTGBM_PARAMS["max_depth"].max_val = max_depth
+    _GBR_PARAMS["n_estimators"].max_val = max_trees
+    _GBR_PARAMS["max_depth"].max_val = max_depth
+    _DT_PARAMS["max_depth"].max_val = max_depth
+    _ANN_PARAMS["max_iter"].max_val = max_ann_iter
+    _STACKING_PARAMS["rf_n_estimators"].max_val = max_trees
+    _STACKING_PARAMS["xgb_n_estimators"].max_val = max_trees
+    _STACKING_PARAMS["svr_C"].max_val = max_svr_c
+    _STACKING_PARAMS["final_reg"].max_val = max_svr_c
+
+# Initialize once on load so the initial max_vals are 3000, 4000.0, etc.
+MAX_TREES = 3000
+MAX_SVR_C = 4000.0
+MAX_ANN_ITER = 4000
+MAX_DEPTH = 100
 
 # ---------------------------------------------------------------------------
 # Hyperparameter definition
@@ -47,19 +110,19 @@ class AlgorithmMeta:
 
 _XGBOOST_PARAMS = {
     "n_estimators": HyperparamDef(
-        "n_estimators", "int", 10, 5000, 10, 100,
+        "n_estimators", "int", 10, MAX_TREES, 10, 100,
         description="Number of boosting rounds (trees).",
         impact="More trees → more robust but slower. Risk of overfitting if max_depth is also high.",
         recommended=100,
     ),
     "max_depth": HyperparamDef(
-        "max_depth", "int", 1, 50, 1, 6,
+        "max_depth", "int", 1, MAX_DEPTH, 1, 6,
         description="Maximum tree depth per round.",
         impact="Deeper trees capture complex patterns but increase overfitting risk.",
         recommended=6,
     ),
     "learning_rate": HyperparamDef(
-        "learning_rate", "float", 0.001, 1.0, 0.01, 0.1,
+        "learning_rate", "float", 0.0001, 2.0, 0.01, 0.1,
         description="Step size shrinkage to prevent overfitting.",
         impact="Lower values need more trees but generalize better.",
         recommended=0.1,
@@ -77,13 +140,13 @@ _XGBOOST_PARAMS = {
         recommended=0.8,
     ),
     "reg_alpha": HyperparamDef(
-        "reg_alpha", "float", 0.0, 10.0, 0.1, 0.0,
+        "reg_alpha", "float", 0.0, 100.0, 0.1, 0.0,
         description="L1 regularization (Lasso). Encourages sparsity.",
         impact="Higher values push less-important feature weights to zero.",
         recommended=0.0,
     ),
     "reg_lambda": HyperparamDef(
-        "reg_lambda", "float", 0.0, 10.0, 0.1, 1.0,
+        "reg_lambda", "float", 0.0, 100.0, 0.1, 1.0,
         description="L2 regularization (Ridge). Smooths weights.",
         impact="Higher values reduce model complexity.",
         recommended=1.0,
@@ -92,13 +155,13 @@ _XGBOOST_PARAMS = {
 
 _RF_PARAMS = {
     "n_estimators": HyperparamDef(
-        "n_estimators", "int", 10, 5000, 10, 100,
+        "n_estimators", "int", 10, MAX_TREES, 10, 100,
         description="Number of trees in the forest.",
         impact="More trees → more stable predictions but slower training.",
         recommended=100,
     ),
     "max_depth": HyperparamDef(
-        "max_depth", "int", 1, 50, 1, 10,
+        "max_depth", "int", 1, MAX_DEPTH, 1, 10,
         description="Maximum depth of each tree. None = expand until leaves are pure.",
         impact="Deeper trees capture complex patterns but risk overfitting.",
         recommended=10,
@@ -126,13 +189,13 @@ _RF_PARAMS = {
 
 _SVR_PARAMS = {
     "C": HyperparamDef(
-        "C", "float", 0.01, 1000.0, 0.1, 1.0,
+        "C", "float", 0.001, MAX_SVR_C, 0.1, 1.0,
         description="Regularization parameter.",
         impact="Higher C → less regularization, fits training data more closely.",
         recommended=1.0,
     ),
     "epsilon": HyperparamDef(
-        "epsilon", "float", 0.001, 1.0, 0.01, 0.1,
+        "epsilon", "float", 0.0001, 5.0, 0.01, 0.1,
         description="Epsilon-tube within which no penalty is applied.",
         impact="Larger epsilon → simpler model, ignoring small errors.",
         recommended=0.1,
@@ -155,25 +218,25 @@ _SVR_PARAMS = {
 
 _LIGHTGBM_PARAMS = {
     "n_estimators": HyperparamDef(
-        "n_estimators", "int", 10, 5000, 10, 100,
+        "n_estimators", "int", 10, MAX_TREES, 10, 100,
         description="Number of boosting iterations.",
         impact="More iterations → better fit but slower and risk overfitting.",
         recommended=100,
     ),
     "max_depth": HyperparamDef(
-        "max_depth", "int", -1, 50, 1, -1,
+        "max_depth", "int", -1, MAX_DEPTH, 1, -1,
         description="Maximum tree depth. -1 means no limit.",
         impact="Deeper trees capture complex patterns.",
         recommended=-1,
     ),
     "learning_rate": HyperparamDef(
-        "learning_rate", "float", 0.001, 1.0, 0.01, 0.1,
+        "learning_rate", "float", 0.0001, 2.0, 0.01, 0.1,
         description="Boosting learning rate.",
         impact="Lower values need more iterations but generalize better.",
         recommended=0.1,
     ),
     "num_leaves": HyperparamDef(
-        "num_leaves", "int", 2, 256, 1, 31,
+        "num_leaves", "int", 2, 1024, 1, 31,
         description="Maximum number of leaves in one tree.",
         impact="More leaves → more complex model.",
         recommended=31,
@@ -185,13 +248,13 @@ _LIGHTGBM_PARAMS = {
         recommended=0.8,
     ),
     "reg_alpha": HyperparamDef(
-        "reg_alpha", "float", 0.0, 10.0, 0.1, 0.0,
+        "reg_alpha", "float", 0.0, 100.0, 0.1, 0.0,
         description="L1 regularization term on weights.",
         impact="Higher values push less-important feature weights to zero.",
         recommended=0.0,
     ),
     "reg_lambda": HyperparamDef(
-        "reg_lambda", "float", 0.0, 10.0, 0.1, 0.0,
+        "reg_lambda", "float", 0.0, 100.0, 0.1, 0.0,
         description="L2 regularization term on weights.",
         impact="Higher values reduce model complexity.",
         recommended=0.0,
@@ -200,19 +263,19 @@ _LIGHTGBM_PARAMS = {
 
 _GBR_PARAMS = {
     "n_estimators": HyperparamDef(
-        "n_estimators", "int", 10, 5000, 10, 100,
+        "n_estimators", "int", 10, MAX_TREES, 10, 100,
         description="Number of boosting stages.",
         impact="More stages improve fit but increase training time.",
         recommended=100,
     ),
     "max_depth": HyperparamDef(
-        "max_depth", "int", 1, 50, 1, 3,
+        "max_depth", "int", 1, MAX_DEPTH, 1, 3,
         description="Maximum depth of each tree.",
         impact="Deeper trees capture more interactions.",
         recommended=3,
     ),
     "learning_rate": HyperparamDef(
-        "learning_rate", "float", 0.001, 1.0, 0.01, 0.1,
+        "learning_rate", "float", 0.0001, 2.0, 0.01, 0.1,
         description="Shrinks contribution of each tree.",
         impact="Lower values need more trees but generalize better.",
         recommended=0.1,
@@ -233,7 +296,7 @@ _GBR_PARAMS = {
 
 _DT_PARAMS = {
     "max_depth": HyperparamDef(
-        "max_depth", "int", 1, 50, 1, 5,
+        "max_depth", "int", 1, MAX_DEPTH, 1, 5,
         description="Maximum tree depth.",
         impact="Deeper trees fit training data better but may overfit.",
         recommended=5,
@@ -262,19 +325,19 @@ _ANN_PARAMS = {
         recommended="128,64",
     ),
     "learning_rate_init": HyperparamDef(
-        "learning_rate_init", "float", 0.0001, 0.1, 0.0001, 0.001,
+        "learning_rate_init", "float", 0.00001, 1.0, 0.0001, 0.001,
         description="Initial learning rate for the optimizer.",
         impact="Lower values train slower but more precisely.",
         recommended=0.001,
     ),
     "max_iter": HyperparamDef(
-        "max_iter", "int", 100, 5000, 50, 500,
+        "max_iter", "int", 50, MAX_ANN_ITER, 50, 500,
         description="Maximum number of training epochs.",
         impact="More epochs allow convergence but increase training time.",
         recommended=500,
     ),
     "alpha": HyperparamDef(
-        "alpha", "float", 0.0001, 1.0, 0.0001, 0.0001,
+        "alpha", "float", 0.00001, 100.0, 0.0001, 0.0001,
         description="L2 regularization term.",
         impact="Higher alpha reduces overfitting.",
         recommended=0.0001,
@@ -302,6 +365,36 @@ _STACKING_PARAMS = {
         description="Number of cross-validation folds for generating base model predictions.",
         impact="More folds → less bias but slower training.",
         recommended=5,
+    ),
+    "rf_n_estimators": HyperparamDef(
+        "rf_n_estimators", "int", 10, MAX_TREES, 10, 50,
+        description="Number of trees in the underlying Random Forest.",
+        impact="More trees make the RF base model more robust.",
+        recommended=50,
+    ),
+    "xgb_n_estimators": HyperparamDef(
+        "xgb_n_estimators", "int", 10, MAX_TREES, 10, 50,
+        description="Number of boosting rounds for the underlying XGBoost.",
+        impact="More rounds increase XGBoost power but slow down stacking.",
+        recommended=50,
+    ),
+    "xgb_learning_rate": HyperparamDef(
+        "xgb_learning_rate", "float", 0.001, 1.0, 0.01, 0.1,
+        description="Learning rate for the underlying XGBoost.",
+        impact="Lower values require more estimators to generalize well.",
+        recommended=0.1,
+    ),
+    "svr_C": HyperparamDef(
+        "svr_C", "float", 0.01, MAX_SVR_C, 0.1, 1.0,
+        description="Regularization (C) for the underlying SVR.",
+        impact="Higher values make the base SVR fit closer to training data.",
+        recommended=1.0,
+    ),
+    "final_reg": HyperparamDef(
+        "final_reg", "float", 0.01, MAX_SVR_C, 0.1, 1.0,
+        description="Regularization strength for the meta-learner (Alpha for Ridge, C for SVR).",
+        impact="Higher values increase/decrease regularization depending on the final estimator type.",
+        recommended=1.0,
     ),
 }
 
@@ -355,6 +448,7 @@ ALGORITHM_REGISTRY: dict[str, AlgorithmMeta] = {
 
 def get_algorithm_list() -> list[dict]:
     """Return serializable list of algorithms with hyperparameter metadata."""
+    reload_registry_limits()
     result = []
     for key, meta in ALGORITHM_REGISTRY.items():
         params = {}
@@ -382,6 +476,7 @@ def get_algorithm_list() -> list[dict]:
 
 def get_defaults(algorithm: str) -> dict[str, Any]:
     """Return default hyperparameters for an algorithm."""
+    reload_registry_limits()
     meta = ALGORITHM_REGISTRY.get(algorithm)
     if not meta:
         raise ValueError(f"Unknown algorithm: {algorithm}")
@@ -505,18 +600,24 @@ def _build_stacking(params: dict, n_jobs: int):
     from sklearn.pipeline import Pipeline
     from xgboost import XGBRegressor
 
+    rf_n = int(params.get("rf_n_estimators", 50))
+    xgb_n = int(params.get("xgb_n_estimators", 50))
+    xgb_lr = float(params.get("xgb_learning_rate", 0.1))
+    svr_c_base = float(params.get("svr_C", 1.0))
+    final_reg = float(params.get("final_reg", 1.0))
+
     base_estimators = [
-        ("rf", RandomForestRegressor(n_estimators=50, max_depth=8, n_jobs=n_jobs, random_state=42)),
-        ("xgb", XGBRegressor(n_estimators=50, max_depth=4, n_jobs=n_jobs, random_state=42, verbosity=0)),
-        ("svr", Pipeline([("sc", StandardScaler()), ("svr", SVR(C=1.0, kernel="rbf"))])),
+        ("rf", RandomForestRegressor(n_estimators=rf_n, max_depth=8, n_jobs=n_jobs, random_state=42)),
+        ("xgb", XGBRegressor(n_estimators=xgb_n, learning_rate=xgb_lr, max_depth=4, n_jobs=n_jobs, random_state=42, verbosity=0)),
+        ("svr", Pipeline([("sc", StandardScaler()), ("svr", SVR(C=svr_c_base, kernel="rbf"))])),
     ]
 
     fe = str(params.get("final_estimator", "ridge"))
     if fe == "ridge":
         from sklearn.linear_model import Ridge
-        final = Ridge(alpha=1.0)
+        final = Ridge(alpha=final_reg)
     elif fe == "svr":
-        final = Pipeline([("sc", StandardScaler()), ("svr", SVR(C=1.0))])
+        final = Pipeline([("sc", StandardScaler()), ("svr", SVR(C=final_reg))])
     else:
         from sklearn.linear_model import LinearRegression
         final = LinearRegression()

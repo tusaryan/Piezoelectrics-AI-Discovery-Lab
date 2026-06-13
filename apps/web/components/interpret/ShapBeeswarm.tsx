@@ -19,11 +19,7 @@ export default function ShapBeeswarm() {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (selectedModelId && !beeswarm && !beeswarmLoading) {
-      fetchBeeswarm();
-    }
-  }, [selectedModelId, beeswarm, beeswarmLoading, fetchBeeswarm]);
+  // Removed auto-fetch useEffect to prevent heavy load on mount
 
   const drawChart = useCallback(() => {
     if (!beeswarm || !svgRef.current) return;
@@ -232,7 +228,12 @@ export default function ShapBeeswarm() {
         {beeswarmLoading && (
           <div className="interpret-loading">
             <Loader2 size={20} className="spin" />
-            <span>Computing SHAP values...</span>
+            <div>
+              <span>Computing SHAP values in background…</span>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                This may take 1–2 minutes for complex models. You can navigate away and come back — results will be cached.
+              </p>
+            </div>
           </div>
         )}
         {beeswarmError && (
@@ -250,7 +251,13 @@ export default function ShapBeeswarm() {
         )}
         {!beeswarm && !beeswarmLoading && !beeswarmError && (
           <div className="interpret-empty">
-            Select a model above to generate SHAP analysis
+            {selectedModelId ? (
+              <button className="btn btn-primary" onClick={() => fetchBeeswarm()}>
+                Load SHAP Beeswarm
+              </button>
+            ) : (
+              "Select a model above to generate SHAP analysis"
+            )}
           </div>
         )}
       </div>

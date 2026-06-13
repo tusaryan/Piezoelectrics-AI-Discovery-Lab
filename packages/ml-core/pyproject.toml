@@ -1,0 +1,42 @@
+[project]
+name = "piezo-ml"
+version = "2.1.0"
+description = "Piezo.AI ML Core — ALL ML logic lives here"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "scikit-learn>=1.6.0",
+    "xgboost>=2.1.0",
+    "lightgbm>=4.6.0",
+    "optuna>=4.2.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "joblib>=1.4.0",
+    "chemparse>=0.3.0",
+    "pymatgen>=2025.1.0",
+    "mendeleev>=0.9.0",
+    "shap>=0.46.0",
+    "matplotlib>=3.10.0",
+    "reportlab>=4.3.0",
+    "pymoo>=0.6.0",
+]
+
+[project.optional-dependencies]
+symbolic = [
+    "pysr>=1.4.0",
+]
+gnn = [
+    "torch>=2.0.0",
+    "chgnet>=0.3.0",
+    "matgl>=0.9.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["piezo_ml*"]

@@ -1,0 +1,21 @@
+{
+  "name": "piezo-ai",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Piezo.AI — AI-driven discovery platform for lead-free piezoelectric materials",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:web": "pnpm --filter @piezo-ai/web dev",
+    "dev:api": "pnpm --filter @piezo-ai/api dev",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

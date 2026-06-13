@@ -70,6 +70,10 @@ class ColumnMappingRequest(BaseModel):
         description="Mapping from CSV column names to backend field names. "
                     "e.g. {'Chemical Formula': 'formula', 'd33 (pC/N)': 'd33'}",
     )
+    strict_mode: bool = Field(
+        default=False,
+        description="Whether to use strict structural validation for formulas.",
+    )
 
     @field_validator("mapping")
     @classmethod
@@ -112,6 +116,7 @@ class MaterialUpdateRequest(BaseModel):
     surface_treatment: str | None = None
     source_doi: str | None = None
     source_notes: str | None = None
+    strict_mode: bool = Field(default=False)
 
 
 class MaterialCreateRequest(BaseModel):
@@ -134,6 +139,7 @@ class MaterialCreateRequest(BaseModel):
     surface_treatment: str = "none"
     source_doi: str | None = None
     source_notes: str | None = None
+    strict_mode: bool = Field(default=False)
 
 
 class BulkUpdateItem(BaseModel):
@@ -149,6 +155,7 @@ class BulkMaterialRequest(BaseModel):
         default_factory=list,
         description="List of material UUIDs to delete",
     )
+    strict_mode: bool = Field(default=False)
 
 
 class DatasetRenameRequest(BaseModel):

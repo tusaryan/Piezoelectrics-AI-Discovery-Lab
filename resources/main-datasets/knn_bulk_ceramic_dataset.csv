@@ -1,0 +1,37 @@
+formula,d33,tc,filler_wt_pct,matrix_type,particle_morphology,particle_size_nm,surface_treatment,fabrication_method,vickers_hardness,qm,kp,relative_density_pct,sintering_temp_c,sintering_method,ceramic_type,source_doi,source_notes
+KNbO3,66.4,435,0,none,none,,none,conventional,,,,,1100,conventional,soft,https://next-gen.materialsproject.org/materials/mp-3731,Materials Project DFT - mp-3731
+Na0.55K0.45NbO3,141.3,415,0,none,none,,none,conventional,,,,,1100,conventional,soft,https://pubs.acs.org/doi/10.1021/acsami.6b08199,ACS AMI 2016 - TGG study baseline
+K0.5Na0.5NbO3,151.0,420,0,none,none,,none,conventional,,,0.35,88,,conventional,soft,https://academic.oup.com/nsr/article/9/8/nwac101/6596159,Nat. Sci. Rev. 2022 - undoped KNN baseline
+K0.5Na0.5NbO3,160.0,420,0,none,none,,none,conventional,,,,,1100,conventional,soft,https://pubs.acs.org/doi/10.1021/acs.inorgchem.3c02680,ACS IC 2023 - standard sintering
+Li0.06(Na0.5K0.5)0.94NbO3,210.0,405,0,none,none,,none,conventional,,,,,1080,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+(K0.5Na0.5)0.98Li0.02NbO3,280.0,430,0,none,none,,none,tgg,,,,,,tgg,soft,https://pubs.acs.org/doi/10.1021/acsami.6b08199,ACS AMI 2016 - d33=280 Tc=430 paired high-performance
+0.94(K0.34Na0.6Ba0.06Nb0.96Zr0.06)O3-0.06LiSbO3,344.0,277,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+(K0.44Na0.52Li0.04)(Nb0.84Ta0.10Sb0.06)O3,416.0,253,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+(K0.44Na0.52Li0.04)(Nb0.86Ta0.10Sb0.04)O3,416.0,244,0,none,none,,none,rtgg,,,0.52,,,rtgg,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 - RTGG textured
+0.96(K0.48Na0.52)(Nb0.95Sb0.05)O3-0.04Bi0.5(Na0.7K0.2Li0.1)0.5ZrO3,380.0,263,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.96(K0.5Na0.5)(Nb0.96Sb0.04)O3-0.04(Bi0.5Na0.5)(Zr0.8Ti0.2)O3,323.0,302,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.948(K0.5Na0.5)NbO3-0.052LiSbO3,265.0,458,0,none,none,,none,conventional,,,0.47,,,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.96K0.46Na0.54Nb0.95Sb0.05O3-0.04Bi0.5(Na0.82K0.18)0.5ZrO3,465.0,228,0,none,none,,none,conventional,,,,,1080,conventional,soft,https://www.sciencedirect.com/science/article/pii/S0272884224010745,Ceram. Int. 2024 giant-d33 vs sintering temp
+0.9575(K0.48Na0.52)(Nb0.95Sb0.05)O3-0.0425Bi0.5Ag0.5ZrO3,490.0,220,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.955(K0.5Na0.5)(Nb0.965Sb0.035)O3-0.045(Bi0.9Al0.1)Na0.5ZrO3,570.0,193,0,none,none,,none,conventional,,,0.56,92.5,1090,conventional,soft,https://pmc.ncbi.nlm.nih.gov/articles/PMC10972221/,PMC MDPI 2024 - Table 1 KNNS-BNH x=0.045
+0.955(K0.5Na0.5)(Nb0.965Sb0.035)O3-0.035(Bi0.9Al0.1)Na0.5ZrO3,350.0,,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://pmc.ncbi.nlm.nih.gov/articles/PMC10972221/,PMC MDPI 2024 - Table 1 KNNS-BNH x=0.035
+0.955(K0.5Na0.5)(Nb0.965Sb0.035)O3-0.047(Bi0.9Al0.1)Na0.5ZrO3,475.0,,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://pmc.ncbi.nlm.nih.gov/articles/PMC10972221/,PMC MDPI 2024 - Table 1 KNNS-BNH x=0.047
+0.964K0.4Na0.6Nb0.955Sb0.045O3-0.006BiFeO3-0.03Bi0.5Na0.5ZrO3,550.0,200,0,none,none,,none,conventional,,,,,1080,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.96K0.48Na0.52Nb0.96Sb0.04O3-0.04Bi0.525Na0.5ZrO3,522.0,209,0,none,none,,none,conventional,,,,,1080,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.964(K0.48Na0.52)(Nb0.96Sb0.04)O3-0.004(K0.5Na0.5)NbO3-0.032Bi0.5(Na0.82K0.18)0.5ZrO3,680.0,,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://pmc.ncbi.nlm.nih.gov/articles/PMC10972221/,PMC MDPI 2024 - KNNS-CZ-BAZ x=0.03 record d33
+0.944K0.48Na0.52Nb0.95Sb0.05O3-0.04Bi0.5(Na0.82K0.18)0.5ZrO3-0.016AgSbO3-0.004Fe2O3,650.0,166,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+0.96K0.4Na0.6Nb0.965Sb0.035O3-0.02BaZrO3-0.03Bi0.5K0.5HfO3,570.0,193,0,none,none,,none,conventional,,,,,1090,conventional,soft,https://www.nature.com/articles/s41524-023-01187-1,npj Comp. Mat. 2023 ML dataset
+K0.5Na0.5NbO3,129.0,420,0,none,none,,none,hot_press,,,0.43,97,,hot_press,soft,https://pubs.acs.org/doi/abs/10.1021/acs.inorgchem.3c02680,ACS IC 2023 - SPS/hot-press undoped KNN density 97%
+K0.45Na0.55NbO3,104.0,,0,none,none,,none,conventional,,,,,,conventional,soft,https://www.sciencedirect.com/science/article/abs/pii/S0272884224038513,Ceram. Int. 2024 - ZnO grain refiner reduced grain size
+0.96K0.46Na0.54Nb0.95Sb0.05O3-0.04Bi0.5(Na0.82K0.18)0.5ZrO3,388.0,,0,none,none,,none,conventional,,,,,1070,conventional,soft,https://www.sciencedirect.com/science/article/pii/S0272884224010745,Ceram. Int. 2024 - sintering temp study TS=1070C
+0.96K0.46Na0.54Nb0.95Sb0.05O3-0.04Bi0.5(Na0.82K0.18)0.5ZrO3,465.0,,0,none,none,,none,conventional,,,,,1105,conventional,soft,https://www.sciencedirect.com/science/article/pii/S0272884224010745,Ceram. Int. 2024 - sintering temp study TS=1105C (optimal)
+K0.5Na0.5NbO3 + CuO acceptor doped,100.0,188,0,none,none,,none,conventional,,1500,,95,1130,conventional,hard,https://pmc.ncbi.nlm.nih.gov/articles/PMC2868336/,PMC 2010 - KNN-KCN Qm>1500 low dielectric loss 0.6%
+K0.5Na0.5NbO3-KCN (0.5mol%),80.0,188,0,none,none,,none,conventional,,1500,,95,1160,conventional,hard,https://pmc.ncbi.nlm.nih.gov/articles/PMC2868336/,PMC 2010 - acceptor doped hard ceramic benchmark
+KNNT-BNZ-CuO (O-T boundary),260.0,293,0,none,none,,none,conventional,,210,,,1090,conventional,hard,https://pubs.acs.org/doi/10.1021/acsami.2c18015,ACS AMI 2022 - CuO + phase boundary engineering
+K0.5Na0.5NbO3 + Ho + CuNb codoped,120.0,392,0,none,none,,none,conventional,,850,,,1090,conventional,hard,https://pubs.acs.org/doi/abs/10.1021/acs.inorgchem.3c02046,ACS InorgChem 2023 - d33=120 Qm=850 Tc=392
+KNN-CuO textured (RTGG 001),134.0,415,0,none,none,,none,rtgg,,582,0.58,,1100,rtgg,hard,https://pubs.acs.org/doi/10.1021/acsami.3c16488,ACS AMI 2024 - textured+doped Qm=582 kp=0.58
+KNN hierarchical domain multivalent acceptor,132.0,,0,none,none,,none,conventional,,948,,,1090,conventional,hard,https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.202425699,Adv. Funct. Mat. 2025 - highest Qm=948
+KNN-BNH-CuO-Fe2O3 (R-O-T),340.0,305,0,none,none,,none,conventional,,211,,,1090,conventional,hard,https://www.sciencedirect.com/science/article/abs/pii/S0955221924003753,J. Eur. Ceram. Soc. 2024 - hard + high d33 combo
+KNNS-BNZ sintered at 1060C,310.0,,0,none,none,,none,conventional,,,,,1060,conventional,soft,https://chalcogen.ro/813_ZhaoHW.pdf,Chalcogen 2024 - sintering temp effect KNNS-BNZ
+KNNS-BNZ sintered at 1080C,420.0,,0,none,none,,none,conventional,,,,,1080,conventional,soft,https://chalcogen.ro/813_ZhaoHW.pdf,Chalcogen 2024 - optimal sintering temp
+KNNS-BNZ sintered at 1100C,380.0,,0,none,none,,none,conventional,,,,,1100,conventional,soft,https://chalcogen.ro/813_ZhaoHW.pdf,Chalcogen 2024 - over-sintered grain coarsening

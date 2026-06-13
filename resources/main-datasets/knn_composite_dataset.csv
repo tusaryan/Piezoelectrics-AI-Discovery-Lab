@@ -1,0 +1,15 @@
+formula,d33,tc,filler_wt_pct,matrix_type,particle_morphology,particle_size_nm,surface_treatment,fabrication_method,vickers_hardness,qm,kp,relative_density_pct,sintering_temp_c,sintering_method,ceramic_type,source_doi,source_notes
+K0.5Na0.5NbO3,0,105,0,pvdf,none,,,electrospinning,,,,,,,composite,https://pubs.rsc.org/en/content/articlelanding/2023/se/d3se00880k,RSC Sust. Energy 2023 - pure PVDF baseline Voc=2.5V
+K0.5Na0.5NbO3,28.0,105,5,pvdf,spherical,80,untreated,solvent_cast,45,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0272884222004436,Ceram. Int. 2022 - PVDF/KNN solution cast low loading
+K0.5Na0.5NbO3,28.0,105,40,pvdf,spherical,200,untreated,solvent_cast,45,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0272884222004436,Ceram. Int. 2022 - 40wt% KNN d33=28 er=156
+K0.5Na0.5NbO3,50.0,112,40,pvdf,spherical,200,untreated,solvent_cast,38,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0272884222004436,Ceram. Int. 2022 - 40wt% KNN/CNT d33=50 optimal
+K0.5Na0.5NbO3,,105,10,pvdf,rod,200,untreated,solvent_cast,,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S1566119919305749,SciDirect 2019 - KNN nanorods beta-phase~98% Voc=3.4V
+K0.5Na0.5NbO3,,105,3,pvdf,rod,150,silane,electrospinning,,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0360544220304928,Energy 2020 - SM-KNN silane modified Voc~21V
+K0.5Na0.5NbO3,,105,3,pvdf,rod,150,silane,electrospinning,,,,,,,composite,https://onlinelibrary.wiley.com/doi/10.1002/er.5306,Int. J. Energy 2020 - PVDF/KNN/ZnO beta~94% Voc=25V
+K0.5Na0.5NbO3,,105,80,pvdf,spherical,500,untreated,hot_press,,,,,120,conventional,composite,https://www.sciencedirect.com/science/article/abs/pii/S0272884220332533,Ceram. Int. 2020 - hot-press 80wt% Pr=0.255 Ec=20.5kV/cm
+K0.5Na0.5NbO3,,105,10,pvdf,spherical,100,untreated,electrospinning,,,,,,,composite,https://pubs.rsc.org/en/content/articlelanding/2023/se/d3se00880k,RSC Sust. Energy 2023 - ball-milled KNN NPs beta=82% Voc~25V
+K0.5Na0.5NbO3,,105,3,pvdf,spherical,100,untreated,electrospinning,,,,,,,composite,https://pubs.rsc.org/en/content/articlehtml/2023/na/d2na00773h,RSC Nanoscale 2023 - 3wt% beta=62% Voc=17.5V
+K0.5Na0.5NbO3,,105,3,pvdf,rod,100,untreated,electrospinning,,,,,,,composite,https://pubs.rsc.org/en/content/articlehtml/2023/na/d2na00773h,RSC Nanoscale 2023 - 3wt% KNN/CNT Voc=23.24V
+K0.5Na0.5NbO3,,105,,pvdf-hfp,spherical,,,cold_sinter,,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0925838824029608,J. Alloys 2024 - KNN-ZnO PVDF-HFP cold sinter Taguchi DOE
+K0.5Na0.5NbO3,,105,,p_vdf_trfe,spherical,,,electrospinning,,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0577907322003008,SciDirect 2022 - P(VDF-TrFE)/KNN+MXene beta=91.33% Voc=20V
+K0.5Na0.5NbO3(Zn-Sn doped),,,optimized,pvdf,rod,200,silane,electrospinning,,,,,,,composite,https://www.sciencedirect.com/science/article/abs/pii/S0360544222000056,Energy 2022 - KNN-ZS nanorods d33~95 Voc=25V

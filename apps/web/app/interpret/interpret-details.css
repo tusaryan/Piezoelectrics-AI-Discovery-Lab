@@ -1,0 +1,481 @@
+/*
+ * Piezo.AI — Interpretability Section Styles (Part 2)
+ * ====================================================
+ * Physics validation, symbolic regression, info tooltips
+ */
+
+/* ---------- Info Tooltip ---------- */
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-tooltip-trigger {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms;
+}
+
+.info-tooltip-trigger:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+.info-tooltip-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+  animation: tooltip-in 150ms ease;
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.info-tooltip-header button {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 150ms;
+}
+
+.info-tooltip-header button:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.info-tooltip-body {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.info-tooltip-body p {
+  margin-bottom: 6px;
+}
+
+.info-tooltip-body p:last-child {
+  margin-bottom: 0;
+}
+
+.info-tooltip-body strong {
+  color: var(--text);
+}
+
+/* ---------- Physics Validation ---------- */
+.physics-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.physics-score-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.physics-score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.physics-score-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.physics-score-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.physics-score-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirmed-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.violation-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--error);
+  font-weight: 500;
+}
+
+.skipped-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.physics-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  font-weight: 500;
+  transition: color 150ms;
+}
+
+.physics-toggle-btn:hover {
+  color: var(--primary-hover);
+}
+
+.physics-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.physics-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.physics-section-title.confirmed { color: var(--success); }
+.physics-section-title.violation { color: var(--error); }
+
+.physics-check-row {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+
+.physics-check-row.confirmed {
+  background: rgba(16, 185, 129, 0.06);
+  border-left: 3px solid var(--success);
+}
+
+.physics-check-row.violation {
+  background: rgba(239, 68, 68, 0.06);
+  border-left: 3px solid var(--error);
+}
+
+.physics-check-feature {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.physics-check-reason {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.physics-check-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ---------- Symbolic Regression ---------- */
+.symreg-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--warning);
+}
+
+.symreg-unavailable strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.symreg-unavailable p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.symreg-run-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.symreg-description {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.symreg-run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms;
+}
+
+.symreg-run-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.symreg-run-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.symreg-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.symreg-best {
+  background: linear-gradient(135deg, var(--primary-glow), transparent);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.symreg-best-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.symreg-best-equation {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+
+.symreg-best-readable {
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.symreg-pareto h4,
+.symreg-table h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.symreg-table-scroll {
+  overflow-x: auto;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.symreg-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.symreg-table th {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+
+.symreg-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.symreg-table tr {
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.symreg-table tr:hover {
+  background: var(--card-hover);
+}
+
+.symreg-table tr.best-row {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.symreg-table tr.selected {
+  background: var(--primary-glow);
+}
+
+.symreg-table .eq-cell {
+  max-width: 300px;
+  overflow-x: auto;
+}
+
+.symreg-selected-detail {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.symreg-selected-detail .detail-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.symreg-selected-detail code {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.symreg-meta {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------- KaTeX Container ---------- */
+.katex-container {
+  font-size: 14px;
+}
+
+.katex-container .katex {
+  font-size: inherit;
+}
+
+/* ---------- Spin Animation ---------- */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Responsive: LG ---------- */
+@media (max-width: 1439px) {
+  .selector-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+/* ---------- Responsive: MD ---------- */
+@media (max-width: 1079px) {
+  .interpret-row-half {
+    flex-direction: column;
+  }
+
+  .waterfall-bar-row {
+    grid-template-columns: 140px 1fr 70px;
+  }
+}
+
+/* ---------- Responsive: SM ---------- */
+@media (max-width: 767px) {
+  .interpret-row {
+    flex-direction: column;
+  }
+
+  .selector-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .waterfall-bar-row {
+    grid-template-columns: 100px 1fr 60px;
+  }
+
+  .info-tooltip-popup {
+    width: 260px;
+    right: -40px;
+  }
+
+  .physics-score-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

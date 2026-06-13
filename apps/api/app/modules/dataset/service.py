@@ -42,7 +42,7 @@ from app.modules.dataset.schemas import (
 # ---------------------------------------------------------------------------
 
 # Project root — used for temp file storage
-_PROJECT_ROOT = Path(__file__).resolve().parents[4]  # apps/api/app/modules/dataset/ → root
+_PROJECT_ROOT = Path(__file__).resolve().parents[5]  # apps/api/app/modules/dataset/ → root
 _TEMP_DIR = _PROJECT_ROOT / "resources" / "training-artifacts" / ".tmp"
 
 
@@ -310,6 +310,7 @@ async def apply_column_mapping(
     dataset_id: str,
     mapping: dict[str, str],
     db: AsyncSession,
+    strict_mode: bool = False,
 ) -> DatasetDetailResponse:
     """
     Apply column mapping and save rows to materials table.
@@ -394,6 +395,8 @@ async def apply_column_mapping(
                         row_data[num_field] = None
 
         # Clean string fields
+        # Sentinel values that should be treated as null/missing
+        SENTINEL_VALUES = {"-", "--", "N/A", "n/a", "NA", "null", "nan", "NaN", "NULL", "None", "none_reported", "not_reported"}
         for str_field in [
             "formula", "sintering_method", "ceramic_type", "fabrication_method",
             "matrix_type", "particle_morphology", "surface_treatment",
@@ -406,7 +409,13 @@ async def apply_column_mapping(
                         "matrix_type", "particle_morphology", "surface_treatment"
                     ) else "none"
                 else:
-                    row_data[str_field] = str(val).strip()
+                    cleaned = str(val).strip()
+                    if cleaned in SENTINEL_VALUES:
+                        row_data[str_field] = None if str_field not in (
+                            "matrix_type", "particle_morphology", "surface_treatment"
+                        ) else "none"
+                    else:
+                        row_data[str_field] = cleaned
 
         # Ensure formula is not empty
         formula_val = row_data.get("formula", "")
@@ -427,7 +436,7 @@ async def apply_column_mapping(
         materials.append(material)
 
     # Validate formulas via ml-core
-    validation_results = validate_formulas_batch(formulas)
+    validation_results = validate_formulas_batch(formulas, strict_mode=strict_mode)
     for material, vr in zip(materials, validation_results):
         material.parse_status = vr.parse_status
         material.parse_warnings = vr.parse_warnings_str
@@ -769,6 +778,7 @@ async def add_material(
     dataset_id: str,
     data: dict[str, Any],
     db: AsyncSession,
+    strict_mode: bool = False,
 ) -> MaterialResponse:
     """Add a new material row to a dataset with next available uid."""
     # Get next uid
@@ -780,17 +790,13 @@ async def add_material(
     max_uid = result.scalar() or 0
     next_uid = max_uid + 1
 
-    # Validate consistency before any defaults
-    consistency_errors = validate_material_consistency(data)
-    if consistency_errors:
-        raise ValueError(" | ".join(consistency_errors))
 
     # Apply bulk ceramic defaults for strict bulk rows
     data = apply_bulk_ceramic_defaults(data)
 
     # Validate formula
     from piezo_ml.validators.formula_validator import validate_formula
-    vr = validate_formula(data.get("formula", ""))
+    vr = validate_formula(data.get("formula", ""), strict_mode=strict_mode)
 
     material = Material(
         dataset_id=uuid.UUID(dataset_id),
@@ -831,6 +837,7 @@ async def update_material(
     material_id: str,
     data: dict[str, Any],
     db: AsyncSession,
+    strict_mode: bool = False,
 ) -> MaterialResponse:
     """Update a single material row."""
     result = await db.execute(
@@ -843,17 +850,12 @@ async def update_material(
     if not material:
         raise ValueError(f"Material {material_id} not found in dataset {dataset_id}")
 
-    # Validate and apply updates
-    candidate = _serialize_material(material)
-    candidate.update(data)
-
-    consistency_errors = validate_material_consistency(candidate)
-    if consistency_errors:
-        raise ValueError(" | ".join(consistency_errors))
-
+    # Apply updates — no cell-level categorical validation.
+    # Users fix issues inline; the quality report (Re-run Review Issues)
+    # catches invalid values after save, keeping the edit UX frictionless.
     for field_name, value in data.items():
         if hasattr(material, field_name) and field_name not in ("id", "uid", "dataset_id"):
-            # Basic type validation
+            # Basic type validation for numeric fields only
             if field_name in (
                 "d33", "tc", "vickers_hardness", "qm", "kp",
                 "relative_density_pct", "sintering_temp_c",
@@ -861,21 +863,13 @@ async def update_material(
             ):
                 if value is not None and not isinstance(value, (int, float)):
                     raise ValueError(f"Field '{field_name}' must be a number or null")
-            if field_name in CATEGORICAL_FIELD_OPTIONS and value is not None:
-                if not isinstance(value, str):
-                    raise ValueError(f"Field '{field_name}' must be a string or null")
-                if value not in CATEGORICAL_FIELD_OPTIONS[field_name]:
-                    raise ValueError(
-                        f"Invalid value '{value}' for '{field_name}'. "
-                        f"Expected: {', '.join(CATEGORICAL_FIELD_OPTIONS[field_name])}"
-                    )
             setattr(material, field_name, value)
 
     # Re-validate formula if changed — validate the NEW value, not the DB value
     if "formula" in data:
         from piezo_ml.validators.formula_validator import validate_formula
         new_formula = data["formula"]
-        vr = validate_formula(new_formula)
+        vr = validate_formula(new_formula, strict_mode=strict_mode)
         material.parse_status = vr.parse_status
         material.parse_warnings = vr.parse_warnings_str
         material.formula = vr.normalized_formula  # always update to normalized
@@ -889,13 +883,6 @@ async def update_material(
         "normalized_formula": material.formula,
         "formula": material.formula,
     }
-
-    # Re-apply bulk ceramic defaults if composite fields changed
-    if any(f in data for f in ("filler_wt_pct", "matrix_type")):
-        row_dict = _serialize_material(material)
-        row_dict = apply_bulk_ceramic_defaults(row_dict)
-        for k in ("matrix_type", "particle_morphology", "surface_treatment", "particle_size_nm", "filler_wt_pct"):
-            setattr(material, k, row_dict[k])
 
     await db.flush()
 
@@ -916,6 +903,7 @@ async def bulk_update_materials(
     updates: list[dict[str, Any]],
     deletes: list[str],
     db: AsyncSession,
+    strict_mode: bool = False,
 ) -> BulkUpdateResponse:
     """Bulk update and/or delete materials."""
     errors: list[str] = []
@@ -938,7 +926,7 @@ async def bulk_update_materials(
             if not material:
                 errors.append(f"Update {mid}: not found")
                 continue
-            await update_material(dataset_id, mid, update_data, db)
+            await update_material(dataset_id, mid, update_data, db, strict_mode=strict_mode)
             updated_count += 1
         except Exception as e:
             uid_txt = f"uid={getattr(material, 'uid', '?')} " if "material" in locals() and material else ""
